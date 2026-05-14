@@ -10,7 +10,7 @@ import { Logger, NetworkURN } from '@/services/types.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities, Subscribable } from '../types.js'
-import { hydrationDexMonitor } from './networks/hydration/index.js'
+import { hydrationDexMonitor } from './networks/hydration/monitor.js'
 import { moonbeamDexMonitor } from './networks/moonbeam/monitor.js'
 import { createDefiDatabase } from './repositories/db.js'
 import { DefiRepository } from './repositories/repository.js'
@@ -47,7 +47,6 @@ export class DefiAgent implements Agent, Subscribable {
     name: 'DeFi Agent',
     description: 'Indexes and tracks DeFi activity and liquidity.',
     capabilities: getAgentCapabilities(this),
-    runInBackground: true,
   }
 
   readonly #log: Logger
@@ -93,7 +92,7 @@ export class DefiAgent implements Agent, Subscribable {
     }
 
     this.#addMonitors(
-      hydrationDexMonitor(this.#ingress, this.#dependencies.steward),
+      hydrationDexMonitor(this.#log, this.#ingress, this.#dependencies.steward),
       moonbeamDexMonitor(this.#ingress.evm),
     )
 

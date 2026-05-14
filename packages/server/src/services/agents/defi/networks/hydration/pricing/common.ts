@@ -35,12 +35,12 @@ export function absDiff(a: bigint, b: bigint): bigint {
 }
 
 export function toPrecisionNumber({
-  priceScaled,
+  amountScaled,
   decimalsIn,
   decimalsOut,
   scale = PRECISION_BIGINT,
 }: {
-  priceScaled: bigint
+  amountScaled: bigint
   decimalsIn: number
   decimalsOut: number
   scale?: bigint
@@ -49,11 +49,11 @@ export function toPrecisionNumber({
 
   let finalPriceBI: bigint
   if (exponentDiff < 0) {
-    finalPriceBI = priceScaled / 10n ** BigInt(Math.abs(exponentDiff))
+    finalPriceBI = amountScaled / 10n ** BigInt(Math.abs(exponentDiff))
   } else if (exponentDiff > 0) {
-    finalPriceBI = priceScaled * 10n ** BigInt(exponentDiff)
+    finalPriceBI = amountScaled * 10n ** BigInt(exponentDiff)
   } else {
-    finalPriceBI = priceScaled
+    finalPriceBI = amountScaled
   }
 
   return Number(finalPriceBI) / Number(scale)

@@ -1,26 +1,35 @@
 import { AssetMetadata } from '@/services/agents/steward/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
+import { MoneyMarketPayload } from '../../types.js'
 
-export type PoolReserve = {
+export interface PoolReserve {
   reserves: bigint
   decimals: number
 }
 
-export type PoolToken = PoolReserve & {
+export interface PoolToken extends PoolReserve {
   id: number
   symbol?: string
 }
 
-export type OmniPoolToken = PoolToken & {
+export interface OmniPoolToken extends PoolToken {
   hubReserves: bigint
   cap: bigint
   shares: bigint
   protocolShares: bigint
 }
 
-export type AaveToken = PoolToken & {
-  isUnderlying: boolean
+export interface UnderlyingToken extends PoolToken {
+  isUnderlying: true;
+  available: bigint;
+  borrowed: bigint;
 }
+
+export interface AToken extends PoolToken {
+  isUnderlying: false;
+}
+
+export type AaveToken = UnderlyingToken | AToken
 
 export type Peg = [bigint, bigint]
 
@@ -50,9 +59,8 @@ export type XykPool = PoolBase & {
 
 export type AavePool = PoolBase & {
   type: 'aave'
-  borrowed: bigint
-  available: bigint
   oraclePrice: bigint
+  details: MoneyMarketPayload
   tokens: AaveToken[]
 }
 

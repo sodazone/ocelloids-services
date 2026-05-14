@@ -60,6 +60,21 @@ export type DefiLiquidityAsset = {
 
   role?: 'liquid' | 'collateral' | 'debt'
 }
+/**
+ * @public
+ */
+ export type MoneyMarketPayload = Partial<{
+   utilization: number
+   borrowAPR: number
+   supplyAPR: number
+   isPaused: boolean
+   canBorrow: boolean
+   borrowCap: string
+   health: {
+     solvencyRatio: number
+     badDebtUSD?: number
+   }
+ }>
 
 /**
  * @public
@@ -76,18 +91,7 @@ export type DefiLiquidityPayload = {
 
   assets: DefiLiquidityAsset[]
 
-  lending?: Partial<{
-    utilization: number
-    borrowAPR: number
-    supplyAPR: number
-    isPaused: boolean
-    canBorrow: boolean
-    borrowCap: string
-    health: {
-      solvencyRatio: number
-      badDebtUSD?: number
-    }
-  }>
+  lending?: MoneyMarketPayload
 }
 
 /**
