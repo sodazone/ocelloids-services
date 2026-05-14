@@ -64,18 +64,36 @@ export type AavePool = PoolBase & {
   tokens: AaveToken[]
 }
 
-export type Pool = StableSwapPool | OmniPool | XykPool | AavePool
+export type HsmPool = PoolBase & {
+  type: 'hsm'
+  hsmAddress: string
+  hsmMintCapacity: bigint
+  hollarId: number
+  hollarH160: HexString
+  collateralId: number
+  collateralBalance: bigint
+  maxBuyPriceCoefficient: bigint
+  maxInHolding: bigint
+  purchaseFee: number
+  buyBackFee: number
+  buyBackRate: number
+}
+
+export type Pool = StableSwapPool | OmniPool | XykPool | AavePool | HsmPool
 
 export type AssetMetadataFetcher = (assets: string[]) => Promise<AssetMetadata[]>
 
-export type PoolsContext = {
+export type PoolRegistry = {
   stableswap: StableSwapPool[]
-  omnipool: OmniPool | null
+  omnipool: OmniPool[]
   aave: AavePool[]
   xyk: XykPool[]
+  hsm: HsmPool[]
 }
 
-export type PoolType = keyof PoolsContext
+export type PoolType = keyof PoolRegistry
+
+export type PoolByType<K extends PoolType> = PoolRegistry[K][number]
 
 export type PoolsGraph = Map<number, Edge[]>
 

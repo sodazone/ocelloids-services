@@ -1,9 +1,10 @@
-import { Path, PoolsContext } from '../types.js'
+import { PoolRegistryManager } from '../pools/manager.js'
+import { Path } from '../types.js'
 import { calculateOmnipoolSpotPrice } from './omnimath.js'
 import { calculateStableswapSpotPrice } from './stablemath.js'
 import { calculateXykSpotPrice } from './xykmath.js'
 
-export function calculateSpot(poolsCtx: PoolsContext, path: Path) {
+export function calculateSpot(poolsManager: PoolRegistryManager, path: Path) {
   const [startNode, ...edges] = path
 
   let tokenIn = startNode.token
@@ -15,10 +16,11 @@ export function calculateSpot(poolsCtx: PoolsContext, path: Path) {
 
     switch (poolType) {
       case 'omnipool': {
-        if (poolsCtx.omnipool === null) {
+        const pool = poolsManager.getPool(poolType, poolAddress)
+        if (!pool) {
           throw new Error('Omnipool context is null')
         }
-        stepPrice = calculateOmnipoolSpotPrice(poolsCtx.omnipool, tokenIn, tokenOut)
+        stepPrice = calculateOmnipoolSpotPrice(pool, tokenIn, tokenOut)
         break
       }
       case 'aave': {
@@ -26,7 +28,7 @@ export function calculateSpot(poolsCtx: PoolsContext, path: Path) {
         break
       }
       case 'stableswap': {
-        const pool = poolsCtx.stableswap.find((p) => p.address === poolAddress)
+        const pool = poolsManager.getPool(poolType, poolAddress)
         if (!pool) {
           throw new Error(`Stable pool ${poolAddress} not found`)
         }
@@ -34,7 +36,7 @@ export function calculateSpot(poolsCtx: PoolsContext, path: Path) {
         break
       }
       case 'xyk': {
-        const pool = poolsCtx.xyk.find((p) => p.address === poolAddress)
+        const pool = poolsManager.getPool(poolType, poolAddress)
         if (!pool) {
           throw new Error(`XYK pool ${poolAddress} not found`)
         }

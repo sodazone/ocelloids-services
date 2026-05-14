@@ -24,7 +24,7 @@ export function createOmnipoolWatcher(
   fetchBalances: CustomDiscoveryFetcher,
   fetchAssetMetadata: AssetMetadataFetcher,
 ) {
-  async function loadPools(): Promise<OmniPool> {
+  async function loadPools(): Promise<OmniPool[]> {
     const balances = await fetchBalances(OMNI_POOL_ADDRESS)
 
     const omniAssets = await firstValueFrom(
@@ -70,64 +70,67 @@ export function createOmnipoolWatcher(
       }
     }
 
-    return buildOmniPool(tokens)
+    return [buildOmniPool(tokens)]
   }
 
-  async function updatePoolReserves(pool: OmniPool | null): Promise<OmniPool> {
-    const balances = await fetchBalances(OMNI_POOL_ADDRESS)
+  async function updatePoolReserves(pools: OmniPool[]): Promise<OmniPool[]> {
+    const promises = pools.map(async (pool) => {
+      const balances = await fetchBalances(OMNI_POOL_ADDRESS)
 
-    const omniAssets = await firstValueFrom(
-      storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
-        toArray(),
-      ),
-    )
-    const tokens: OmniPoolToken[] = []
+      const omniAssets = await firstValueFrom(
+        storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
+          toArray(),
+        ),
+      )
+      const tokens: OmniPoolToken[] = []
 
-    for (const { key, value } of omniAssets) {
-      try {
-        const bytes = Buffer.from(key.slice(2), 'hex')
-        const assetId = bytes.readUInt32LE(0)
+      for (const { key, value } of omniAssets) {
+        try {
+          const bytes = Buffer.from(key.slice(2), 'hex')
+          const assetId = bytes.readUInt32LE(0)
 
-        const { hub_reserve, cap, protocol_shares, shares } = value
+          const { hub_reserve, cap, protocol_shares, shares } = value
 
-        const balance = balances.find((b) => b.assetId === assetId)
-        if (balance === undefined) {
-          continue
+          const balance = balances.find((b) => b.assetId === assetId)
+          if (balance === undefined) {
+            continue
+          }
+
+          const reserves = balance.balance ?? 0n
+          if (reserves === 0n || hub_reserve === 0n) {
+            continue
+          }
+
+          const token = pool ? pool.tokens.find((m) => m.id === assetId) : undefined
+          if (!token) {
+            const [metadata] = await fetchAssetMetadata([assetId.toString()])
+            tokens.push({
+              id: assetId,
+              decimals: metadata?.decimals ?? 0,
+              symbol: metadata?.symbol,
+              reserves,
+              hubReserves: hub_reserve,
+              cap,
+              protocolShares: protocol_shares,
+              shares,
+            })
+          } else {
+            tokens.push({
+              ...token,
+              reserves,
+              hubReserves: hub_reserve,
+              cap,
+              protocolShares: protocol_shares,
+              shares,
+            })
+          }
+        } catch (error) {
+          console.error(`Error loading omnipool asset ${key}`, (error as Error).message)
         }
-
-        const reserves = balance.balance ?? 0n
-        if (reserves === 0n || hub_reserve === 0n) {
-          continue
-        }
-
-        const token = pool ? pool.tokens.find((m) => m.id === assetId) : undefined
-        if (!token) {
-          const [metadata] = await fetchAssetMetadata([assetId.toString()])
-          tokens.push({
-            id: assetId,
-            decimals: metadata?.decimals ?? 0,
-            symbol: metadata?.symbol,
-            reserves,
-            hubReserves: hub_reserve,
-            cap,
-            protocolShares: protocol_shares,
-            shares,
-          })
-        } else {
-          tokens.push({
-            ...token,
-            reserves,
-            hubReserves: hub_reserve,
-            cap,
-            protocolShares: protocol_shares,
-            shares,
-          })
-        }
-      } catch (error) {
-        console.error(`Error loading omnipool asset ${key}`, (error as Error).message)
       }
-    }
-    return buildOmniPool(tokens)
+      return buildOmniPool(tokens)
+    })
+    return Promise.all(promises)
   }
 
   function buildOmniPool(tokens: OmniPoolToken[]): OmniPool {

@@ -1,7 +1,6 @@
 import { firstValueFrom, Subject, Subscription } from 'rxjs'
 import { toAssetId } from '@/services/agents/common/assets.js'
 import { DataSteward } from '@/services/agents/steward/agent.js'
-import { hydrationBalancesFetcher } from '@/services/agents/steward/balances/mappers/hydration.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
@@ -10,13 +9,10 @@ import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { DefiLiquidityAsset, DefiSubscriptionPayload } from '../../types.js'
 import { CHAIN_ID } from './consts.js'
-import { createAaveWatcher } from './pools/aave.js'
-import { createOmnipoolWatcher } from './pools/omnipool.js'
-import { createStableswapWatcher } from './pools/stableswap.js'
-import { createXykWatcher } from './pools/xyk.js'
+import { createPoolManager } from './pools/manager.js'
 import { calculateSpot } from './pricing/index.js'
 import { buildGraph, getSwapPath } from './routing.js'
-import { AavePool, AaveToken, Path, Pool, PoolsContext } from './types.js'
+import { AavePool, AaveToken, Path, Pool } from './types.js'
 import { bigintToUsd } from './utils.js'
 
 const DEFAULT_QUOTE_TOKEN = 10
@@ -39,23 +35,9 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     return items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
   }
 
-  const substrateIngress = ingress.substrate
-  const evmIngress = ingress.evm
-
-  const fetchBalances = hydrationBalancesFetcher(CHAIN_ID, substrateIngress)
-
-  const omnipool = createOmnipoolWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
-  const stableswaps = createStableswapWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
-  const aave = createAaveWatcher(substrateIngress, evmIngress, fetchAssetMetadata)
-  const xyk = createXykWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
+  const poolsManager = createPoolManager(logger, ingress, fetchAssetMetadata)
 
   const subject = new Subject<DefiSubscriptionPayload>()
-  const pools: PoolsContext = {
-    stableswap: [],
-    omnipool: null,
-    aave: [],
-    xyk: [],
-  }
 
   const allTokens = new Set<number>()
   const cachedPaths: Map<number, Path | null> = new Map()
@@ -66,12 +48,9 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
   let initialised = false
 
   async function initialise(latestBlock: Block) {
-    pools.stableswap = await stableswaps.loadPools(latestBlock)
-    pools.omnipool = await omnipool.loadPools()
-    pools.xyk = await xyk.loadPools()
-    pools.aave = await aave.loadPools()
+    await poolsManager.init(latestBlock)
 
-    const allPools: Pool[] = getAllPools()
+    const allPools: Pool[] = poolsManager.getSwappablePools()
     for (const pool of allPools) {
       for (const token of pool.tokens) {
         allTokens.add(token.id)
@@ -89,13 +68,6 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     initialised = true
   }
 
-  async function updateReserves(block: Block) {
-    pools.xyk = await xyk.updatePoolReserves(pools.xyk)
-    pools.omnipool = await omnipool.updatePoolReserves(pools.omnipool)
-    pools.stableswap = await stableswaps.updatePoolReserves(pools.stableswap, block)
-    pools.aave = await aave.updatePoolReserves(pools.aave)
-  }
-
   function updatePrices() {
     for (const [asset, path] of cachedPaths) {
       if (!path) {
@@ -103,7 +75,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
         continue
       }
       try {
-        const spot = asset === DEFAULT_QUOTE_TOKEN ? 1 : calculateSpot(pools, path)
+        const spot = asset === DEFAULT_QUOTE_TOKEN ? 1 : calculateSpot(poolsManager, path)
         if (spot) {
           prices.set(asset, spot)
         } else {
@@ -189,38 +161,23 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     inFlight++
 
     try {
-      await updateReserves(block)
+      await poolsManager.updateReserves(block)
       updatePrices()
 
-      if (pools.omnipool) {
-        emitLiquidityEvent(pools.omnipool)
-      }
-      pools.stableswap.forEach((pool) => {
-        const tokensWithoutShares = pool.tokens.filter((t) => t.id !== pool.id)
-        emitLiquidityEvent({
-          ...pool,
-          tokens: tokensWithoutShares,
-        })
-      })
-      pools.xyk.forEach(emitLiquidityEvent)
-      pools.aave.forEach(emitMMLiquidityEvent)
+      poolsManager.getLiquidityPools().forEach(emitLiquidityEvent)
+      poolsManager.getLendingPools().forEach(emitMMLiquidityEvent)
     } finally {
       inFlight--
     }
   }
 
   async function start() {
-    const shared$ = SubstrateSharedStreams.instance(substrateIngress)
+    const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
     const blocks$ = shared$.blocks(CHAIN_ID)
     const latestBlock = await firstValueFrom(blocks$)
     await initialise(latestBlock)
 
     subs.push(blocks$.subscribe(onBlock))
-  }
-
-  function getAllPools(): Pool[] {
-    const { aave, omnipool, stableswap, xyk } = pools
-    return [omnipool, ...aave, ...stableswap, ...xyk].filter((p) => p !== null)
   }
 
   return {
