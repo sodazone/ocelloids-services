@@ -68,6 +68,7 @@ export type DefiLiquidityPayload = {
   type: 'liquidity'
   category: 'exchange' | 'money-market'
 
+  networkId: string
   protocol: string
   marketId: string
 

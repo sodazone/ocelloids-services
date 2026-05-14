@@ -14,12 +14,12 @@ export class DefiRepository {
     await this.#db.destroy()
   }
 
-  async upsertLiquidityData(network: string, payload: DefiLiquidityPayload): Promise<number> {
+  async upsertLiquidityData(payload: DefiLiquidityPayload): Promise<number> {
     return await this.#db.transaction().execute(async (trx) => {
       const pool = await trx
         .insertInto('defi_pool')
         .values({
-          network,
+          network: payload.networkId,
           protocol: payload.protocol,
           market_id: payload.marketId,
           category: payload.category,
@@ -55,8 +55,8 @@ export class DefiRepository {
     })
   }
 
-  async insertDefiEvent(db: Kysely<DefiDatabase>, payload: DefiEventPayload): Promise<number> {
-    return await db.transaction().execute(async (trx) => {
+  async insertDefiEvent(payload: DefiEventPayload): Promise<number> {
+    return await this.#db.transaction().execute(async (trx) => {
       const underlyingPool = await trx
         .selectFrom('defi_pool')
         .select('id')

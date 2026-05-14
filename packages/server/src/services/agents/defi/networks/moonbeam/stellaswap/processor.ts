@@ -85,6 +85,7 @@ export function createStellaswapProcessor({
           category: 'exchange',
           protocol: 'stellaswap',
           marketId: p.pool.address.toLowerCase(),
+          networkId: chainId,
           tvlUSD: Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1,
           assets: [
             {

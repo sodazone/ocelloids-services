@@ -102,7 +102,9 @@ export class DefiAgent implements Agent, Subscribable {
         monitor.events$.subscribe({
           next: async (payload) => {
             if (payload.type === 'liquidity') {
-              await this.#repository.upsertLiquidityData(monitor.chainId, payload)
+              await this.#repository.upsertLiquidityData(payload)
+            } else if (payload.type === 'event') {
+              await this.#repository.insertDefiEvent(payload)
             }
           },
         }),
