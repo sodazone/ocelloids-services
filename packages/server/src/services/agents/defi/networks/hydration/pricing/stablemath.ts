@@ -1,5 +1,5 @@
 import { Peg, PoolReserve, StableSwapPool } from '../types.js'
-import { normalizeReserves, PERMILL_BIGINT, PRECISION_BIGINT, PRECISION_NUM } from './common.js'
+import { normalizeReserves, PERMILL_BIGINT, PRECISION_BIGINT, PRECISION_NUM, toPrecisionNumber } from './common.js'
 
 function calculateAnn(n: number, amplification: bigint): bigint | null {
   return amplification * BigInt(n)
@@ -277,13 +277,7 @@ export function calculateStableswapSpotPrice(
   const { id: poolId, tokens, amplification, pegs } = pool
 
   const stableTokens = tokens
-    .map((r) => {
-      if (r.id === poolId) {
-        return null
-      }
-      return { id: r.id, reserves: r.reserves, decimals: r.decimals }
-    })
-    .filter((r) => r !== null)
+    .filter((r) => r.id !== poolId)
 
   const nCoins = stableTokens.length
 
@@ -333,16 +327,12 @@ export function calculateStableswapSpotPrice(
     }
     const priceScaled = (tradeAmount * PRECISION_BIGINT) / results.shares
 
-    const decimalAdjustment = 10n ** BigInt(Math.abs(stableTokens[i].decimals - sharesDecimals))
-
-    let finalPrice
-    if (stableTokens[i].decimals > sharesDecimals) {
-      finalPrice = priceScaled / decimalAdjustment
-    } else {
-      finalPrice = priceScaled * decimalAdjustment
-    }
-
-    return Number(finalPrice) / Number(PRECISION_BIGINT)
+    return toPrecisionNumber({
+      priceScaled,
+      decimalsIn: sharesDecimals,
+      decimalsOut: stableTokens[i].decimals,
+      scale: PRECISION_BIGINT
+    })
   }
 
   if (!isShareIn && isShareOut) {
@@ -365,18 +355,13 @@ export function calculateStableswapSpotPrice(
       return null
     }
 
-    const priceScaled = (tradeAmount * PRECISION_BIGINT) / result.shares
-
-    const decimalAdjustment = 10n ** BigInt(Math.abs(sharesDecimals - stableTokens[i].decimals))
-
-    let finalPrice
-    if (sharesDecimals < stableTokens[i].decimals) {
-      finalPrice = priceScaled / decimalAdjustment
-    } else {
-      finalPrice = priceScaled * decimalAdjustment
-    }
-
-    return Number(finalPrice) / Number(PRECISION_BIGINT)
+    const priceScaled = (result.shares * PRECISION_BIGINT) / tradeAmount
+    return toPrecisionNumber({
+      priceScaled,
+      decimalsIn: stableTokens[i].decimals,
+      decimalsOut: sharesDecimals,
+      scale: PRECISION_BIGINT
+    })
   }
 
   return null
