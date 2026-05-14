@@ -3,30 +3,13 @@ import { fromHex } from 'polkadot-api/utils'
 import { Enum, Struct, u256 } from 'scale-ts'
 import { normalizePublicKey } from '@/common/util.js'
 import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
-
-type Junction =
-  | { type: 'Parachain'; value: number }
-  | { type: 'GlobalConsensus'; value: any }
-  | { type: 'AccountId32'; value: { id: string } }
-  | { type: 'AccountKey20'; value: { key: string } }
-  | { type: string; value: any }
-
-type Interior =
-  | { type: 'Here' }
-  | { type: 'X1'; value: Junction[] }
-  | { type: 'X2'; value: Junction[] }
-  | { type: string; value: Junction[] }
-
-export interface Location {
-  parents: number
-  interior: Interior
-}
+import { XcmInterior, XcmJunction, XcmLocation } from '@/services/networking/substrate/types.js'
 
 export type GmpInstruction = {
   gmp: {
     xcm: {
-      destination: Location
-      beneficiary: Location
+      destination: XcmLocation
+      beneficiary: XcmLocation
     }
     resolved: {
       urn: string | undefined
@@ -91,7 +74,7 @@ const VersionedUserAction = Enum({
   XcmRoutingUserActionWithFee,
 })
 
-function interiorToArray(interior: Interior): Junction[] {
+function interiorToArray(interior: XcmInterior): XcmJunction[] {
   if (interior.type === 'Here') {
     return []
   }
@@ -101,7 +84,7 @@ function interiorToArray(interior: Interior): Junction[] {
   return []
 }
 
-function arrayToInterior(junctions: Junction[]): Interior {
+function arrayToInterior(junctions: XcmJunction[]): XcmInterior {
   switch (junctions.length) {
     case 0:
       return { type: 'Here' }
@@ -114,7 +97,7 @@ function arrayToInterior(junctions: Junction[]): Interior {
   }
 }
 
-function isChainIdJunction(j: Junction): boolean {
+function isChainIdJunction(j: XcmJunction): boolean {
   return j.type === 'Parachain' || j.type === 'GlobalConsensus'
 }
 
@@ -122,10 +105,12 @@ function isChainIdJunction(j: Junction): boolean {
  * Split an XCM Location into (chainPart, beneficiary).
  * Returns null if it can't be split.
  */
-export function splitLocationIntoChainPartAndBeneficiary(location: Location): [Location, Location] | null {
+export function splitLocationIntoChainPartAndBeneficiary(
+  location: XcmLocation,
+): [XcmLocation, XcmLocation] | null {
   const allJunctions = interiorToArray(location.interior)
-  const beneficiary: Junction[] = []
-  const chainPart: Junction[] = [...allJunctions]
+  const beneficiary: XcmJunction[] = []
+  const chainPart: XcmJunction[] = [...allJunctions]
 
   while (chainPart.length > 0) {
     const last = chainPart[chainPart.length - 1]
@@ -162,8 +147,8 @@ export function resolveDestinationAndBeneficiary({
   beneficiary,
   ss58Prefix,
 }: {
-  destination: Location
-  beneficiary?: Location
+  destination: XcmLocation
+  beneficiary?: XcmLocation
   ss58Prefix: number
 }) {
   let urn: string | undefined
@@ -171,7 +156,7 @@ export function resolveDestinationAndBeneficiary({
   try {
     if (destination?.parents === 1 && destination.interior?.type === 'X1') {
       const parachainJunction = (destination.interior as any).value?.find(
-        (v: Junction) => v.type === 'Parachain',
+        (v: XcmJunction) => v.type === 'Parachain',
       )
       if (parachainJunction) {
         urn = `urn:ocn:polkadot:${parachainJunction.value}`
@@ -187,7 +172,7 @@ export function resolveDestinationAndBeneficiary({
 
   try {
     const value = (beneficiary?.interior as any)?.value ?? []
-    const acc = value.find((v: Junction) => v.type === 'AccountId32' || v.type === 'AccountKey20')
+    const acc = value.find((v: XcmJunction) => v.type === 'AccountId32' || v.type === 'AccountKey20')
 
     if (acc) {
       if (acc.type === 'AccountId32') {
@@ -249,8 +234,8 @@ export function decodeGmpInstruction(payload: bigint | Uint8Array, ss58Prefix = 
     return null
   }
 
-  const maybeLocation: Location | undefined = versionedDestination?.value ?? versionedDestination
-  const split = splitLocationIntoChainPartAndBeneficiary(maybeLocation as Location)
+  const maybeLocation: XcmLocation | undefined = versionedDestination?.value ?? versionedDestination
+  const split = splitLocationIntoChainPartAndBeneficiary(maybeLocation as XcmLocation)
   if (!split) {
     return null
   }
