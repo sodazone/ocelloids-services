@@ -95,6 +95,7 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
       type: 'liquidity',
       category: 'money-market',
       protocol: 'moonwell',
+      networkId: chainId,
       marketId: mTokenAddress,
       tvlUSD,
       assets: [
