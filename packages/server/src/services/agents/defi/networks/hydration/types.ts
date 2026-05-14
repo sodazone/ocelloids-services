@@ -59,7 +59,7 @@ export type XykPool = PoolBase & {
 
 export type AavePool = PoolBase & {
   type: 'aave'
-  oraclePrice: bigint
+  oraclePrice: number
   details: MoneyMarketPayload
   tokens: AaveToken[]
 }
