@@ -27,7 +27,7 @@ export function calculateOmnipoolSpotPrice(pool: OmniPool, assetIn: number, asse
   const priceScaled = (num * PRECISION_BIGINT) / den
 
   return toPrecisionNumber({
-    priceScaled,
+    amountScaled: priceScaled,
     decimalsIn: assetInReserves.decimals,
     decimalsOut: assetOutReserves.decimals,
     scale: PRECISION_BIGINT,

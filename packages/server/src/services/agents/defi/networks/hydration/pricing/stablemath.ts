@@ -1,5 +1,11 @@
 import { Peg, PoolReserve, StableSwapPool } from '../types.js'
-import { normalizeReserves, PERMILL_BIGINT, PRECISION_BIGINT, PRECISION_NUM, toPrecisionNumber } from './common.js'
+import {
+  normalizeReserves,
+  PERMILL_BIGINT,
+  PRECISION_BIGINT,
+  PRECISION_NUM,
+  toPrecisionNumber,
+} from './common.js'
 
 function calculateAnn(n: number, amplification: bigint): bigint | null {
   return amplification * BigInt(n)
@@ -276,8 +282,7 @@ export function calculateStableswapSpotPrice(
 ): number | null {
   const { id: poolId, tokens, amplification, pegs } = pool
 
-  const stableTokens = tokens
-    .filter((r) => r.id !== poolId)
+  const stableTokens = tokens.filter((r) => r.id !== poolId)
 
   const nCoins = stableTokens.length
 
@@ -328,10 +333,10 @@ export function calculateStableswapSpotPrice(
     const priceScaled = (tradeAmount * PRECISION_BIGINT) / results.shares
 
     return toPrecisionNumber({
-      priceScaled,
+      amountScaled: priceScaled,
       decimalsIn: sharesDecimals,
       decimalsOut: stableTokens[i].decimals,
-      scale: PRECISION_BIGINT
+      scale: PRECISION_BIGINT,
     })
   }
 
@@ -357,10 +362,10 @@ export function calculateStableswapSpotPrice(
 
     const priceScaled = (result.shares * PRECISION_BIGINT) / tradeAmount
     return toPrecisionNumber({
-      priceScaled,
+      amountScaled: priceScaled,
       decimalsIn: stableTokens[i].decimals,
       decimalsOut: sharesDecimals,
-      scale: PRECISION_BIGINT
+      scale: PRECISION_BIGINT,
     })
   }
 

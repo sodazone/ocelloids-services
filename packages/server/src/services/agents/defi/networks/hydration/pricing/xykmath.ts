@@ -19,7 +19,7 @@ export function calculateXykSpotPrice(pool: XykPool, assetIn: number, assetOut: 
   const priceScaled = (outToken.reserves * PRECISION_BIGINT) / inToken.reserves
 
   return toPrecisionNumber({
-    priceScaled,
+    amountScaled: priceScaled,
     decimalsIn: inToken.decimals,
     decimalsOut: outToken.decimals,
     scale: PRECISION_BIGINT,

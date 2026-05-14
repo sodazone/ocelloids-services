@@ -10,32 +10,29 @@ const stablesReservesGiga: StableSwapPool = {
       id: 4200,
       reserves: 1790306993592652125730n,
       decimals: 18,
-      symbol: '2-Pool-GETH'
+      symbol: '2-Pool-GETH',
     },
     {
       id: 1007,
       reserves: 921613250525163625502n,
       decimals: 18,
-      symbol: 'aETH'
+      symbol: 'aETH',
     },
     {
       id: 1000809,
       reserves: 721095369326455464965n,
       decimals: 18,
-      symbol: 'wstETH'
-    }
+      symbol: 'wstETH',
+    },
   ],
   amplification: 100n,
   pegs: [
-    [ 1n, 1n ],
-    [
-      262533542342767814095402944701702117995n,
-      213014422497900992085811583939854325997n
-    ]
+    [1n, 1n],
+    [262533542342767814095402944701702117995n, 213014422497900992085811583939854325997n],
   ],
   fees: 690,
   isRampPeriod: false,
-  isLowLiquidity: false
+  isLowLiquidity: false,
 }
 
 const stableReservesDeepLiq: StableSwapPool = {
