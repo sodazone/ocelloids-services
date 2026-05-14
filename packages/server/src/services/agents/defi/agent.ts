@@ -108,7 +108,9 @@ export class DefiAgent implements Agent, Subscribable {
         }),
       )
 
-      await monitor.start()
+      monitor.start()
+
+      this.#log.info('[agent:%s] starting monitor %s', this.id, monitor.chainId)
     }
 
     if (subs !== undefined && subs.length > 0) {
