@@ -3,8 +3,9 @@ import { CustomDiscoveryFetcher } from '@/services/agents/steward/balances/types
 import { storageEntriesAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
-import { CHAIN_ID, OMNI_POOL_ADDRESS } from '../consts.js'
+import { CHAIN_ID, OMNIPOOL_ASCII } from '../consts.js'
 import { AssetMetadataFetcher, OmniPool, OmniPoolToken } from '../types.js'
+import { toSystemAccountKey } from '@/services/agents/common/accounts.js'
 
 type OmnipoolValue = {
   hub_reserve: bigint
@@ -24,8 +25,10 @@ export function createOmnipoolWatcher(
   fetchBalances: CustomDiscoveryFetcher,
   fetchAssetMetadata: AssetMetadataFetcher,
 ) {
+  const omnipoolAddress = toSystemAccountKey(OMNIPOOL_ASCII)
+
   async function loadPools(): Promise<OmniPool[]> {
-    const balances = await fetchBalances(OMNI_POOL_ADDRESS)
+    const balances = await fetchBalances(omnipoolAddress)
 
     const omniAssets = await firstValueFrom(
       storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
@@ -75,7 +78,7 @@ export function createOmnipoolWatcher(
 
   async function updatePoolReserves(pools: OmniPool[]): Promise<OmniPool[]> {
     const promises = pools.map(async (pool) => {
-      const balances = await fetchBalances(OMNI_POOL_ADDRESS)
+      const balances = await fetchBalances(omnipoolAddress)
 
       const omniAssets = await firstValueFrom(
         storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
@@ -136,7 +139,7 @@ export function createOmnipoolWatcher(
   function buildOmniPool(tokens: OmniPoolToken[]): OmniPool {
     return {
       type: 'omnipool',
-      address: OMNI_POOL_ADDRESS,
+      address: omnipoolAddress,
       tokens,
       isLowLiquidity: false,
     }
