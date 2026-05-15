@@ -31,6 +31,22 @@ export interface AToken extends PoolToken {
 
 export type AaveToken = UnderlyingToken | AToken
 
+export interface HsmMintedToken extends PoolToken {
+  isCollateral: false
+}
+
+export interface HsmCollateralToken extends PoolToken {
+  maxBuyPriceCoefficient: bigint
+  maxInHolding: bigint
+  purchaseFee: number
+  buyBackFee: number
+  buyBackRate: number
+  stablePoolId: number
+  isCollateral: true
+}
+
+export type HsmToken = HsmMintedToken | HsmCollateralToken
+
 export type Peg = [bigint, bigint]
 
 export type PoolBase = {
@@ -66,17 +82,9 @@ export type AavePool = PoolBase & {
 
 export type HsmPool = PoolBase & {
   type: 'hsm'
-  hsmAddress: string
+  id: number
+  tokens: HsmToken[]
   hsmMintCapacity: bigint
-  hollarId: number
-  hollarH160: HexString
-  collateralId: number
-  collateralBalance: bigint
-  maxBuyPriceCoefficient: bigint
-  maxInHolding: bigint
-  purchaseFee: number
-  buyBackFee: number
-  buyBackRate: number
 }
 
 export type Pool = StableSwapPool | OmniPool | XykPool | AavePool | HsmPool

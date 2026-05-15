@@ -3,8 +3,9 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { CHAIN_ID } from '../consts.js'
-import { AavePool, AssetMetadataFetcher, Pool, PoolByType, PoolRegistry, PoolType } from '../types.js'
+import { AssetMetadataFetcher, Pool, PoolByType, PoolRegistry, PoolType } from '../types.js'
 import { createAaveWatcher } from './aave.js'
+import { createHSMWatcher } from './hsm.js'
 import { createOmnipoolWatcher } from './omnipool.js'
 import { createStableswapWatcher } from './stableswap.js'
 import { createXykWatcher } from './xyk.js'
@@ -13,10 +14,9 @@ export interface PoolRegistryManager {
   init(block: Block): Promise<void>
   updateReserves(block: Block): Promise<void>
 
-  getAllPools(): Pool[]
   getSwappablePools(): Pool[]
   getLiquidityPools(): Pool[]
-  getLendingPools(): AavePool[]
+  getPools<K extends PoolType>(type: K): PoolByType<K>[]
   getPool<K extends PoolType>(type: K, address: string): PoolByType<K> | undefined
 }
 
@@ -34,6 +34,7 @@ export function createPoolManager(
   const stableswaps = createStableswapWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
   const aave = createAaveWatcher(substrateIngress, evmIngress, fetchAssetMetadata)
   const xyk = createXykWatcher(substrateIngress, fetchBalances, fetchAssetMetadata)
+  const hsm = createHSMWatcher(substrateIngress, evmIngress, fetchBalances, fetchAssetMetadata)
 
   const pools: PoolRegistry = {
     stableswap: [],
@@ -41,11 +42,6 @@ export function createPoolManager(
     aave: [],
     xyk: [],
     hsm: [],
-  }
-
-  function getAllPools(): Pool[] {
-    const { aave, omnipool, stableswap, xyk, hsm } = pools
-    return [...omnipool, ...aave, ...stableswap, ...xyk, ...hsm].filter((p) => p !== null)
   }
 
   function getSwappablePools(): Pool[] {
@@ -68,9 +64,8 @@ export function createPoolManager(
     ].filter((p) => p !== null)
   }
 
-  function getLendingPools(): AavePool[] {
-    const { aave } = pools
-    return aave
+  function getPools<K extends PoolType>(type: K): PoolByType<K>[] {
+    return pools[type]
   }
 
   function getPool<K extends PoolType>(type: K, address: string): PoolByType<K> | undefined {
@@ -78,26 +73,29 @@ export function createPoolManager(
   }
 
   async function init(latestBlock: Block) {
-    pools.stableswap = await stableswaps.loadPools(latestBlock)
+    const stablePools = await stableswaps.loadPools(latestBlock)
+    pools.stableswap = stablePools
     pools.omnipool = await omnipool.loadPools()
     pools.xyk = await xyk.loadPools()
     pools.aave = await aave.loadPools()
+    pools.hsm = await hsm.loadPools(stablePools)
   }
 
   async function updateReserves(block: Block) {
     pools.xyk = await xyk.updatePoolReserves(pools.xyk)
     pools.omnipool = await omnipool.updatePoolReserves(pools.omnipool)
-    pools.stableswap = await stableswaps.updatePoolReserves(pools.stableswap, block)
+    const stablePools = await stableswaps.updatePoolReserves(pools.stableswap, block)
+    pools.stableswap = stablePools
     pools.aave = await aave.updatePoolReserves(pools.aave)
+    pools.hsm = await hsm.updatePoolReserves(stablePools)
   }
 
   return {
     init,
     updateReserves,
     getSwappablePools,
-    getAllPools,
-    getLiquidityPools,
-    getLendingPools,
     getPool,
+    getPools,
+    getLiquidityPools,
   }
 }
