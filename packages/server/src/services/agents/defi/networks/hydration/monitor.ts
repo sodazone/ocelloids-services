@@ -58,7 +58,6 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     }
 
     const graph = buildGraph(allPools)
-
     for (const token of allTokens) {
       if (!cachedPaths.has(token)) {
         cachedPaths.set(token, getSwapPath(graph, token, DEFAULT_QUOTE_TOKEN))
@@ -82,7 +81,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
           logger.warn('[dex:hydration] No spot price calculated for asset %s', asset)
         }
       } catch (e) {
-        console.error(e)
+        logger.error(e, '[dex:hydration] Error updating price for asset %s', asset)
       }
     }
   }
@@ -90,7 +89,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
   function emitMMLiquidityEvent(pool: AavePool) {
     const underlying = pool.tokens.find((t: AaveToken) => t.isUnderlying)
     if (!underlying) {
-      logger.warn(`No underlying token found in AAVE pool ${pool.address}`)
+      logger.warn(`[dex:hydration] No underlying token found in AAVE pool ${pool.address}`)
       return
     }
     const reserves = underlying.reserves.toString()
@@ -165,7 +164,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       updatePrices()
 
       poolsManager.getLiquidityPools().forEach(emitLiquidityEvent)
-      poolsManager.getLendingPools().forEach(emitMMLiquidityEvent)
+      poolsManager.getPools('aave').forEach(emitMMLiquidityEvent)
     } finally {
       inFlight--
     }
