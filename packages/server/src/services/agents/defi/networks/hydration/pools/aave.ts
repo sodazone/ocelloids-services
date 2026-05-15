@@ -1,13 +1,13 @@
 import { Abi, erc20Abi } from 'viem'
-import { assetIdToHex } from '@/services/agents/common/hydration.js'
+import { hexToAssetId } from '@/services/agents/common/hydration.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
+import { MoneyMarketPayload } from '../../../types.js'
 import aaveDataProviderAbi from '../abi/aave_data_provider.json' with { type: 'json' }
-import { AaveV3HydrationMainnet } from '../config.js'
-import { CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
+import { ASSET_ID_MAP, CHAIN_ID, EVM_CHAIN_ID, AaveV3HydrationMainnet } from '../consts.js'
 import { PRECISION_BIGINT, TARGET_PRECISION } from '../pricing/common.js'
-import { AavePool, AssetMetadataFetcher } from '../types.js'
+import { AavePool, AaveToken, AssetMetadataFetcher } from '../types.js'
 import { bigintToNumber } from '../utils.js'
 
 const LOW_LIQUIDITY_POOLS: HexString[] = []
@@ -25,6 +25,7 @@ type AaveReservesDataResponse = {
   underlyingAsset: HexString
   aTokenAddress: HexString
   decimals: bigint
+  symbol: string
   availableLiquidity: bigint
   totalPrincipalStableDebt: bigint
   totalScaledVariableDebt: bigint
@@ -69,85 +70,92 @@ export function createAaveWatcher(
       throw new Error('No AAVE pools found')
     }
 
-    const poolTokens = pools.flatMap((p) => [p.reserve, p.atoken])
-    const assetMetadata = await fetchAssetMetadata(poolTokens.map((a) => a.toString()))
+    const atokens = pools.map((p) => p.atoken)
+    const atokensMetadata = await fetchAssetMetadata(atokens.map((a) => a.toString()))
 
     const aaveReservesData = aaveReservesResponse[0]
     const { marketReferenceCurrencyUnit } = aaveReservesResponse[1]
 
     const aavePools: AavePool[] = []
 
-    for (const { reserve, atoken } of pools) {
-      const reservesHex = assetIdToHex(reserve)
-      const reservesData = aaveReservesData.find((a) => a.underlyingAsset.toLowerCase() === reservesHex)
-      if (!reservesData) {
-        console.error(`No reserves data found for AAVE pool ${reserve}:${atoken}`)
+    for (const {
+      underlyingAsset,
+      symbol,
+      decimals,
+      aTokenAddress,
+      availableLiquidity,
+      borrowCap,
+      borrowingEnabled,
+      isPaused,
+      liquidityRate,
+      priceInMarketReferenceCurrency,
+      supplyCap,
+      totalPrincipalStableDebt,
+      totalScaledVariableDebt,
+      unbacked,
+      variableBorrowIndex,
+      variableBorrowRate,
+    } of aaveReservesData) {
+      const underlyingAssetId = ASSET_ID_MAP.get(underlyingAsset) ?? hexToAssetId(underlyingAsset)
+
+      if (!underlyingAssetId) {
+        console.error(`No underlyingAssetId found for AAVE pool ${underlyingAsset}:${aTokenAddress}`)
         continue
       }
-      const {
-        aTokenAddress,
-        availableLiquidity,
-        borrowCap,
-        borrowingEnabled,
-        isPaused,
-        liquidityRate,
-        priceInMarketReferenceCurrency,
-        supplyCap,
-        totalPrincipalStableDebt,
-        totalScaledVariableDebt,
-        unbacked,
-        variableBorrowIndex,
-        variableBorrowRate,
-      } = reservesData
-      const aTokenSupply = await evmIngress.readContract<bigint>(EVM_CHAIN_ID, {
-        address: aTokenAddress,
-        abi: erc20Abi,
-        functionName: 'totalSupply',
-      })
 
-      const reserveMetadata = assetMetadata.find((m) => m.id === reserve)
-      const atokenMetadata = assetMetadata.find((m) => m.id === atoken)
+      const tokens: AaveToken[] = []
 
       const borrowed = (totalScaledVariableDebt * variableBorrowIndex) / RAY + totalPrincipalStableDebt
       const reserves = availableLiquidity + borrowed
       const utilization = bigintToNumber((borrowed * PRECISION_BIGINT) / reserves, TARGET_PRECISION)
       const supplied = reserves - unbacked
-      const solvencyRatio = bigintToNumber((supplied * PRECISION_BIGINT) / aTokenSupply, TARGET_PRECISION)
+
+      tokens.push({
+        id: underlyingAssetId,
+        reserves,
+        available: availableLiquidity,
+        borrowed,
+        decimals: Number(decimals),
+        symbol,
+        isUnderlying: true,
+      })
+
+      const lendingDetails: MoneyMarketPayload = {
+        utilization,
+        borrowAPR: bigintToNumber(variableBorrowRate, RAY_DECIMALS),
+        supplyAPR: bigintToNumber(liquidityRate, RAY_DECIMALS),
+        borrowCap: borrowCap.toString(),
+        supplyCap: supplyCap.toString(),
+        canBorrow: borrowingEnabled,
+        isPaused: isPaused,
+      }
+
+      const pair = pools.find((a) => a.reserve === underlyingAssetId)
+      if (pair !== undefined) {
+        const aTokenSupply = await evmIngress.readContract<bigint>(EVM_CHAIN_ID, {
+          address: aTokenAddress,
+          abi: erc20Abi,
+          functionName: 'totalSupply',
+        })
+        lendingDetails.health = {
+          solvencyRatio: bigintToNumber((supplied * PRECISION_BIGINT) / aTokenSupply, TARGET_PRECISION),
+        }
+        const atokenMetadata = atokensMetadata.find((m) => m.id === pair.atoken)
+        tokens.push({
+          id: pair.atoken,
+          reserves: aTokenSupply,
+          decimals: atokenMetadata?.decimals ?? 0,
+          symbol: atokenMetadata?.symbol,
+          isUnderlying: false,
+        })
+      }
 
       aavePools.push({
         type: 'aave',
         address: aTokenAddress,
         oraclePrice: Number(priceInMarketReferenceCurrency) / Number(marketReferenceCurrencyUnit),
-        details: {
-          utilization,
-          borrowAPR: bigintToNumber(variableBorrowRate, RAY_DECIMALS),
-          supplyAPR: bigintToNumber(liquidityRate, RAY_DECIMALS),
-          borrowCap: borrowCap.toString(),
-          supplyCap: supplyCap.toString(),
-          canBorrow: borrowingEnabled,
-          isPaused: isPaused,
-          health: {
-            solvencyRatio,
-          },
-        },
-        tokens: [
-          {
-            id: reserve,
-            reserves,
-            available: availableLiquidity,
-            borrowed,
-            decimals: reserveMetadata?.decimals ?? 0,
-            symbol: reserveMetadata?.symbol,
-            isUnderlying: true,
-          },
-          {
-            id: atoken,
-            reserves: aTokenSupply,
-            decimals: atokenMetadata?.decimals ?? 0,
-            symbol: atokenMetadata?.symbol,
-            isUnderlying: false,
-          },
-        ],
+        details: lendingDetails,
+        tokens,
         isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(aTokenAddress),
       })
     }
