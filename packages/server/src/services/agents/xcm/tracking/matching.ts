@@ -1147,6 +1147,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
       }
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'out')
 
+      if (message.waypoint.outcome === 'Fail') {
+        this.#deleteMatchedKeys(originMsg)
+      }
+
       this.emit('telemetryXcmHop', message)
 
       this.#xcmMatchedReceiver(message)
@@ -1195,6 +1199,10 @@ export class MatchingEngine extends (EventEmitter as new () => TelemetryXcmEvent
         assetSwaps,
       }
       const message: XcmHop = new GenericXcmHop(originMsg, waypointContext, 'in')
+
+      if (message.waypoint.outcome === 'Fail') {
+        this.#deleteMatchedKeys(originMsg)
+      }
 
       this.emit('telemetryXcmHop', message)
 
