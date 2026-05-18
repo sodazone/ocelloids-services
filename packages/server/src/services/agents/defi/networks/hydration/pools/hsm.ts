@@ -55,10 +55,10 @@ export function createHSMWatcher(
       functionName: 'getFacilitatorBucket',
       args: [facilitatorEvmAddress as `0x${string}`],
     })
-    const hsmMintCapacity = capacity - level
     const hollarReserves: HsmMintedToken = {
       id: HOLLAR_ID,
       reserves: level,
+      mintCap: capacity,
       decimals: hollarMetadata.decimals ?? 0,
       symbol: hollarMetadata.symbol,
       isCollateral: false,
@@ -98,7 +98,6 @@ export function createHSMWatcher(
         type: 'hsm',
         address: facilitatorAddress,
         id: HOLLAR_ID,
-        hsmMintCapacity,
         tokens: [hollarReserves, ...collateralTokens],
         isLowLiquidity: false,
       },

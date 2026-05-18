@@ -78,11 +78,14 @@ export type DefiLiquidityAsset = {
     total?: string // total liquidity
     available?: string // cash (lending)
     borrowed?: string // lending
+    holdingCap?: string // stability collateral cap
+    mintCap?: string // stability debt cap
     reserves: string
   }
 
   role?: 'liquid' | 'collateral' | 'debt'
 }
+
 /**
  * @public
  */
@@ -105,7 +108,7 @@ export type MoneyMarketPayload = Partial<{
  */
 export type DefiLiquidityPayload = {
   type: 'liquidity'
-  category: 'exchange' | 'money-market'
+  category: 'exchange' | 'money-market' | 'stability'
 
   networkId: string
   protocol: string

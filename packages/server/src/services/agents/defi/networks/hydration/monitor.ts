@@ -12,7 +12,7 @@ import { CHAIN_ID } from './consts.js'
 import { createPoolManager } from './pools/manager.js'
 import { calculateSpot } from './pricing/index.js'
 import { buildGraph, getSwapPath } from './routing.js'
-import { AavePool, AaveToken, Path, Pool } from './types.js'
+import { AavePool, AaveToken, HsmPool, Path, Pool } from './types.js'
 import { bigintToUsd } from './utils.js'
 
 const DEFAULT_QUOTE_TOKEN = 10
@@ -152,6 +152,56 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     })
   }
 
+  function emitStabilityEvent(pool: HsmPool) {
+    const liquidityAssets: DefiLiquidityAsset[] = []
+    let tvlUSD = 0
+
+    for (const asset of pool.tokens) {
+      const assetPrice = prices.get(asset.id) ?? 0
+      const reserves = asset.reserves.toString()
+      const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
+
+      if (asset.isCollateral) {
+        tvlUSD += assetReservesUSD
+        liquidityAssets.push({
+          assetId: toAssetId(CHAIN_ID, asset.id),
+          symbol: asset.symbol ?? '??',
+          decimals: asset.decimals,
+          priceUSD: assetPrice,
+          balances: {
+            total: reserves,
+            reserves,
+            holdingCap: asset.maxInHolding.toString(),
+          },
+          role: 'collateral',
+        })
+      } else {
+        liquidityAssets.push({
+          assetId: toAssetId(CHAIN_ID, asset.id),
+          symbol: asset.symbol ?? '??',
+          decimals: asset.decimals,
+          priceUSD: assetPrice,
+          balances: {
+            total: reserves,
+            reserves,
+            mintCap: asset.mintCap.toString(),
+          },
+          role: 'debt',
+        })
+      }
+    }
+
+    subject.next({
+      type: 'liquidity',
+      networkId: CHAIN_ID,
+      category: 'stability',
+      protocol: PROTOCOL_NAME,
+      marketId: pool.address,
+      tvlUSD,
+      assets: liquidityAssets,
+    })
+  }
+
   async function onBlock(block: Block) {
     if (!initialised || inFlight > 0) {
       return
@@ -165,6 +215,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
 
       poolsManager.getLiquidityPools().forEach(emitLiquidityEvent)
       poolsManager.getPools('aave').forEach(emitMMLiquidityEvent)
+      poolsManager.getPools('hsm').forEach(emitStabilityEvent)
     } finally {
       inFlight--
     }

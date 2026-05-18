@@ -1,11 +1,11 @@
 import { firstValueFrom, toArray } from 'rxjs'
+import { toSystemAccountKey } from '@/services/agents/common/accounts.js'
 import { CustomDiscoveryFetcher } from '@/services/agents/steward/balances/types.js'
 import { storageEntriesAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { CHAIN_ID, OMNIPOOL_ASCII } from '../consts.js'
 import { AssetMetadataFetcher, OmniPool, OmniPoolToken } from '../types.js'
-import { toSystemAccountKey } from '@/services/agents/common/accounts.js'
 
 type OmnipoolValue = {
   hub_reserve: bigint

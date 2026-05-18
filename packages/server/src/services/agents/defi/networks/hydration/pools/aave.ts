@@ -5,7 +5,7 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { HexString } from '@/services/subscriptions/types.js'
 import { MoneyMarketPayload } from '../../../types.js'
 import aaveDataProviderAbi from '../abi/aave_data_provider.json' with { type: 'json' }
-import { ASSET_ID_MAP, CHAIN_ID, EVM_CHAIN_ID, AaveV3HydrationMainnet } from '../consts.js'
+import { AaveV3HydrationMainnet, ASSET_ID_MAP, CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
 import { PRECISION_BIGINT, TARGET_PRECISION } from '../pricing/common.js'
 import { AavePool, AaveToken, AssetMetadataFetcher } from '../types.js'
 import { bigintToNumber } from '../utils.js'

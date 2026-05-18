@@ -32,6 +32,7 @@ export interface AToken extends PoolToken {
 export type AaveToken = UnderlyingToken | AToken
 
 export interface HsmMintedToken extends PoolToken {
+  mintCap: bigint
   isCollateral: false
 }
 
@@ -84,7 +85,6 @@ export type HsmPool = PoolBase & {
   type: 'hsm'
   id: number
   tokens: HsmToken[]
-  hsmMintCapacity: bigint
 }
 
 export type Pool = StableSwapPool | OmniPool | XykPool | AavePool | HsmPool
