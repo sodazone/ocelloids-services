@@ -123,6 +123,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0x7de91b204c1c737bcee6f000aaa6569cf7061cb7',
   },
+  STETH: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
+  },
   GLMR: [
     {
       chainId: 'urn:ocn:polkadot:2004',
