@@ -10,7 +10,7 @@ export const DEFI_EVENT_NAMES = ['swap', 'mint', 'burn'] as const
  * @private
  */
 const $LiquidityFilters = z.object({
-  dex: z.array(z.string()).optional(),
+  protocols: z.literal('*').or(z.array(z.string())).optional(),
 })
 
 /**

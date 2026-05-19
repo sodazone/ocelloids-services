@@ -15,14 +15,14 @@ export type {
  * @public
  */
 export type LiquidityFilters = {
-  dex?: string[]
+  protocols?: '*' | string[]
 }
 
 /**
  * @public
  */
 export type EventFilters = {
-  type?: DefiEventName
+  events?: '*' | DefiEventName[]
 }
 
 /**
@@ -38,4 +38,22 @@ export type DefiAgentInputs =
       topic: 'event'
       networks: '*' | NetworkURN[]
       filters?: EventFilters
+    }
+
+/**
+ * @public
+ */
+export type DefiAgentQueryArgs =
+  | {
+      op: 'liquidity.last'
+      criteria: {
+        networks?: '*' | NetworkURN[]
+      }
+    }
+  | {
+      op: 'events'
+      criteria?: {
+        networks?: '*' | NetworkURN[]
+        filters?: EventFilters
+      }
     }
