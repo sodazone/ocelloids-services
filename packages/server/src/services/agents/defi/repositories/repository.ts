@@ -286,7 +286,7 @@ export class DefiRepository {
     })
   }
 
-  async getEventsFromId(lastKnownId: number): Promise<
+  async getEventsFromId({ lastKnownId, limit = 50 }: { lastKnownId: number; limit: number }): Promise<
     Array<{
       id: number
       payload: DefiEventPayload
@@ -330,6 +330,7 @@ export class DefiRepository {
       .where('e.id', '>', lastKnownId)
       .groupBy('e.id')
       .orderBy('e.id', 'asc')
+      .limit(limit)
       .execute()
 
     return events.map((evt) => {

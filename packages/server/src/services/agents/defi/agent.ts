@@ -229,15 +229,35 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
   }
 
   async query(params: QueryParams<DefiAgentQueryArgs>): Promise<QueryResult> {
-    const { args } = params
+    const { args, pagination } = params
     if (args.op === 'liquidity.last') {
       // TODO: paginate? is it too much for a single query?
       const items = await this.#repository.getLatestPoolStates()
       return {
         items,
       }
-    } else if (args.op === 'events') {
-      throw new Error('Not implemented')
+    }
+
+    if (args.op === 'events') {
+      const cursor = pagination?.cursor !== undefined ? Number(pagination.cursor) : 0
+      const requestedLimit = pagination?.limit ? Math.min(Number(pagination.limit), 100) : 10
+
+      const rawItems = await this.#repository.getEventsFromId({
+        lastKnownId: cursor,
+        limit: requestedLimit + 1,
+      })
+
+      const items = rawItems.slice(0, requestedLimit)
+      const hasNextPage = rawItems.length > requestedLimit
+      const endCursor = items.length > 0 ? items[items.length - 1].id.toString() : ''
+
+      return {
+        items,
+        pageInfo: {
+          endCursor,
+          hasNextPage,
+        },
+      }
     }
 
     throw new Error('Unknown query op')

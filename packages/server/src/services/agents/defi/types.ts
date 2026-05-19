@@ -53,9 +53,11 @@ export const $DefiAgentQueryArgs = z.discriminatedUnion('op', [
   }),
   z.object({
     op: z.literal('events'),
-    criteria: z.object({
-      networks: z.literal('*').or(z.array($NetworkString)).optional(),
-    }),
+    criteria: z
+      .object({
+        networks: z.literal('*').or(z.array($NetworkString)).optional(),
+      })
+      .optional(),
   }),
 ])
 
