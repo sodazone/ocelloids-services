@@ -1,6 +1,12 @@
 import { Kysely } from 'kysely'
 import { SQLDialect } from '@/services/persistence/kysely/db.js'
-import { DefiEventPayload, DefiLiquidityAsset, DefiLiquidityPayload, MoneyMarketPayload } from '../types.js'
+import {
+  DefiEventAction,
+  DefiEventPayload,
+  DefiLiquidityAsset,
+  DefiLiquidityPayload,
+  MoneyMarketPayload,
+} from '../types.js'
 import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiPoolAsset } from './types.js'
 import { calculateBorrowedUsd, calculateSuppliedUsd } from './util.js'
 
@@ -286,7 +292,12 @@ export class DefiRepository {
     })
   }
 
-  async getEventsFromId({ lastKnownId, limit = 50 }: { lastKnownId: number; limit: number }): Promise<
+  async findEvents(options: {
+    lastKnownId: number
+    limit: number
+    networks?: string[]
+    names?: DefiEventAction[]
+  }): Promise<
     Array<{
       id: number
       payload: DefiEventPayload
@@ -296,7 +307,7 @@ export class DefiRepository {
     const aggregateFn = isSqlite ? 'json_group_array' : 'json_agg'
     const objectFn = isSqlite ? 'json_object' : 'json_build_object'
 
-    const events = await this.#db
+    let query = this.#db
       .selectFrom('defi_event as e')
       .leftJoin('defi_event_asset as ea', 'ea.event_id', 'e.id')
       .select([
@@ -327,11 +338,19 @@ export class DefiRepository {
             ])
             .as('assets_raw'),
       ])
-      .where('e.id', '>', lastKnownId)
-      .groupBy('e.id')
-      .orderBy('e.id', 'asc')
-      .limit(limit)
-      .execute()
+      .where('e.id', '>', options.lastKnownId)
+
+    // DYNAMIC FILTER: Filter by one or more network IDs
+    if (options.networks && options.networks.length > 0) {
+      query = query.where('e.network_id', 'in', options.networks)
+    }
+
+    // DYNAMIC FILTER: Filter by one or more event names (e.g. 'swap', 'deposit')
+    if (options.names && options.names.length > 0) {
+      query = query.where('e.event_name', 'in', options.names)
+    }
+
+    const events = await query.groupBy('e.id').orderBy('e.id', 'asc').limit(options.limit).execute()
 
     return events.map((evt) => {
       let rawAssets: any[] = []

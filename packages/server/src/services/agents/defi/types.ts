@@ -17,7 +17,10 @@ const $LiquidityFilters = z.object({
  * @private
  */
 const $EventFilters = z.object({
-  type: z.enum(DEFI_EVENT_NAMES).optional(),
+  events: z
+    .literal('*')
+    .or(z.array(z.enum(DEFI_EVENT_NAMES)))
+    .optional(),
 })
 
 /**
@@ -56,6 +59,7 @@ export const $DefiAgentQueryArgs = z.discriminatedUnion('op', [
     criteria: z
       .object({
         networks: z.literal('*').or(z.array($NetworkString)).optional(),
+        filters: $EventFilters.optional(),
       })
       .optional(),
   }),

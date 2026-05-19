@@ -7,6 +7,7 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
+import { fromWildcardOrArray, limitCap, paginatedResultsFromArray } from '../common/query.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import {
@@ -28,6 +29,7 @@ import {
   $DefiAgentQueryArgs,
   DefiAgentInputs,
   DefiAgentQueryArgs,
+  DefiEventAction,
   DefiSubscriptionPayload,
 } from './types.js'
 
@@ -240,24 +242,24 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
 
     if (args.op === 'events') {
       const cursor = pagination?.cursor !== undefined ? Number(pagination.cursor) : 0
-      const requestedLimit = pagination?.limit ? Math.min(Number(pagination.limit), 100) : 10
 
-      const rawItems = await this.#repository.getEventsFromId({
-        lastKnownId: cursor,
-        limit: requestedLimit + 1,
-      })
-
-      const items = rawItems.slice(0, requestedLimit)
-      const hasNextPage = rawItems.length > requestedLimit
-      const endCursor = items.length > 0 ? items[items.length - 1].id.toString() : ''
-
-      return {
-        items,
-        pageInfo: {
-          endCursor,
-          hasNextPage,
-        },
+      if (Number.isNaN(cursor)) {
+        throw new TypeError('Pagination cursor must be a numeric string or number')
       }
+
+      const requestedLimit = limitCap(pagination)
+      const networks = fromWildcardOrArray(args.criteria?.networks)
+      const names = fromWildcardOrArray<DefiEventAction>(args.criteria?.filters?.events)
+
+      return paginatedResultsFromArray(
+        await this.#repository.findEvents({
+          lastKnownId: cursor,
+          limit: requestedLimit + 1,
+          networks,
+          names,
+        }),
+        requestedLimit,
+      )
     }
 
     throw new Error('Unknown query op')
