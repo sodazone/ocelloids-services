@@ -35,6 +35,7 @@ const CG_ID_MAP: Record<string, string> = {
   ETH: 'ethereum',
   WETH: 'weth',
   WSTETH: 'wrapped-steth',
+  STETH: 'lido-staked-ether',
   WBTC: 'wrapped-bitcoin',
   DAI: 'dai',
   TBTC: 'tbtc',
