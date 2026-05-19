@@ -55,10 +55,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createTable('defi_dex_event')
+      .createTable('defi_event')
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
-      .addColumn('pool_id', 'integer', (cb) => cb.references('defi_dex_pool.id').onDelete('set null'))
+      .addColumn('pool_id', 'integer', (cb) => cb.references('defi_pool.id').onDelete('set null'))
       .addColumn('network_id', 'text', (cb) => cb.notNull())
       .addColumn('protocol', 'text', (cb) => cb.notNull())
       .addColumn('market_id', 'text', (cb) => cb.notNull())
@@ -70,12 +70,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       .execute()
 
     await db.schema
-      .createTable('defi_dex_event_asset')
+      .createTable('defi_event_asset')
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
-      .addColumn('event_id', 'integer', (cb) =>
-        cb.references('defi_dex_event.id').onDelete('cascade').notNull(),
-      )
+      .addColumn('event_id', 'integer', (cb) => cb.references('defi_event.id').onDelete('cascade').notNull())
       .addColumn('asset_id', 'text', (cb) => cb.notNull())
       .addColumn('symbol', 'text', (cb) => cb.notNull())
       .addColumn('amount', 'text', (cb) => cb.notNull())
