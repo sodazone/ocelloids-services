@@ -20,42 +20,43 @@ export class DefiRepository {
   async upsertLiquidityData(payload: DefiLiquidityPayload): Promise<number> {
     return await this.#db.transaction().execute(async (trx) => {
       const lending = payload.lending
+      const isLending = payload.category === 'money-market'
 
       const isPausedVal = this.#asBoolVal(lending?.isPaused)
       const canBorrowVal = this.#asBoolVal(lending?.canBorrow)
 
-      const pool = await trx
-        .insertInto('defi_pool')
-        .values({
-          network: payload.networkId,
-          protocol: payload.protocol,
-          market_id: payload.marketId,
-          category: payload.category,
+      let query = trx.insertInto('defi_pool').values({
+        network: payload.networkId,
+        protocol: payload.protocol,
+        market_id: payload.marketId,
+        category: payload.category,
+        borrow_apr: lending?.borrowAPR ?? null,
+        supply_apr: lending?.supplyAPR ?? null,
+        is_paused: isPausedVal,
+        can_borrow: canBorrowVal,
+        borrow_cap: lending?.borrowCap ?? null,
+        supply_cap: lending?.supplyCap ?? null,
+        bad_debt_usd: lending?.health?.badDebtUSD ?? null,
+      })
 
-          // lending meta
-          borrow_apr: lending?.borrowAPR ?? null,
-          supply_apr: lending?.supplyAPR ?? null,
-          is_paused: isPausedVal as any,
-          can_borrow: canBorrowVal as any,
-          borrow_cap: lending?.borrowCap ?? null,
-          supply_cap: lending?.supplyCap ?? null,
-          bad_debt_usd: lending?.health?.badDebtUSD ?? null,
-        })
-        .onConflict((oc) =>
+      if (isLending) {
+        query = query.onConflict((oc) =>
           oc.columns(['network', 'protocol', 'market_id']).doUpdateSet({
             category: payload.category,
             borrow_apr: lending?.borrowAPR ?? null,
             supply_apr: lending?.supplyAPR ?? null,
-            is_paused: isPausedVal as any,
-            can_borrow: canBorrowVal as any,
+            is_paused: isPausedVal,
+            can_borrow: canBorrowVal,
             borrow_cap: lending?.borrowCap ?? null,
             supply_cap: lending?.supplyCap ?? null,
             bad_debt_usd: lending?.health?.badDebtUSD ?? null,
           }),
         )
-        .returning('id')
-        .executeTakeFirstOrThrow()
+      } else {
+        query = query.onConflict((oc) => oc.columns(['network', 'protocol', 'market_id']).doNothing())
+      }
 
+      const pool = await query.returning('id').executeTakeFirstOrThrow()
       const poolId = pool.id
 
       await trx.deleteFrom('defi_pool_asset').where('pool_id', '=', poolId).execute()
