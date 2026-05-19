@@ -94,7 +94,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     }
     const reserves = underlying.reserves.toString()
     const assetPrice = prices.get(underlying.id) ?? pool.oraclePrice
-    const tvlUSD = bigintToUsd(underlying.reserves, underlying.decimals, assetPrice)
+    const suppliedUSD = bigintToUsd(underlying.reserves, underlying.decimals, assetPrice)
 
     subject.next({
       type: 'liquidity',
@@ -102,7 +102,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       protocol: PROTOCOL_NAME,
       networkId: CHAIN_ID,
       marketId: pool.address,
-      tvlUSD,
+      suppliedUSD,
       lending: pool.details,
       assets: [
         {
@@ -122,12 +122,12 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
 
   function emitLiquidityEvent(pool: Pool) {
     const liquidityAssets: DefiLiquidityAsset[] = []
-    let tvlUSD = 0
+    let suppliedUSD = 0
     for (const asset of pool.tokens) {
       const assetPrice = prices.get(asset.id) ?? 0
       const reserves = asset.reserves.toString()
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
-      tvlUSD += assetReservesUSD
+      suppliedUSD += assetReservesUSD
       liquidityAssets.push({
         assetId: toAssetId(CHAIN_ID, asset.id),
         symbol: asset.symbol ?? '??',
@@ -147,14 +147,14 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       category: 'exchange',
       protocol: PROTOCOL_NAME,
       marketId: pool.address,
-      tvlUSD,
+      suppliedUSD,
       assets: liquidityAssets,
     })
   }
 
   function emitStabilityEvent(pool: HsmPool) {
     const liquidityAssets: DefiLiquidityAsset[] = []
-    let tvlUSD = 0
+    let suppliedUSD = 0
 
     for (const asset of pool.tokens) {
       const assetPrice = prices.get(asset.id) ?? 0
@@ -162,7 +162,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
 
       if (asset.isCollateral) {
-        tvlUSD += assetReservesUSD
+        suppliedUSD += assetReservesUSD
         liquidityAssets.push({
           assetId: toAssetId(CHAIN_ID, asset.id),
           symbol: asset.symbol ?? '??',
@@ -197,7 +197,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       category: 'stability',
       protocol: PROTOCOL_NAME,
       marketId: pool.address,
-      tvlUSD,
+      suppliedUSD,
       assets: liquidityAssets,
     })
   }

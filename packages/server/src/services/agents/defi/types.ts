@@ -91,6 +91,7 @@ export type DefiLiquidityAsset = {
  */
 export type MoneyMarketPayload = Partial<{
   utilization: number
+  borrowedUSD: number
   borrowAPR: number
   supplyAPR: number
   isPaused: boolean
@@ -106,15 +107,20 @@ export type MoneyMarketPayload = Partial<{
 /**
  * @public
  */
+export type DefiLiquidityCategory = 'exchange' | 'money-market' | 'stability'
+
+/**
+ * @public
+ */
 export type DefiLiquidityPayload = {
   type: 'liquidity'
-  category: 'exchange' | 'money-market' | 'stability'
+  category: DefiLiquidityCategory
 
   networkId: string
   protocol: string
   marketId: string
 
-  tvlUSD: number
+  suppliedUSD: number
 
   assets: DefiLiquidityAsset[]
 
@@ -172,6 +178,9 @@ export type DefiEventPayload = {
     }
 )
 
+/**
+ * @public
+ */
 export type DefiEventAction = 'mint' | 'burn' | 'borrow' | 'repay' | 'liquidate' | 'swap'
 
 /**

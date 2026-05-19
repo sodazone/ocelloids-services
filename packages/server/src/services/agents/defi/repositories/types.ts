@@ -1,5 +1,5 @@
 import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
-import { DefiEventAction } from '../types.js'
+import { DefiEventAction, DefiLiquidityCategory } from '../types.js'
 
 export type PoolKey = {
   network: string
@@ -9,11 +9,20 @@ export type PoolKey = {
 
 export interface DefiPoolTable {
   id: Generated<number>
-  category: ColumnType<string>
+  category: ColumnType<DefiLiquidityCategory>
 
   protocol: ColumnType<string>
   network: ColumnType<string>
   market_id: ColumnType<string>
+
+  // lending meta
+  borrow_apr: ColumnType<number | null>
+  supply_apr: ColumnType<number | null>
+  borrow_cap: ColumnType<string | null>
+  supply_cap: ColumnType<string | null>
+  is_paused: ColumnType<number | boolean | null>
+  can_borrow: ColumnType<number | boolean | null>
+  bad_debt_usd: ColumnType<number | null>
 }
 
 export interface DefiPoolAssetTable {

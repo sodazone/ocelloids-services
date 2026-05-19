@@ -13,6 +13,13 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
       .addColumn('network', 'varchar(100)', (cb) => cb.notNull())
       .addColumn('market_id', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('borrow_apr', 'numeric')
+      .addColumn('supply_apr', 'numeric')
+      .addColumn('is_paused', 'boolean')
+      .addColumn('can_borrow', 'boolean')
+      .addColumn('borrow_cap', 'varchar(255)')
+      .addColumn('supply_cap', 'varchar(255)')
+      .addColumn('bad_debt_usd', 'numeric')
       .addUniqueConstraint('defi_pool_network_protocol_market_unique', ['network', 'protocol', 'market_id'])
       .execute()
 

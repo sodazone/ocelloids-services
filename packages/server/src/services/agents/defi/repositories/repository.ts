@@ -1,14 +1,16 @@
 import { Kysely } from 'kysely'
 import { SQLDialect } from '@/services/persistence/kysely/db.js'
-import { DefiEventPayload, DefiLiquidityAsset, DefiLiquidityPayload } from '../types.js'
+import { DefiEventPayload, DefiLiquidityAsset, DefiLiquidityPayload, MoneyMarketPayload } from '../types.js'
 import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiPoolAsset } from './types.js'
-import { calculateAssetTvlUsd } from './util.js'
+import { calculateBorrowedUsd, calculateSuppliedUsd } from './util.js'
 
 export class DefiRepository {
   readonly #db: Kysely<DefiDatabase>
+  readonly #dialect: SQLDialect
 
-  constructor(db: Kysely<DefiDatabase>, _dialect: SQLDialect = 'sqlite') {
+  constructor(db: Kysely<DefiDatabase>, dialect: SQLDialect = 'sqlite') {
     this.#db = db
+    this.#dialect = dialect
   }
 
   async close() {
@@ -17,6 +19,11 @@ export class DefiRepository {
 
   async upsertLiquidityData(payload: DefiLiquidityPayload): Promise<number> {
     return await this.#db.transaction().execute(async (trx) => {
+      const lending = payload.lending
+
+      const isPausedVal = this.#asBoolVal(lending?.isPaused)
+      const canBorrowVal = this.#asBoolVal(lending?.canBorrow)
+
       const pool = await trx
         .insertInto('defi_pool')
         .values({
@@ -24,9 +31,27 @@ export class DefiRepository {
           protocol: payload.protocol,
           market_id: payload.marketId,
           category: payload.category,
+
+          // lending meta
+          borrow_apr: lending?.borrowAPR ?? null,
+          supply_apr: lending?.supplyAPR ?? null,
+          is_paused: isPausedVal as any,
+          can_borrow: canBorrowVal as any,
+          borrow_cap: lending?.borrowCap ?? null,
+          supply_cap: lending?.supplyCap ?? null,
+          bad_debt_usd: lending?.health?.badDebtUSD ?? null,
         })
         .onConflict((oc) =>
-          oc.columns(['network', 'protocol', 'market_id']).doUpdateSet({ category: payload.category }),
+          oc.columns(['network', 'protocol', 'market_id']).doUpdateSet({
+            category: payload.category,
+            borrow_apr: lending?.borrowAPR ?? null,
+            supply_apr: lending?.supplyAPR ?? null,
+            is_paused: isPausedVal as any,
+            can_borrow: canBorrowVal as any,
+            borrow_cap: lending?.borrowCap ?? null,
+            supply_cap: lending?.supplyCap ?? null,
+            bad_debt_usd: lending?.health?.badDebtUSD ?? null,
+          }),
         )
         .returning('id')
         .executeTakeFirstOrThrow()
@@ -147,6 +172,10 @@ export class DefiRepository {
   }
 
   async getLatestPoolStates(): Promise<DefiLiquidityPayload[]> {
+    const isSqlite = this.#dialect === 'sqlite'
+    const aggregateFn = isSqlite ? 'json_group_array' : 'json_agg'
+    const objectFn = isSqlite ? 'json_object' : 'json_build_object'
+
     const pools = await this.#db
       .selectFrom('defi_pool as p')
       .leftJoin('defi_pool_asset as pa', 'pa.pool_id', 'p.id')
@@ -156,10 +185,17 @@ export class DefiRepository {
         'p.protocol',
         'p.market_id as marketId',
         'p.category',
+        'p.borrow_apr as borrowApr',
+        'p.supply_apr as supplyApr',
+        'p.is_paused as isPaused',
+        'p.can_borrow as canBorrow',
+        'p.borrow_cap as borrowCap',
+        'p.supply_cap as supplyCap',
+        'p.bad_debt_usd as badDebtUsd',
         (eb) =>
           eb
-            .fn('json_group_array', [
-              eb.fn('json_object', [
+            .fn(aggregateFn, [
+              eb.fn(objectFn, [
                 eb.val('assetId'),
                 eb.ref('pa.asset_id'),
                 eb.val('symbol'),
@@ -171,7 +207,7 @@ export class DefiRepository {
                 eb.val('role'),
                 eb.ref('pa.role'),
                 eb.val('balances'),
-                eb.fn('json_object', [
+                eb.fn(objectFn, [
                   eb.val('total'),
                   eb.ref('pa.balance_total'),
                   eb.val('available'),
@@ -190,17 +226,46 @@ export class DefiRepository {
 
     return pools.map((pool) => {
       let parsedAssets: DefiLiquidityAsset[] = []
-      if (pool.assets_raw && typeof pool.assets_raw === 'string') {
-        parsedAssets = JSON.parse(pool.assets_raw) as DefiLiquidityAsset[]
-        // Ensure empty records due to outer joins are cleaned out properly
+
+      if (pool.assets_raw) {
+        // Postgres returns parsed objects directly; SQLite returns raw string representations
+        parsedAssets =
+          typeof pool.assets_raw === 'string'
+            ? (JSON.parse(pool.assets_raw) as DefiLiquidityAsset[])
+            : (pool.assets_raw as unknown as DefiLiquidityAsset[])
+
         if (parsedAssets.length === 1 && parsedAssets[0].assetId === null) {
           parsedAssets = []
         }
       }
 
-      const tvlUSD = parsedAssets.reduce((total, asset) => {
-        return total + calculateAssetTvlUsd(pool.category, asset)
-      }, 0)
+      let suppliedUSD = 0
+      let borrowedUSD = 0
+
+      for (const asset of parsedAssets) {
+        suppliedUSD += calculateSuppliedUsd(pool.category, asset)
+        borrowedUSD += calculateBorrowedUsd(pool.category, asset)
+      }
+
+      const marketUtilization = suppliedUSD + borrowedUSD > 0 ? borrowedUSD / (suppliedUSD + borrowedUSD) : 0
+
+      const lendingData: MoneyMarketPayload | undefined =
+        pool.category === 'money-market'
+          ? {
+              utilization: Number(marketUtilization.toFixed(4)),
+              borrowedUSD,
+              borrowAPR: pool.borrowApr ? Number(pool.borrowApr) : 0,
+              supplyAPR: pool.supplyApr ? Number(pool.supplyApr) : 0,
+              isPaused: this.#asBool(pool.isPaused),
+              canBorrow: this.#asBool(pool.canBorrow),
+              borrowCap: pool.borrowCap ?? '0',
+              supplyCap: pool.supplyCap ?? '0',
+              health: {
+                solvencyRatio: borrowedUSD > 0 ? suppliedUSD / borrowedUSD : 0,
+                badDebtUSD: pool.badDebtUsd ? Number(pool.badDebtUsd) : 0,
+              },
+            }
+          : undefined
 
       return {
         id: pool.id,
@@ -208,9 +273,10 @@ export class DefiRepository {
         networkId: pool.networkId,
         protocol: pool.protocol,
         marketId: pool.marketId,
-        category: pool.category as 'exchange' | 'money-market',
+        category: pool.category as any,
         assets: parsedAssets,
-        tvlUSD,
+        suppliedUSD,
+        ...(lendingData && { lending: lendingData }),
       }
     })
   }
@@ -221,6 +287,10 @@ export class DefiRepository {
       payload: DefiEventPayload
     }>
   > {
+    const isSqlite = this.#dialect === 'sqlite'
+    const aggregateFn = isSqlite ? 'json_group_array' : 'json_agg'
+    const objectFn = isSqlite ? 'json_object' : 'json_build_object'
+
     const events = await this.#db
       .selectFrom('defi_event as e')
       .leftJoin('defi_event_asset as ea', 'ea.event_id', 'e.id')
@@ -236,8 +306,8 @@ export class DefiRepository {
         'e.lp_amount as lpAmount',
         (eb) =>
           eb
-            .fn('json_group_array', [
-              eb.fn('json_object', [
+            .fn(aggregateFn, [
+              eb.fn(objectFn, [
                 eb.val('assetId'),
                 eb.ref('ea.asset_id'),
                 eb.val('symbol'),
@@ -259,8 +329,11 @@ export class DefiRepository {
 
     return events.map((evt) => {
       let rawAssets: any[] = []
-      if (evt.assets_raw && typeof evt.assets_raw === 'string') {
-        rawAssets = JSON.parse(evt.assets_raw).filter((a: any) => a.assetId !== null)
+
+      if (evt.assets_raw) {
+        rawAssets = typeof evt.assets_raw === 'string' ? JSON.parse(evt.assets_raw) : (evt.assets_raw as any)
+
+        rawAssets = rawAssets.filter((a: any) => a.assetId !== null)
       }
 
       const eventName = evt.eventName as any
@@ -294,5 +367,13 @@ export class DefiRepository {
         } as DefiEventPayload,
       }
     })
+  }
+
+  #asBoolVal(v: boolean | undefined) {
+    return v !== undefined ? (this.#dialect === 'sqlite' ? (v ? 1 : 0) : v) : null
+  }
+
+  #asBool(v: boolean | number | null | undefined) {
+    return typeof v === 'number' ? v === 1 : (v ?? true)
   }
 }

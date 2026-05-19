@@ -85,7 +85,7 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
 
     const priceUSDNum = Number(formatUnits(price, 36 - underlying.decimals))
     const totalUnderlyingSupply = (totalSupply * exchangeRate) / BigInt(1e18)
-    const tvlUSD = Number(formatUnits(totalUnderlyingSupply, underlying.decimals)) * priceUSDNum
+    const suppliedUSD = Number(formatUnits(totalUnderlyingSupply, underlying.decimals)) * priceUSDNum
 
     const SECONDS_PER_YEAR = 31_536_000n
     const supplyAPR = (Number(supplyRate) / 1e18) * Number(SECONDS_PER_YEAR) * 100
@@ -97,7 +97,7 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
       protocol: 'moonwell',
       networkId: chainId,
       marketId: mTokenAddress,
-      tvlUSD,
+      suppliedUSD,
       assets: [
         {
           assetId: underlying.address,
