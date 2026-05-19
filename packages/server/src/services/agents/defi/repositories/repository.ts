@@ -53,7 +53,11 @@ export class DefiRepository {
           }),
         )
       } else {
-        query = query.onConflict((oc) => oc.columns(['network', 'protocol', 'market_id']).doNothing())
+        query = query.onConflict((oc) =>
+          oc.columns(['network', 'protocol', 'market_id']).doUpdateSet({
+            category: (eb) => eb.ref('defi_pool.category'),
+          }),
+        )
       }
 
       const pool = await query.returning('id').executeTakeFirstOrThrow()
