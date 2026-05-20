@@ -127,6 +127,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     chainId: 'urn:ocn:ethereum:1',
     assetId: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
   },
+  APYUSD: {
+    chainId: 'urn:ocn:ethereum:1',
+    assetId: '0x38eeb52f0771140d10c4e9a9a72349a329fe8a6a',
+  },
   GLMR: [
     {
       chainId: 'urn:ocn:polkadot:2004',

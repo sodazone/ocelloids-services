@@ -305,6 +305,16 @@ export const assetOverrides: Omit<AssetMetadata, 'updated'>[] = [
   },
   {
     chainId: 'urn:ocn:ethereum:1',
+    id: '0x38eeb52f0771140d10c4e9a9a72349a329fe8a6a',
+    xid: '0x38eeb52f0771140d10c4e9a9a72349a329fe8a6a',
+    name: 'apyUSD',
+    symbol: 'apyUSD',
+    decimals: 18,
+    raw: {},
+    externalIds: [],
+  },
+  {
+    chainId: 'urn:ocn:ethereum:1',
     id: '0x196c20da81fbc324ecdf55501e95ce9f0bd84d14',
     xid: '0x196c20da81fbc324ecdf55501e95ce9f0bd84d14',
     name: 'Polkadot',
