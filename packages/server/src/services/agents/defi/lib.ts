@@ -7,8 +7,10 @@ export type {
   DefiEventName,
   DefiEventPayload,
   DefiLiquidityAsset,
+  DefiLiquidityCategory,
   DefiLiquidityPayload,
   DefiSubscriptionPayload,
+  MoneyMarketPayload,
 } from './types.js'
 
 /**
