@@ -1,5 +1,8 @@
 import { filter, map, merge, Observable, OperatorFunction, scan } from 'rxjs'
-import { BlockWithLogs } from '@/services/networking/evm/types.js'
+
+type BlockLike = {
+  number: number | string
+}
 
 /**
  * Triggers based on:
@@ -7,14 +10,14 @@ import { BlockWithLogs } from '@/services/networking/evm/types.js'
  * 2. An event emission (Activity)
  * 3. Max stale blocks (Safety)
  */
-export function smartTrigger({
+export function smartTrigger<TBlock extends BlockLike>({
   events$,
   maxStaleBlocks,
 }: {
   events$: Observable<any>
   maxStaleBlocks: number
-}): OperatorFunction<BlockWithLogs, BlockWithLogs> {
-  return (block$: Observable<BlockWithLogs>) => {
+}): OperatorFunction<TBlock, TBlock> {
+  return (block$: Observable<TBlock>) => {
     const activitySignal$ = events$.pipe(map(() => ({ type: 'ACTIVITY' as const })))
     const blockSignal$ = block$.pipe(map((block) => ({ type: 'BLOCK' as const, block })))
 
@@ -42,10 +45,10 @@ export function smartTrigger({
             lastUpdateBlock: shouldUpdate && currentBlock ? BigInt(currentBlock.number) : acc.lastUpdateBlock,
           }
         },
-        { block: null as BlockWithLogs | null, shouldUpdate: false, lastUpdateBlock: 0n },
+        { block: null as TBlock | null, shouldUpdate: false, lastUpdateBlock: 0n },
       ),
       filter(
-        (state): state is { block: BlockWithLogs; shouldUpdate: true; lastUpdateBlock: bigint } =>
+        (state): state is { block: TBlock; shouldUpdate: true; lastUpdateBlock: bigint } =>
           state.shouldUpdate && state.block !== null,
       ),
       map((state) => state.block),
