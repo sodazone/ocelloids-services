@@ -7,7 +7,6 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { fromWildcardOrArray, limitCap, paginatedResultsFromArray } from '../common/query.js'
 import { DataSteward } from '../steward/agent.js'
 import { TickerAgent } from '../ticker/agent.js'
 import {
@@ -29,7 +28,6 @@ import {
   $DefiAgentQueryArgs,
   DefiAgentInputs,
   DefiAgentQueryArgs,
-  DefiEventAction,
   DefiSubscriptionPayload,
 } from './types.js'
 
@@ -231,35 +229,14 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
   }
 
   async query(params: QueryParams<DefiAgentQueryArgs>): Promise<QueryResult> {
-    const { args, pagination } = params
+    const { args } = params
+
     if (args.op === 'liquidity.last') {
-      // TODO: paginate? is it too much for a single query?
-      const items = await this.#repository.getLatestPoolStates()
-      return {
-        items,
-      }
+      return await this.#repository.getLatestPoolStates(params)
     }
 
     if (args.op === 'events') {
-      const cursor = pagination?.cursor !== undefined ? Number(pagination.cursor) : 0
-
-      if (Number.isNaN(cursor)) {
-        throw new TypeError('Pagination cursor must be a numeric string or number')
-      }
-
-      const requestedLimit = limitCap(pagination)
-      const networks = fromWildcardOrArray(args.criteria?.networks)
-      const names = fromWildcardOrArray<DefiEventAction>(args.criteria?.filters?.events)
-
-      return paginatedResultsFromArray(
-        await this.#repository.findEvents({
-          lastKnownId: cursor,
-          limit: requestedLimit + 1,
-          networks,
-          names,
-        }),
-        requestedLimit,
-      )
+      return await this.#repository.findEvents(params)
     }
 
     throw new Error('Unknown query op')

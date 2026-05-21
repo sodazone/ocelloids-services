@@ -1,6 +1,9 @@
 import { Kysely } from 'kysely'
+import { QueryParams, QueryResult } from '@/lib.js'
 import { SQLDialect } from '@/services/persistence/kysely/db.js'
+import { fromWildcardOrArray, limitCap, paginatedResultsFromArray } from '../../common/query.js'
 import {
+  DefiAgentQueryArgs,
   DefiEventAction,
   DefiEventPayload,
   DefiLiquidityAsset,
@@ -182,12 +185,20 @@ export class DefiRepository {
     return row
   }
 
-  async getLatestPoolStates(): Promise<DefiLiquidityPayload[]> {
+  async getLatestPoolStates(
+    params: QueryParams<DefiAgentQueryArgs>,
+  ): Promise<QueryResult<DefiLiquidityPayload>> {
+    if (params.args.op !== 'liquidity.last') {
+      throw new Error('op must be liquidity.last')
+    }
+
     const isSqlite = this.#dialect === 'sqlite'
     const aggregateFn = isSqlite ? 'json_group_array' : 'json_agg'
     const objectFn = isSqlite ? 'json_object' : 'json_build_object'
 
-    const pools = await this.#db
+    const targetNetworks = fromWildcardOrArray(params.args.criteria?.networks)
+
+    let query = this.#db
       .selectFrom('defi_pool as p')
       .leftJoin('defi_pool_asset as pa', 'pa.pool_id', 'p.id')
       .select([
@@ -232,80 +243,94 @@ export class DefiRepository {
             ])
             .as('assets_raw'),
       ])
-      .groupBy('p.id')
-      .execute()
 
-    return pools.map((pool) => {
-      let parsedAssets: DefiLiquidityAsset[] = []
+    if (targetNetworks && targetNetworks.length > 0) {
+      query = query.where('p.network', 'in', targetNetworks)
+    }
 
-      if (pool.assets_raw) {
-        // Postgres returns parsed objects directly; SQLite returns raw string representations
-        parsedAssets =
-          typeof pool.assets_raw === 'string'
-            ? (JSON.parse(pool.assets_raw) as DefiLiquidityAsset[])
-            : (pool.assets_raw as unknown as DefiLiquidityAsset[])
+    const pools = await query.groupBy('p.id').execute()
 
-        if (parsedAssets.length === 1 && parsedAssets[0].assetId === null) {
-          parsedAssets = []
+    return {
+      items: pools.map((pool) => {
+        let parsedAssets: DefiLiquidityAsset[] = []
+
+        if (pool.assets_raw) {
+          // Postgres returns parsed objects directly; SQLite returns raw string representations
+          parsedAssets =
+            typeof pool.assets_raw === 'string'
+              ? (JSON.parse(pool.assets_raw) as DefiLiquidityAsset[])
+              : (pool.assets_raw as unknown as DefiLiquidityAsset[])
+
+          if (parsedAssets.length === 1 && parsedAssets[0].assetId === null) {
+            parsedAssets = []
+          }
         }
-      }
 
-      let suppliedUSD = 0
-      let borrowedUSD = 0
+        let suppliedUSD = 0
+        let borrowedUSD = 0
 
-      for (const asset of parsedAssets) {
-        suppliedUSD += calculateSuppliedUsd(pool.category, asset)
-        borrowedUSD += calculateBorrowedUsd(pool.category, asset)
-      }
+        for (const asset of parsedAssets) {
+          suppliedUSD += calculateSuppliedUsd(pool.category, asset)
+          borrowedUSD += calculateBorrowedUsd(pool.category, asset)
+        }
 
-      const marketUtilization = suppliedUSD + borrowedUSD > 0 ? borrowedUSD / (suppliedUSD + borrowedUSD) : 0
+        const marketUtilization =
+          suppliedUSD + borrowedUSD > 0 ? borrowedUSD / (suppliedUSD + borrowedUSD) : 0
 
-      const lendingData: MoneyMarketPayload | undefined =
-        pool.category === 'money-market'
-          ? {
-              utilization: Number(marketUtilization.toFixed(4)),
-              borrowedUSD,
-              borrowAPR: pool.borrowApr ? Number(pool.borrowApr) : 0,
-              supplyAPR: pool.supplyApr ? Number(pool.supplyApr) : 0,
-              isPaused: this.#asBool(pool.isPaused),
-              canBorrow: this.#asBool(pool.canBorrow),
-              borrowCap: pool.borrowCap ?? '0',
-              supplyCap: pool.supplyCap ?? '0',
-              health: {
-                solvencyRatio: borrowedUSD > 0 ? suppliedUSD / borrowedUSD : 0,
-                badDebtUSD: pool.badDebtUsd ? Number(pool.badDebtUsd) : 0,
-              },
-            }
-          : undefined
+        const lendingData: MoneyMarketPayload | undefined =
+          pool.category === 'money-market'
+            ? {
+                utilization: Number(marketUtilization.toFixed(4)),
+                borrowedUSD,
+                borrowAPR: pool.borrowApr ? Number(pool.borrowApr) : 0,
+                supplyAPR: pool.supplyApr ? Number(pool.supplyApr) : 0,
+                isPaused: this.#asBool(pool.isPaused),
+                canBorrow: this.#asBool(pool.canBorrow),
+                borrowCap: pool.borrowCap ?? '0',
+                supplyCap: pool.supplyCap ?? '0',
+                health: {
+                  solvencyRatio: borrowedUSD > 0 ? suppliedUSD / borrowedUSD : 0,
+                  badDebtUSD: pool.badDebtUsd ? Number(pool.badDebtUsd) : 0,
+                },
+              }
+            : undefined
 
-      return {
-        id: pool.id,
-        type: 'liquidity',
-        networkId: pool.networkId,
-        protocol: pool.protocol,
-        marketId: pool.marketId,
-        category: pool.category as any,
-        assets: parsedAssets,
-        suppliedUSD,
-        ...(lendingData && { lending: lendingData }),
-      }
-    })
+        return {
+          id: pool.id,
+          type: 'liquidity',
+          networkId: pool.networkId,
+          protocol: pool.protocol,
+          marketId: pool.marketId,
+          category: pool.category as any,
+          assets: parsedAssets,
+          suppliedUSD,
+          ...(lendingData && { lending: lendingData }),
+        }
+      }),
+    }
   }
 
-  async findEvents(options: {
-    lastKnownId: number
-    limit: number
-    networks?: string[]
-    names?: DefiEventAction[]
-  }): Promise<
-    Array<{
-      id: number
-      payload: DefiEventPayload
-    }>
-  > {
+  async findEvents(
+    params: QueryParams<DefiAgentQueryArgs>,
+  ): Promise<Promise<QueryResult<{ id: number; payload: DefiEventPayload }>>> {
+    if (params.args.op !== 'events') {
+      throw new Error('op must be events')
+    }
+
     const isSqlite = this.#dialect === 'sqlite'
     const aggregateFn = isSqlite ? 'json_group_array' : 'json_agg'
     const objectFn = isSqlite ? 'json_object' : 'json_build_object'
+
+    const { pagination, args } = params
+    const cursor = pagination?.cursor !== undefined ? Number(pagination.cursor) : 0
+    const limit = limitCap(pagination)
+
+    if (Number.isNaN(cursor)) {
+      throw new TypeError('Pagination cursor must be a numeric string or number')
+    }
+
+    const networks = fromWildcardOrArray(args.criteria?.networks)
+    const names = fromWildcardOrArray<DefiEventAction>(args.criteria?.filters?.events)
 
     let query = this.#db
       .selectFrom('defi_event as e')
@@ -338,60 +363,66 @@ export class DefiRepository {
             ])
             .as('assets_raw'),
       ])
-      .where('e.id', '>', options.lastKnownId)
+      .where('e.id', '>', cursor)
 
-    // DYNAMIC FILTER: Filter by one or more network IDs
-    if (options.networks && options.networks.length > 0) {
-      query = query.where('e.network_id', 'in', options.networks)
+    if (networks && networks.length > 0) {
+      query = query.where('e.network_id', 'in', networks)
     }
 
-    // DYNAMIC FILTER: Filter by one or more event names (e.g. 'swap', 'deposit')
-    if (options.names && options.names.length > 0) {
-      query = query.where('e.event_name', 'in', options.names)
+    if (names && names.length > 0) {
+      query = query.where('e.event_name', 'in', names)
     }
 
-    const events = await query.groupBy('e.id').orderBy('e.id', 'asc').limit(options.limit).execute()
+    const events = await query
+      .groupBy('e.id')
+      .orderBy('e.id', 'asc')
+      .limit(limit + 1)
+      .execute()
 
-    return events.map((evt) => {
-      let rawAssets: any[] = []
+    return paginatedResultsFromArray(
+      events.map((evt) => {
+        let rawAssets: any[] = []
 
-      if (evt.assets_raw) {
-        rawAssets = typeof evt.assets_raw === 'string' ? JSON.parse(evt.assets_raw) : (evt.assets_raw as any)
+        if (evt.assets_raw) {
+          rawAssets =
+            typeof evt.assets_raw === 'string' ? JSON.parse(evt.assets_raw) : (evt.assets_raw as any)
 
-        rawAssets = rawAssets.filter((a: any) => a.assetId !== null)
-      }
-
-      const eventName = evt.eventName as any
-      let dataBlock: any = {}
-
-      if (eventName === 'swap') {
-        dataBlock = {
-          origin: evt.actorAddress,
-          in: rawAssets.filter((a) => a.direction === 'in'),
-          out: rawAssets.filter((a) => a.direction === 'out'),
+          rawAssets = rawAssets.filter((a: any) => a.assetId !== null)
         }
-      } else {
-        dataBlock = {
-          provider: evt.actorAddress,
-          assets: rawAssets.filter((a) => a.direction === 'action'),
-          ...(evt.lpAmount !== null && { lpAmount: evt.lpAmount }),
-        }
-      }
 
-      return {
-        id: evt.id,
-        payload: {
-          type: 'event',
-          marketId: evt.marketId,
-          protocol: evt.protocol,
-          networkId: evt.networkId,
-          blockNumber: evt.blockNumber,
-          txHash: evt.txHash,
-          name: eventName,
-          data: dataBlock,
-        } as DefiEventPayload,
-      }
-    })
+        const eventName = evt.eventName as any
+        let dataBlock: any = {}
+
+        if (eventName === 'swap') {
+          dataBlock = {
+            origin: evt.actorAddress,
+            in: rawAssets.filter((a) => a.direction === 'in'),
+            out: rawAssets.filter((a) => a.direction === 'out'),
+          }
+        } else {
+          dataBlock = {
+            provider: evt.actorAddress,
+            assets: rawAssets.filter((a) => a.direction === 'action'),
+            ...(evt.lpAmount !== null && { lpAmount: evt.lpAmount }),
+          }
+        }
+
+        return {
+          id: evt.id,
+          payload: {
+            type: 'event',
+            marketId: evt.marketId,
+            protocol: evt.protocol,
+            networkId: evt.networkId,
+            blockNumber: evt.blockNumber,
+            txHash: evt.txHash,
+            name: eventName,
+            data: dataBlock,
+          } as DefiEventPayload,
+        }
+      }),
+      limit,
+    )
   }
 
   #asBoolVal(v: boolean | undefined) {
