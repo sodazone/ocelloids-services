@@ -1,13 +1,12 @@
 import { firstValueFrom, toArray } from 'rxjs'
 import { Abi } from 'viem'
-import { toSystemAccountKey } from '@/services/agents/common/accounts.js'
 import { CustomDiscoveryFetcher } from '@/services/agents/steward/balances/types.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { storageEntriesAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import ghoTokenAbi from '../abi/gho_token.json' with { type: 'json' }
-import { CHAIN_ID, EVM_CHAIN_ID, FACILITATOR_ASCII, HOLLAR_EVM_ADDRESS, HOLLAR_ID } from '../consts.js'
+import { CHAIN_ID, EVM_CHAIN_ID, HOLLAR_EVM_ADDRESS, HOLLAR_ID, HSM_FACILITATOR_ADDRESS } from '../consts.js'
 import {
   AssetMetadataFetcher,
   HsmCollateralToken,
@@ -31,12 +30,11 @@ export function createHSMWatcher(
   fetchBalances: CustomDiscoveryFetcher,
   fetchAssetMetadata: AssetMetadataFetcher,
 ) {
-  const facilitatorAddress = toSystemAccountKey(FACILITATOR_ASCII)
-  const facilitatorEvmAddress = facilitatorAddress.substring(0, 42)
+  const facilitatorEvmAddress = HSM_FACILITATOR_ADDRESS.substring(0, 42)
 
   async function loadPools(stablePools: StableSwapPool[]): Promise<HsmPool[]> {
     const [facilitatorBalances, hollarMetadataResult, collateralsResult] = await Promise.all([
-      fetchBalances(facilitatorAddress),
+      fetchBalances(HSM_FACILITATOR_ADDRESS),
       fetchAssetMetadata([HOLLAR_ID.toString()]),
       firstValueFrom(
         storageEntriesAtLatest$<HexString, HsmCollateralsValue>(ingress, CHAIN_ID, 'HSM', 'Collaterals').pipe(
@@ -96,7 +94,7 @@ export function createHSMWatcher(
     return [
       {
         type: 'hsm',
-        address: facilitatorAddress,
+        address: HSM_FACILITATOR_ADDRESS,
         id: HOLLAR_ID,
         tokens: [hollarReserves, ...collateralTokens],
         isLowLiquidity: false,

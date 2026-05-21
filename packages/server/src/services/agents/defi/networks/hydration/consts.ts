@@ -1,9 +1,13 @@
+import { toSystemAccountKey } from '@/services/agents/common/accounts.js'
 import { networks } from '@/services/agents/common/networks.js'
+
+export const PROTOCOL_NAME = 'hydration'
 
 export const CHAIN_ID = networks.hydration
 export const EVM_CHAIN_ID = 'urn:ocn:ethereum:222222'
-export const FACILITATOR_ASCII = 'modlpy/hsmod'
-export const OMNIPOOL_ASCII = 'modlomnipool'
+export const HSM_FACILITATOR_ADDRESS = toSystemAccountKey('modlpy/hsmod')
+export const OMNIPOOL_ADDRESS = toSystemAccountKey('modlomnipool')
+export const ROUTER_ADDRESS = toSystemAccountKey('modlrouterex')
 
 export const HOLLAR_ID = 222
 export const HOLLAR_EVM_ADDRESS = '0x531a654d1696ED52e7275A8cede955E82620f99a'
