@@ -57,13 +57,14 @@ export async function up(db: Kysely<any>): Promise<void> {
     await db.schema
       .createTable('defi_event')
       .ifNotExists()
-      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
+      .addColumn('id', 'varchar(26)', (cb) => cb.primaryKey())
       .addColumn('pool_id', 'integer', (cb) => cb.references('defi_pool.id').onDelete('set null'))
       .addColumn('network_id', 'varchar(100)', (cb) => cb.notNull())
       .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
       .addColumn('market_id', 'varchar(255)', (cb) => cb.notNull())
-      .addColumn('block_number', 'bigint', (cb) => cb.notNull())
-      .addColumn('tx_hash', 'varchar(66)', (cb) => cb.notNull())
+      .addColumn('block_number', 'bigint')
+      .addColumn('block_hash', 'varchar(66)')
+      .addColumn('tx_hash', 'varchar(66)')
       .addColumn('event_name', 'varchar(20)', (cb) => cb.notNull())
       .addColumn('actor_address', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('lp_amount', 'text')
@@ -73,7 +74,9 @@ export async function up(db: Kysely<any>): Promise<void> {
       .createTable('defi_event_asset')
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
-      .addColumn('event_id', 'integer', (cb) => cb.references('defi_event.id').onDelete('cascade').notNull())
+      .addColumn('event_id', 'varchar(26)', (cb) =>
+        cb.references('defi_event.id').onDelete('cascade').notNull(),
+      )
       .addColumn('asset_id', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('amount', 'text', (cb) => cb.notNull())

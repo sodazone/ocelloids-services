@@ -96,7 +96,7 @@ export class DefiRepository {
     })
   }
 
-  async insertDefiEvent(payload: DefiEventPayload): Promise<number> {
+  async insertDefiEvent(payload: DefiEventPayload): Promise<void> {
     return await this.#db.transaction().execute(async (trx) => {
       const underlyingPool = await trx
         .selectFrom('defi_pool')
@@ -145,32 +145,31 @@ export class DefiRepository {
         )
       }
 
-      const insertedEvent = await trx
+      await trx
         .insertInto('defi_event')
         .values({
+          id: payload.id,
           pool_id: underlyingPool?.id ?? null,
           network_id: payload.networkId,
           protocol: payload.protocol,
           market_id: payload.marketId,
           block_number: payload.blockNumber,
+          block_hash: payload.blockHash,
           tx_hash: payload.txHash,
           event_name: payload.name,
           actor_address: actorAddress,
           lp_amount: lpAmount,
         })
-        .returning('id')
-        .executeTakeFirstOrThrow()
+        .execute()
 
       if (assetRowsToInsert.length > 0) {
         const finalAssetRows = assetRowsToInsert.map((row) => ({
           ...row,
-          event_id: insertedEvent.id,
+          event_id: payload.id,
         }))
 
         await trx.insertInto('defi_event_asset').values(finalAssetRows).execute()
       }
-
-      return insertedEvent.id
     })
   }
 
@@ -309,9 +308,7 @@ export class DefiRepository {
     }
   }
 
-  async findEvents(
-    params: QueryParams<DefiAgentQueryArgs>,
-  ): Promise<Promise<QueryResult<{ id: number; payload: DefiEventPayload }>>> {
+  async findEvents(params: QueryParams<DefiAgentQueryArgs>): Promise<QueryResult<DefiEventPayload>> {
     if (params.args.op !== 'events') {
       throw new Error('op must be events')
     }
@@ -321,7 +318,7 @@ export class DefiRepository {
     const objectFn = isSqlite ? 'json_object' : 'json_build_object'
 
     const { pagination, args } = params
-    const cursor = pagination?.cursor !== undefined ? Number(pagination.cursor) : 0
+    const cursor = pagination?.cursor !== undefined ? pagination.cursor : ''
     const limit = limitCap(pagination)
 
     if (Number.isNaN(cursor)) {
@@ -340,6 +337,7 @@ export class DefiRepository {
         'e.protocol',
         'e.market_id as marketId',
         'e.block_number as blockNumber',
+        'e.block_hash as blockHash',
         'e.tx_hash as txHash',
         'e.event_name as eventName',
         'e.actor_address as actorAddress',
@@ -408,16 +406,15 @@ export class DefiRepository {
 
         return {
           id: evt.id,
-          payload: {
-            type: 'event',
-            marketId: evt.marketId,
-            protocol: evt.protocol,
-            networkId: evt.networkId,
-            blockNumber: evt.blockNumber,
-            txHash: evt.txHash,
-            name: eventName,
-            data: dataBlock,
-          } as DefiEventPayload,
+          type: 'event',
+          marketId: evt.marketId,
+          protocol: evt.protocol,
+          networkId: evt.networkId,
+          blockNumber: evt.blockNumber,
+          blockHash: evt.blockHash,
+          txHash: evt.txHash,
+          name: eventName,
+          data: dataBlock,
         }
       }),
       limit,

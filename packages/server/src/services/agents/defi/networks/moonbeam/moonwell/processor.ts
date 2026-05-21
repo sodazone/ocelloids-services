@@ -1,4 +1,5 @@
 import { Observable, Subject, Subscription, share } from 'rxjs'
+import { ulid } from 'ulidx'
 import { Abi } from 'viem'
 import { NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
@@ -134,11 +135,13 @@ export function createMoonwellProcessor({
 
             const payload: DefiEventPayload = {
               type: 'event',
+              id: ulid(),
               marketId: targetMarketAddress,
               protocol: 'moonwell',
               networkId: chainId,
-              blockNumber: log.blockNumber ?? '',
-              txHash: log.transactionHash ?? '',
+              blockNumber: log.blockNumber,
+              blockHash: log.blockHash,
+              txHash: log.transactionHash,
               name: actionType,
               data: {
                 provider: providerAddress,

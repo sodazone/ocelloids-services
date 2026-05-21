@@ -1,4 +1,5 @@
 import { filter, map, Observable, Subject, Subscription, share } from 'rxjs'
+import { ulid } from 'ulidx'
 import { Abi, formatUnits } from 'viem'
 import { NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
@@ -6,7 +7,7 @@ import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
 import { smartTrigger } from '../../../rxjs/trigger.js'
-import { DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
+import type { DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
 import { algebraPools, tokens } from './definitions.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
@@ -124,20 +125,23 @@ export function createStellaswapProcessor({
           const token1 = tokens[pool.token1]
           const base = {
             type: 'event' as const,
+            id: ulid(),
             marketId: log.address,
             protocol: 'stellaswap',
             networkId: chainId,
             blockNumber: log.blockNumber,
+            blockHash: log.blockHash,
             txHash: log.transactionHash,
           }
 
           if (log.eventName === 'Swap') {
             const args = log.args as SwapEventArgs
+
             const a0 = BigInt(args.amount0)
             const a1 = BigInt(args.amount1)
-
             const isA0In = a0 > 0n
-            return {
+
+            const payload: DefiEventPayload = {
               ...base,
               name: 'swap',
               data: {
@@ -153,11 +157,12 @@ export function createStellaswapProcessor({
                   amount: formatUnits(isA0In ? -a1 : -a0, (isA0In ? token1 : token0).decimals),
                 },
               },
-            } as DefiEventPayload
+            }
+            return payload
           }
 
           const args = log.args as MintEventArgs | BurnEventArgs
-          return {
+          const payload: DefiEventPayload = {
             ...base,
             name: log.eventName?.toLowerCase() as 'mint' | 'burn',
             data: {
@@ -175,9 +180,10 @@ export function createStellaswapProcessor({
                 },
               ],
             },
-          } as DefiEventPayload
+          }
+          return payload
         }),
-        filter((p): p is DefiEventPayload => p !== null),
+        filter((p) => p !== null),
       )
     }
   }

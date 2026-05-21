@@ -153,11 +153,13 @@ export type DefiEventAsset = {
  */
 export type DefiEventPayload = {
   type: 'event'
+  id: string
   marketId: string
   protocol: string
   networkId: string
-  blockNumber: string
-  txHash: string
+  blockHash: string | null
+  blockNumber: string | null
+  txHash: string | null
 } & (
   | {
       name: 'swap' | 'swap_intent'

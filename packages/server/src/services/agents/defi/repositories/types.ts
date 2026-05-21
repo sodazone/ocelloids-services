@@ -59,15 +59,16 @@ export type DefiPoolAssetUpdate = Updateable<DefiPoolAssetTable>
 export type DefiEventAssetRole = 'swap_in' | 'swap_out' | 'fee' | 'asset'
 
 export interface DefiEventTable {
-  id: Generated<number>
+  id: ColumnType<string>
   pool_id: ColumnType<number | null>
 
   network_id: ColumnType<string>
   protocol: ColumnType<string>
   market_id: ColumnType<string>
 
-  block_number: ColumnType<string>
-  tx_hash: ColumnType<string>
+  block_number: ColumnType<string | null>
+  block_hash: ColumnType<string | null>
+  tx_hash: ColumnType<string | null>
 
   event_name: ColumnType<DefiEventAction>
   actor_address: ColumnType<string>
@@ -76,7 +77,7 @@ export interface DefiEventTable {
 
 export interface DefiEventAssetTable {
   id: Generated<number>
-  event_id: ColumnType<number>
+  event_id: ColumnType<string>
 
   asset_id: ColumnType<string>
   symbol: ColumnType<string>
