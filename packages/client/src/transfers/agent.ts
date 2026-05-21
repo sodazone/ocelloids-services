@@ -1,4 +1,4 @@
-import { _isAnySubscriptionInputs, OcelloidsAgentApi } from '../core/api'
+import { OcelloidsAgentApi } from '../core/api'
 import { OcelloidsClient } from '../core/client'
 import { SubscribableWithReplayApi } from '../core/types'
 import { OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
@@ -26,13 +26,7 @@ export class TransfersAgentApi
     },
     onDemandHandlers?: OnDemandSubscriptionHandlers<TransfersAgentInputs>,
   ) {
-    let networks: string[] | '*' = '*'
-
-    if (_isAnySubscriptionInputs(subscription)) {
-      networks = subscription.networks
-    } else {
-      networks = (await this.getSubscription(subscription)).args.networks
-    }
+    const { networks } = await this.resolveInputsFromSubscription(subscription)
 
     return this.subscribeWithReplayStrategy(
       subscription,
