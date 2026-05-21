@@ -1,13 +1,14 @@
 import { EMPTY, filter, from, map, mergeMap, Observable } from 'rxjs'
+import { ulid } from 'ulidx'
 import { formatUnits } from 'viem'
 import { AssetId, AssetMetadata } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { Block, BlockEvent } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
-import { DefiEventPayload } from '../../../types.js'
+import { DefiEventPayload, SwapIntentStatus } from '../../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from '../consts.js'
 import { routerExecutedHandler } from './router.js'
-import { EventHandler, EventRecordWithIndex, SwapRoute } from './types.js'
+import { EventHandler, EventRecordWithIndex, HydrationSwapEvent, SwapRoute } from './types.js'
 
 const handlers: Record<string, EventHandler> = {
   'extrinsic.router.executed': routerExecutedHandler,
@@ -20,7 +21,13 @@ function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
 function toSwapEventPayload(
   name: 'swap' | 'swap_intent',
   { assetIn, assetOut, amountIn, amountOut, marketId }: SwapRoute,
-  { blockNumber, txHash, who }: { blockNumber: string; txHash: string; who: string },
+  {
+    blockHash,
+    blockNumber,
+    txHash,
+    who,
+    status,
+  }: { blockNumber: string; blockHash: string; txHash: string; who: string; status: SwapIntentStatus },
   metadataMap: Map<AssetId, AssetMetadata>,
 ): DefiEventPayload | null {
   const assetInMeta = metadataMap.get(assetIn)
@@ -30,14 +37,44 @@ function toSwapEventPayload(
     return null
   }
 
+  if (name === 'swap') {
+    return {
+      id: ulid(),
+      type: 'event',
+      networkId: CHAIN_ID,
+      protocol: PROTOCOL_NAME,
+      name,
+      blockNumber,
+      blockHash,
+      txHash,
+      marketId,
+      data: {
+        origin: who,
+        in: {
+          amount: formatUnits(amountIn, assetInMeta.decimals ?? 0),
+          assetId: assetIn.toString(),
+          symbol: assetInMeta.symbol ?? '??',
+        },
+        out: {
+          amount: formatUnits(amountOut, assetOutMeta.decimals ?? 0),
+          assetId: assetOut.toString(),
+          symbol: assetOutMeta.symbol ?? '??',
+        },
+      },
+    }
+  }
+
   return {
+    id: ulid(),
     type: 'event',
     networkId: CHAIN_ID,
     protocol: PROTOCOL_NAME,
-    blockNumber,
-    txHash,
     name,
+    blockNumber,
+    blockHash,
+    txHash,
     marketId,
+    status,
     data: {
       origin: who,
       in: {
@@ -52,6 +89,52 @@ function toSwapEventPayload(
       },
     },
   }
+}
+
+function mapSwaps(
+  event: HydrationSwapEvent,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+) {
+  const { assetIn, assetOut, route, blockNumber, blockHash, extrinsic, who } = event
+  const assetIds = [
+    ...new Set([
+      assetIn.toString(),
+      assetOut.toString(),
+      ...route.flatMap((r) => [r.assetIn.toString(), r.assetOut.toString()]),
+    ]),
+  ]
+
+  return from(fetchAssetMetadata(assetIds)).pipe(
+    mergeMap((results) => {
+      const metadataMap = new Map<AssetId, AssetMetadata>(results.map((meta) => [meta.id, meta]))
+
+      const swapCtx: {
+        blockNumber: string
+        blockHash: string
+        txHash: string
+        who: string
+        status: SwapIntentStatus
+      } = {
+        who,
+        blockNumber: blockNumber.toString(),
+        blockHash,
+        txHash: extrinsic?.txHash ?? 'intrinsic',
+        status: 'filled',
+      }
+
+      const internalSwaps = route
+        .map((r) => toSwapEventPayload('swap', r, swapCtx, metadataMap))
+        .filter((r): r is DefiEventPayload => r !== null)
+
+      const swapIntentEvent = toSwapEventPayload('swap_intent', event, swapCtx, metadataMap)
+
+      if (swapIntentEvent === null) {
+        return [...internalSwaps]
+      }
+
+      return [swapIntentEvent, ...internalSwaps]
+    }),
+  )
 }
 
 export function watchEvents(
@@ -99,42 +182,11 @@ export function watchEvents(
       }),
       filter((defiEvent) => defiEvent !== null),
       mergeMap((event) => {
-        if (event.type !== 'swap') {
-          return EMPTY
+        if (event.type === 'swap') {
+          return mapSwaps(event, fetchAssetMetadata)
         }
 
-        const { assetIn, assetOut, route, blockNumber, extrinsic, who } = event
-        const assetIds = [
-          ...new Set([
-            assetIn.toString(),
-            assetOut.toString(),
-            ...route.flatMap((r) => [r.assetIn.toString(), r.assetOut.toString()]),
-          ]),
-        ]
-
-        return from(fetchAssetMetadata(assetIds)).pipe(
-          mergeMap((results) => {
-            const metadataMap = new Map<AssetId, AssetMetadata>(results.map((meta) => [meta.id, meta]))
-
-            const swapCtx = {
-              who,
-              blockNumber: blockNumber.toString(),
-              txHash: extrinsic?.txHash ?? 'intrinsic',
-            }
-
-            const internalSwaps = route
-              .map((r) => toSwapEventPayload('swap', r, swapCtx, metadataMap))
-              .filter((r): r is DefiEventPayload => r !== null)
-
-            const swapIntentEvent = toSwapEventPayload('swap_intent', event, swapCtx, metadataMap)
-
-            if (swapIntentEvent === null) {
-              return [...internalSwaps]
-            }
-
-            return [swapIntentEvent, ...internalSwaps]
-          }),
-        )
+        return EMPTY
       }),
     )
 }

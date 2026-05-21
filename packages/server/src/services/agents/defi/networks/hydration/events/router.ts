@@ -1,9 +1,9 @@
 import { Enum, FixedSizeArray, FixedSizeBinary } from 'polkadot-api'
+import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
 import { EventRecordWithIndex, HydrationSwapEvent, SwapRoute } from './types.js'
-import { asPublicKey } from '@/common/util.js'
 
 type RouterExecutedEvent = {
   asset_in: number

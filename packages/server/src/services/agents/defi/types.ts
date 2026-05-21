@@ -151,6 +151,11 @@ export type DefiEventAsset = {
 /**
  * @public
  */
+export type SwapIntentStatus = 'initiated' | 'partially_filled' | 'filled'
+
+/**
+ * @public
+ */
 export type DefiEventPayload = {
   type: 'event'
   id: string
@@ -162,7 +167,16 @@ export type DefiEventPayload = {
   txHash: string | null
 } & (
   | {
-      name: 'swap' | 'swap_intent'
+      name: 'swap'
+      data: {
+        origin: string
+        in: DefiEventAsset
+        out: DefiEventAsset
+      }
+    }
+  | {
+      name: 'swap_intent'
+      status: SwapIntentStatus
       data: {
         origin: string
         in: DefiEventAsset

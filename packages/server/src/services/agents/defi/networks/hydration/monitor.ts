@@ -1,4 +1,4 @@
-import { firstValueFrom, map, share, Subject, Subscription } from 'rxjs'
+import { firstValueFrom, map, Subject, Subscription, share } from 'rxjs'
 import { DataSteward } from '@/services/agents/steward/agent.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
@@ -7,7 +7,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
-import { DefiLiquidityAsset, DefiSubscriptionPayload, isSwapEvent } from '../../types.js'
+import { DefiEventPayload, DefiLiquidityAsset, DefiSubscriptionPayload, isSwapEvent } from '../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from './consts.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
@@ -244,11 +244,11 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
                 amountUSD: Number(swapOut.amount) * (prices.get(Number(swapOut.assetId)) ?? 0),
               },
             },
-          }
+          } as DefiEventPayload
         }
         return payload
       }),
-      share()
+      share(),
     )
 
     subs.push(events$.subscribe((payload) => subject.next(payload)))
