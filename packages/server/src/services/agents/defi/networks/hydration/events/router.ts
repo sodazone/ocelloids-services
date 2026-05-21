@@ -1,6 +1,7 @@
 import { Enum, FixedSizeArray, FixedSizeBinary } from 'polkadot-api'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
+import { ROUTER_ADDRESS } from '../consts.js'
 import { EventRecordWithIndex, HydrationSwapEvent, SwapRoute } from './types.js'
 
 type RouterExecutedEvent = {
@@ -103,6 +104,7 @@ export function routerExecutedHandler(
       method,
     },
     who: address,
+    marketId: ROUTER_ADDRESS,
     assetIn: asset_in,
     amountIn: amount_in,
     assetOut: asset_out,

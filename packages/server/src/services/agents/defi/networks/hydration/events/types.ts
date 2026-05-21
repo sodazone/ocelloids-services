@@ -22,21 +22,17 @@ export interface BaseHydrationDefiEvent {
   }
 }
 
-export interface HydrationSwapEvent extends BaseHydrationDefiEvent {
-  type: 'swap'
-  assetIn: number
-  amountIn: bigint
-  assetOut: number
-  amountOut: bigint
-  route: SwapRoute[]
-}
-
-export type HydrationDefiEvent = HydrationSwapEvent
-
-export type SwapRoute = {
+export interface SwapRoute {
   marketId: string
   assetIn: number
   amountIn: bigint
   assetOut: number
   amountOut: bigint
 }
+
+export interface HydrationSwapEvent extends SwapRoute, BaseHydrationDefiEvent {
+  type: 'swap'
+  route: SwapRoute[]
+}
+
+export type HydrationDefiEvent = HydrationSwapEvent
