@@ -78,7 +78,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('amount', 'text', (cb) => cb.notNull())
       .addColumn('amount_usd', 'text')
-      .addColumn('direction', 'varchar(10)', (cb) => cb.notNull())
+      .addColumn('role', 'varchar(10)', (cb) => cb.notNull())
       .execute()
   } catch (error) {
     console.error('PostgreSQL Migration failed:', error)

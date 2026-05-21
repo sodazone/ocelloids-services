@@ -51,6 +51,13 @@ export type DefiPoolAsset = Selectable<DefiPoolAssetTable>
 export type NewDefiPoolAsset = Insertable<DefiPoolAssetTable>
 export type DefiPoolAssetUpdate = Updateable<DefiPoolAssetTable>
 
+/**
+ * DeFi Event asset role.
+ *
+ * @public
+ */
+export type DefiEventAssetRole = 'swap_in' | 'swap_out' | 'fee' | 'asset'
+
 export interface DefiEventTable {
   id: Generated<number>
   pool_id: ColumnType<number | null>
@@ -77,7 +84,7 @@ export interface DefiEventAssetTable {
   amount: ColumnType<string>
   amount_usd: ColumnType<number | null>
 
-  direction: ColumnType<'in' | 'out' | 'action'>
+  role: ColumnType<DefiEventAssetRole>
 }
 
 export type DefiEvent = Selectable<DefiEventTable>

@@ -8,6 +8,7 @@ import {
   DefiEventPayload,
   DefiLiquidityAsset,
   DefiLiquidityPayload,
+  isSwapEvent,
   MoneyMarketPayload,
 } from '../types.js'
 import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiPoolAsset } from './types.js'
@@ -109,28 +110,26 @@ export class DefiRepository {
       let lpAmount: string | null = null
       const assetRowsToInsert: Omit<NewDefiEventAsset, 'event_id'>[] = []
 
-      if (payload.name === 'swap') {
+      if (isSwapEvent(payload)) {
         actorAddress = payload.data.origin
 
-        payload.data.in.forEach((asset) =>
-          assetRowsToInsert.push({
-            asset_id: asset.assetId,
-            symbol: asset.symbol,
-            amount: asset.amount,
-            amount_usd: asset.amountUSD,
-            direction: 'in',
-          }),
-        )
+        const assetIn = payload.data.in
+        assetRowsToInsert.push({
+          asset_id: assetIn.assetId,
+          symbol: assetIn.symbol,
+          amount: assetIn.amount,
+          amount_usd: assetIn.amountUSD,
+          role: 'swap_in',
+        })
 
-        payload.data.out.forEach((asset) =>
-          assetRowsToInsert.push({
-            asset_id: asset.assetId,
-            symbol: asset.symbol,
-            amount: asset.amount,
-            amount_usd: asset.amountUSD,
-            direction: 'out',
-          }),
-        )
+        const assetOut = payload.data.out
+        assetRowsToInsert.push({
+          asset_id: assetOut.assetId,
+          symbol: assetOut.symbol,
+          amount: assetOut.amount,
+          amount_usd: assetOut.amountUSD,
+          role: 'swap_out',
+        })
       } else {
         actorAddress = payload.data.provider
         lpAmount = 'lpAmount' in payload.data ? (payload.data.lpAmount ?? null) : null
@@ -141,7 +140,7 @@ export class DefiRepository {
             symbol: asset.symbol,
             amount: asset.amount,
             amount_usd: asset.amountUSD,
-            direction: 'action',
+            role: 'asset',
           }),
         )
       }
@@ -357,8 +356,8 @@ export class DefiRepository {
                 eb.ref('ea.amount'),
                 eb.val('amountUSD'),
                 eb.ref('ea.amount_usd'),
-                eb.val('direction'),
-                eb.ref('ea.direction'),
+                eb.val('role'),
+                eb.ref('ea.role'),
               ]),
             ])
             .as('assets_raw'),
