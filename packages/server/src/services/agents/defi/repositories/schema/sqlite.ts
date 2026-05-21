@@ -78,7 +78,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('symbol', 'text', (cb) => cb.notNull())
       .addColumn('amount', 'text', (cb) => cb.notNull())
       .addColumn('amount_usd', 'text')
-      .addColumn('direction', 'text', (cb) => cb.notNull())
+      .addColumn('role', 'text', (cb) => cb.notNull())
       .execute()
   } catch (error) {
     console.error('SQLite Migration failed:', error)
