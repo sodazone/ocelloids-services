@@ -8,6 +8,11 @@ export type DefiAgentInputs = sourceDefi.DefiAgentInputs
 /**
  * @public
  */
+export type DefiAgentQueryArgs = sourceDefi.DefiAgentQueryArgs
+
+/**
+ * @public
+ */
 export type DefiSubscriptionPayload = sourceDefi.DefiSubscriptionPayload
 
 /**

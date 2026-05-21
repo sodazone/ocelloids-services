@@ -4,11 +4,13 @@ import type {
   AnyJson,
   AnyQueryArgs,
   AnyQueryResultItem,
+  EventId,
   Message,
   MessageHandler,
   QueryPagination,
   QueryParams,
   QueryResult,
+  SubscribeReplayContext,
   SubscriptionId,
 } from '../lib'
 import { type OnDemandSubscriptionHandlers, type Subscription, type WebSocketHandlers } from '../types'
@@ -23,7 +25,7 @@ import {
   StreamableApi,
   SubscribableApi,
 } from './types'
-import { isSubscriptionInputs } from './utils'
+import { isGreaterThan, isGreaterThanOrEqual, isLessThanOrEqual, isSubscriptionInputs } from './utils'
 
 /**
  * Exposes the Ocelloids Agent API.
@@ -210,18 +212,13 @@ export class OcelloidsAgentApi<T>
         )
   }
 
-  protected async subscribeWithReplayStrategy<P extends { id: number } = { id: number }, Q = AnyQueryArgs>(
+  protected async subscribeWithReplayStrategy<P extends { id: EventId } = { id: EventId }, Q = AnyQueryArgs>(
     subscription: SubscriptionId | T,
     handlers: WebSocketHandlers<P>,
-    replay: {
-      lastSeenId?: number
-      onPersist: (id: number) => Promise<void>
-      onCompleteRange?: () => void
-      onIncompleteRange?: (info: { from: number | null; to: number | null }) => Promise<void>
-    },
+    replayContext: SubscribeReplayContext,
     replayStrategy: {
-      buildReplayQuery: (from?: number, to?: number) => Q | null
-      buildMessageMetadata: (payload: P) => {
+      buildReplayQuery: (from?: EventId, to?: EventId) => { args: Q; pagination?: QueryPagination } | null
+      buildReplayedMessageMetadata: (payload: P) => {
         type: string
         agentId: string
         networkId: string
@@ -233,31 +230,35 @@ export class OcelloidsAgentApi<T>
   ): Promise<WebSocket> {
     const baseUrl = this.#config.wsUrl + '/ws/subs'
 
-    let firstLiveId: number | null = null
-    let lastSeen = replay.lastSeenId ?? 0
+    let firstLiveId: EventId
+    let lastSeen: EventId =
+      replayContext.lastSeenId ?? ((typeof replayContext.lastSeenId === 'number' ? 0 : '0') as EventId)
     let replayStarted = false
     let replayFailed = false
 
-    const replayRange = async (ws: WebSocket, end?: number) => {
+    const replayRange = async (ws: WebSocket, end?: EventId) => {
       replayStarted = true
 
-      const args = replayStrategy.buildReplayQuery(lastSeen, end)
-      if (!args) {
+      const replayQuery = replayStrategy.buildReplayQuery(lastSeen, end)
+      if (replayQuery === null) {
         return
       }
 
-      let cursor: string | undefined
+      const { pagination, args } = replayQuery
+      let cursor = pagination?.cursor
 
       try {
+        // TODO: break if too many fetches without stop... (throttling?)
         do {
           const result = await this.query<Q, P>(args, cursor ? { cursor } : undefined)
           cursor = result.pageInfo?.hasNextPage ? result.pageInfo.endCursor : undefined
 
           for (const item of result.items) {
-            if (lastSeen !== undefined && item.id <= lastSeen) {
+            if (lastSeen !== undefined && isLessThanOrEqual(item.id, lastSeen)) {
               continue
             }
-            if (firstLiveId !== null && item.id >= firstLiveId) {
+
+            if (firstLiveId !== null && isGreaterThanOrEqual(item.id, firstLiveId)) {
               cursor = undefined
               break
             }
@@ -265,29 +266,30 @@ export class OcelloidsAgentApi<T>
             lastSeen = item.id
 
             handlers.onMessage(
-              { metadata: replayStrategy.buildMessageMetadata(item as any), payload: item } as any,
+              { metadata: replayStrategy.buildReplayedMessageMetadata(item as any), payload: item } as any,
               ws,
               undefined as any,
             )
+
             if (firstLiveId === null) {
-              await replay.onPersist(item.id)
+              await replayContext.onPersist(item.id)
             }
           }
         } while (cursor)
       } catch (err) {
         console.error(err, 'Failed to fetch replay range')
         replayFailed = true
-        await replay.onIncompleteRange?.({
+        await replayContext.onIncompleteRange?.({
           from: lastSeen ?? null,
           to: end ?? null,
         })
       }
 
       if (!replayFailed) {
-        replay.onCompleteRange?.()
+        replayContext.onCompleteRange?.()
 
         if (lastSeen !== undefined) {
-          await replay.onPersist(lastSeen)
+          await replayContext.onPersist(lastSeen)
         }
       }
     }
@@ -303,10 +305,9 @@ export class OcelloidsAgentApi<T>
 
       handlers.onMessage(message, ws, undefined as any)
 
-      if (msgId > lastSeen) {
+      if (isGreaterThan(msgId, lastSeen)) {
         lastSeen = msgId
-
-        await replay.onPersist(msgId)
+        await replayContext.onPersist(msgId)
       }
     }
 

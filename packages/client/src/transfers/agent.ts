@@ -1,6 +1,6 @@
 import { OcelloidsAgentApi } from '../core/api'
 import { OcelloidsClient } from '../core/client'
-import { SubscribableWithReplayApi } from '../core/types'
+import { EventId, SubscribableWithReplayApi, SubscribeReplayContext } from '../core/types'
 import { OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
 import { IcTransferResponse, TransfersAgentInputs } from './types'
 
@@ -18,12 +18,7 @@ export class TransfersAgentApi
   async subscribeWithReplay(
     subscription: SubscriptionId | TransfersAgentInputs,
     handlers: WebSocketHandlers<IcTransferResponse>,
-    replay: {
-      lastSeenId?: number
-      onPersist: (id: number) => Promise<void>
-      onCompleteRange?: () => void
-      onIncompleteRange?: (range: { from: number | null; to: number | null }) => Promise<void>
-    },
+    replay: SubscribeReplayContext,
     onDemandHandlers?: OnDemandSubscriptionHandlers<TransfersAgentInputs>,
   ) {
     const { networks } = await this.resolveInputsFromSubscription(subscription)
@@ -34,24 +29,26 @@ export class TransfersAgentApi
       replay,
       {
         buildReplayQuery: this.#buildQuery(networks !== '*' ? networks : undefined),
-        buildMessageMetadata: this.#buildMetadata,
+        buildReplayedMessageMetadata: this.#buildMetadata,
       },
       onDemandHandlers,
     )
   }
 
   #buildQuery(networks?: string[]) {
-    return (from?: number, to?: number) => {
+    return (from?: EventId, to?: EventId) => {
       if (from === undefined) {
         return null
       }
 
       return {
-        op: 'transfers.by_id_range',
-        criteria: {
-          networks,
-          start: from + 1,
-          ...(to !== undefined ? { end: to - 1 } : {}),
+        args: {
+          op: 'transfers.by_id_range',
+          criteria: {
+            networks,
+            start: Number(from) + 1,
+            ...(to !== undefined ? { end: Number(to) - 1 } : {}),
+          },
         },
       }
     }
