@@ -11,12 +11,7 @@ import type {
   QueryResult,
   SubscriptionId,
 } from '../lib'
-import {
-  type AnySubscriptionInputs,
-  type OnDemandSubscriptionHandlers,
-  type Subscription,
-  type WebSocketHandlers,
-} from '../types'
+import { type OnDemandSubscriptionHandlers, type Subscription, type WebSocketHandlers } from '../types'
 import { doFetchWithConfig, type FetchFn, openWebSocket } from './transport'
 import {
   HealthResponse,
@@ -28,17 +23,7 @@ import {
   StreamableApi,
   SubscribableApi,
 } from './types'
-
-/**
- * Guard condition for {@link AnySubscriptionInputs}.
- *
- * Only to discriminate between subscription id and input.
- *
- * @internal
- */
-export function _isAnySubscriptionInputs(object: any): object is AnySubscriptionInputs {
-  return typeof object === 'object'
-}
+import { isSubscriptionInputs } from './utils'
 
 /**
  * Exposes the Ocelloids Agent API.
@@ -209,7 +194,7 @@ export class OcelloidsAgentApi<T>
   ): Promise<WebSocket> {
     const baseUrl = this.#config.wsUrl + '/ws/subs'
 
-    return _isAnySubscriptionInputs(subscription)
+    return isSubscriptionInputs(subscription)
       ? openWebSocket<T, P>(this.#config, await this.#withToken(baseUrl), handlers, {
           sub: {
             args: subscription as any,
@@ -325,7 +310,7 @@ export class OcelloidsAgentApi<T>
       }
     }
 
-    const ws = _isAnySubscriptionInputs(subscription)
+    const ws = isSubscriptionInputs(subscription)
       ? openWebSocket<T, P>(
           this.#config,
           await this.#withToken(baseUrl),
@@ -352,6 +337,12 @@ export class OcelloidsAgentApi<T>
     })
 
     return ws
+  }
+
+  protected async resolveInputsFromSubscription(subscription: SubscriptionId | T) {
+    return isSubscriptionInputs<T>(subscription)
+      ? subscription
+      : (await this.getSubscription(subscription)).args
   }
 
   async #withToken(base: string) {

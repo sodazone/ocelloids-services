@@ -11,6 +11,10 @@ export function limitCap(pagination?: QueryPagination) {
   return Math.min(pagination?.limit ?? API_LIMIT_DEFAULT, API_LIMIT_MAX)
 }
 
+export function fromWildcardOrArray<T = string>(v?: '*' | T | T[]) {
+  return v && v !== '*' ? (Array.isArray(v) ? v : [v]) : undefined
+}
+
 function encodeCursor(key: unknown): string {
   if (typeof key === 'string') {
     return key
@@ -38,5 +42,20 @@ export async function paginatedResults<K, V>(iterator: AbstractIterator<LevelDB,
       hasNextPage: iterator.count >= iterator.limit,
     },
     items: entries.map(([_, v]) => v),
+  }
+}
+
+export function paginatedResultsFromArray<T extends { id: number | string }>(rawItems: T[], limit: number) {
+  const items = rawItems.slice(0, limit)
+  const hasNextPage = rawItems.length > limit
+
+  const endCursor = items.length > 0 ? items[items.length - 1].id.toString() : ''
+
+  return {
+    items: items.map((item) => item),
+    pageInfo: {
+      endCursor,
+      hasNextPage,
+    },
   }
 }

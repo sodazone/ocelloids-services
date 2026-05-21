@@ -8,8 +8,26 @@ import type { ChainSpecData } from '@polkadot-api/substrate-client'
 import type { BlockInfo as PapiBlockInfo } from 'polkadot-api'
 import { Serializable } from '@/common/util.js'
 import type { HexString } from '@/lib.js'
-import { ApiClient, BlockStatus } from '../types.js'
+import { ApiClient, BlockIngestionMode, BlockStatus } from '../types.js'
 import { RpcApi } from './rpc.js'
+
+export type XcmJunction =
+  | { type: 'Parachain'; value: number }
+  | { type: 'GlobalConsensus'; value: any }
+  | { type: 'AccountId32'; value: { id: string } }
+  | { type: 'AccountKey20'; value: { key: string } }
+  | { type: string; value: any }
+
+export type XcmInterior =
+  | { type: 'Here' }
+  | { type: 'X1'; value: XcmJunction[] }
+  | { type: 'X2'; value: XcmJunction[] }
+  | { type: string; value: XcmJunction[] }
+
+export interface XcmLocation {
+  parents: number
+  interior: XcmInterior
+}
 
 export type StorageCodec<T = any> = {
   keys: {
@@ -65,6 +83,7 @@ export type Block = {
     logs: any[]
   }
   status?: BlockStatus
+  ingestionMode?: BlockIngestionMode
 }
 
 export type BlockInfo = Omit<PapiBlockInfo, 'hasNewRuntime'>

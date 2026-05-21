@@ -5,6 +5,10 @@
     "./src/types.ts",
     "./src/xcm/types.ts",
     "./src/steward/types.ts",
+    "./src/issuance/types.ts",
+    "./src/opengov/types.ts",
+    "./src/transfers/types.ts",
+    "./src/defi/types.ts",
     "./src/server-types.ts"
   ],
   "darkHighlightTheme": "github-dark",
@@ -15,5 +19,5 @@
   "excludeExternals": true,
   "excludePrivate": true,
   "hideGenerator": true,
-  "out": "docs",
+  "out": "docs"
 }

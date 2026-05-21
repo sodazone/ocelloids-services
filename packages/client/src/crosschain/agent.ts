@@ -1,4 +1,4 @@
-import { _isAnySubscriptionInputs, OcelloidsAgentApi } from '../core/api'
+import { OcelloidsAgentApi } from '../core/api'
 import { OcelloidsClient } from '../core/client'
 import { QueryableApi, StreamableApi, SubscribableWithReplayApi } from '../core/types'
 import { OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
@@ -44,13 +44,7 @@ export class CrosschainAgentApi
     },
     onDemandHandlers?: OnDemandSubscriptionHandlers<CrosschainSubscriptionInputs>,
   ) {
-    let networks: string[] | '*' = '*'
-
-    if (_isAnySubscriptionInputs(subscription)) {
-      networks = subscription.networks
-    } else {
-      networks = (await this.getSubscription(subscription)).args.networks
-    }
+    const { networks } = await this.resolveInputsFromSubscription(subscription)
 
     return this.subscribeWithReplayStrategy(
       subscription,

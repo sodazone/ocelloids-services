@@ -87,6 +87,7 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
     return defer(() => from(api.getBlockByNumber(blockNumber))).pipe(
       timeout(10_000),
       retryWithTruncatedExpBackoff(RETRY_ONCE),
+      map((block): Block => ({ ...block, ingestionMode: 'backfill' })),
       catchError((err) => {
         this.log.warn(err, '[backfill:%s] Failed to getBlock for %s', chainId, blockNumber)
         return EMPTY

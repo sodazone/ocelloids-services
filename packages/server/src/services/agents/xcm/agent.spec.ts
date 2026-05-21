@@ -1,8 +1,8 @@
 import '@/testing/network.js'
 
 import { ValidationError } from '@/errors.js'
+import { Services } from '@/services/types.js'
 import { createServices } from '@/testing/services.js'
-
 import { Subscription } from '../../subscriptions/types.js'
 import { AgentCatalog } from '../types.js'
 import { XcmAgent } from './agent.js'
@@ -26,16 +26,18 @@ const testSub: Subscription<XcmInputs> = {
 }
 
 describe('xcm agent', () => {
+  let services: Services
   let agentService: AgentCatalog
 
   beforeEach(async () => {
-    const services = createServices()
+    services = createServices()
     services.levelDB.setMaxListeners(20)
     agentService = services.agentCatalog
   })
 
   afterEach(async () => {
-    return agentService.stop()
+    await services.levelDB.clear()
+    await agentService.stop()
   })
 
   it('should subscribe to persisted subscriptions on start', async () => {

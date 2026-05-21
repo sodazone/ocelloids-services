@@ -21,13 +21,13 @@ import {
   extractEthereumRuntimeRpcCallBalance,
   getBalanceExtractor,
 } from '@/services/networking/substrate/balances.js'
+import { serializeStorageKeyArg } from '@/services/networking/substrate/common/storage.js'
 import { toFrontierRuntimeQuery } from '@/services/networking/substrate/evm/helpers.js'
 import { SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import {
   decodeSovereignAccount,
   deriveSovereignAccount,
   isXcmLocation,
-  serializeStorageKeyArg,
 } from '@/services/networking/substrate/util.js'
 import { RETRY_INFINITE } from '@/services/networking/watcher.js'
 import { HexString } from '@/services/subscriptions/types.js'

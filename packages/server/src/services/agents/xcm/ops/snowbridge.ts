@@ -49,6 +49,7 @@ type V1InboundMessageDispatchedArgs = {
   nonce: string
   success: boolean
 }
+
 type V2InboundMessageDispatchedArgs = {
   topic: HexString
   nonce: string

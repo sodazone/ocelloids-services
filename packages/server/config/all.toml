@@ -1,0 +1,272 @@
+[[substrate.networks]]
+id = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.ibp.network/polkadot",
+    "wss://rpc.dotters.network/polkadot",
+    "wss://polkadot-rpc.dwellir.com",
+    "wss://polkadot-rpc-tn.dwellir.com"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:1000"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://sys.ibp.network/asset-hub-polkadot",
+    "wss://asset-hub-polkadot.dotters.network",
+    "wss://polkadot-asset-hub-rpc.polkadot.io",
+    "wss://asset-hub-polkadot-rpc.dwellir.com"
+   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:1002"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://sys.ibp.network/bridgehub-polkadot",
+    "wss://bridge-hub-polkadot.dotters.network",
+    "wss://bridge-hub-polkadot-rpc.dwellir.com",
+    "wss://polkadot-bridge-hub-rpc.polkadot.io"
+   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:1004"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://sys.ibp.network/people-polkadot",
+    "wss://people-polkadot.dotters.network",
+    "wss://polkadot-people-rpc.polkadot.io"
+   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:1005"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://coretime-polkadot.dotters.network",
+    "wss://polkadot-coretime-rpc.polkadot.io"
+   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2000"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://acala.ibp.network",
+    "wss://acala.dotters.network",
+    "wss://acala-rpc.dwellir.com"
+   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2006"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://rpc.astar.network",
+    "wss://astar-rpc.dwellir.com"
+   ]
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:2019"
+#relay = "urn:ocn:polkadot:0"
+#   [substrate.networks.provider]
+#   type = "rpc"
+#   url = [
+#    "wss://rpc.composable.finance"
+#   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2034"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://hydradx.paras.ibp.network",
+    "wss://hydradx.paras.dotters.network",
+    "wss://rpc.helikon.io/hydradx"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2032"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://api.interlay.io/parachain",
+    "wss://rpc-interlay.luckyfriday.io"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2030"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://bifrost-polkadot.ibp.network",
+    "wss://bifrost-polkadot.dotters.network"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2031"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+   # "wss://fullnode.centrifuge.io",
+    "wss://rpc-centrifuge.luckyfriday.io",
+   # "wss://centrifuge-rpc.dwellir.com"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2035"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://api.phala.network/ws",
+    "wss://rpc.helikon.io/phala",
+    "wss://phala-rpc.dwellir.com"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:2004"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://moonbeam.ibp.network",
+    "wss://moonbeam.dotters.network",
+    "wss://moonbeam-rpc.dwellir.com"
+  ]
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:2104"
+#relay = "urn:ocn:polkadot:0"
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = [
+#    "wss://ws.manta.systems"
+#  ]
+
+#polimec
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:3344"
+#relay = "urn:ocn:polkadot:0"
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = [
+#    "wss://polimec.ibp.network",
+#    "wss://polimec.dotters.network",
+#    "wss://rpc.polimec.org"
+#  ]
+
+[[substrate.networks]]
+id = "urn:ocn:polkadot:3367"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://nexus.ibp.network",
+    "wss://nexus.dotters.network",
+    "wss://hyperbridge-nexus-rpc.blockops.network"
+   ]
+[[substrate.networks]]
+id = "urn:ocn:polkadot:3369"
+relay = "urn:ocn:polkadot:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://mythos.ibp.network",
+    "wss://mythos.dotters.network",
+    "wss://rpc.helikon.io/mythos"
+  ]
+
+## Kusama
+
+[[substrate.networks]]
+id = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.ibp.network/kusama",
+    "wss://rpc.dotters.network/kusama",
+    "wss://kusama.api.onfinality.io/public-ws"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:kusama:1000"
+relay = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://sys.ibp.network/statemine",
+    "wss://asset-hub-kusama.dotters.network",
+    "wss://rpc-asset-hub-kusama.luckyfriday.io",
+    "wss://kusama-asset-hub-rpc.polkadot.io",
+    "wss://asset-hub-kusama-rpc.dwellir.com"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:kusama:1002"
+relay = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://sys.ibp.network/bridgehub-kusama",
+    "wss://bridge-hub-kusama.dotters.network",
+    "wss://kusama-bridge-hub-rpc.polkadot.io"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:kusama:1005"
+relay = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://sys.ibp.network/coretime-kusama",
+    "wss://coretime-kusama.dotters.network",
+    "wss://kusama-coretime-rpc.polkadot.io"
+  ]
+
+## Paseo
+
+[[substrate.networks]]
+id = "urn:ocn:paseo:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.ibp.network/paseo",
+    "wss://rpc.dotters.network/paseo",
+    "wss://paseo-rpc.dwellir.com",
+    "wss://paseo.rpc.amforc.com",
+    "wss://pas-rpc.stakeworld.io"
+  ]
+
+[[substrate.networks]]
+id = "urn:ocn:paseo:1000"
+relay = "urn:ocn:paseo:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://sys.ibp.network/asset-hub-paseo",
+    "wss://asset-hub-paseo.dotters.network",
+    "wss://pas-rpc.stakeworld.io/assethub",
+    "wss://asset-hub-paseo-rpc.dwellir.com"
+  ]
+
+
+## Solo Chains
+
+#[[substrate.networks]]
+#id = "urn:ocn:alephzero:0"
+
+#  [substrate.networks.provider]
+#  type = "rpc"
+  # wss://ws.azero.dev
+#  url = "wss://aleph-zero-rpc.dwellir.com"
+
+#[[substrate.networks]]
+#id = "urn:ocn:chainflip:0"
+
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = "wss://mainnet-archive.chainflip.io"
+
+#[[substrate.networks]]
+#id = "urn:ocn:ternoa:0"
+
+#  [substrate.networks.provider]
+#  type = "rpc"
+#  url = "wss://mainnet.ternoa.network"

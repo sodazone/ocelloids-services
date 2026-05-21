@@ -6,16 +6,12 @@ import { Subscription } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 
 /**
- * @public
+ * @private
  */
-export const $AssetId = z.union([
-  z.string().min(1, 'asset id is required'),
-  z.number().finite(),
-  z.object({}).passthrough(),
-])
+export const $AssetId = z.union([z.string().min(1, 'asset id is required'), z.number(), z.object({}).loose()])
 
 /**
- * @public
+ * @private
  */
 export const $CrosschainIssuanceSubscriptionInputs = z.object({
   reserveChain: $NetworkString,
@@ -23,12 +19,12 @@ export const $CrosschainIssuanceSubscriptionInputs = z.object({
 })
 
 /**
- * @public
+ * @private
  */
 export type CrosschainIssuanceSubscriptionInputs = z.infer<typeof $CrosschainIssuanceSubscriptionInputs>
 
 /**
- * @public
+ * @private
  */
 export const $CrosschainIssuanceQueryArgs = z.object({
   op: z.literal('issuance.last'),
@@ -38,7 +34,7 @@ export const $CrosschainIssuanceQueryArgs = z.object({
 })
 
 /**
- * @public
+ * @private
  */
 export type CrosschainIssuanceQueryArgs = z.infer<typeof $CrosschainIssuanceQueryArgs>
 

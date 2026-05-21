@@ -123,6 +123,7 @@ export class SubstrateClient extends EventEmitter implements SubstrateApi {
         height: b.number ?? -1,
         parenthash: b.parent ?? '0x0',
         status: b.status,
+        ingestionMode: 'live',
       })),
     )
   }
