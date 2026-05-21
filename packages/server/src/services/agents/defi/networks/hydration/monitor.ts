@@ -1,22 +1,14 @@
-import { EMPTY, firstValueFrom, from, mergeMap, Subject, Subscription } from 'rxjs'
-import { formatUnits } from 'viem'
-import { toAssetId } from '@/services/agents/common/assets.js'
+import { firstValueFrom, map, share, Subject, Subscription } from 'rxjs'
 import { DataSteward } from '@/services/agents/steward/agent.js'
-import {
-  AssetId,
-  AssetMetadata,
-  Empty,
-  isAssetMetadata,
-  StewardQueryArgs,
-} from '@/services/agents/steward/types.js'
+import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
-import { DefiEventPayload, DefiLiquidityAsset, DefiSubscriptionPayload } from '../../types.js'
+import { smartTrigger } from '../../rxjs/trigger.js'
+import { DefiLiquidityAsset, DefiSubscriptionPayload, isSwapEvent } from '../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from './consts.js'
-import { SwapRoute } from './events/types.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
 import { calculateSpot } from './pricing/index.js'
@@ -114,7 +106,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       lending: pool.details,
       assets: [
         {
-          assetId: toAssetId(CHAIN_ID, underlying.id),
+          assetId: underlying.id.toString(),
           symbol: underlying.symbol ?? '??',
           decimals: underlying.decimals,
           priceUSD: assetPrice,
@@ -137,7 +129,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
       suppliedUSD += assetReservesUSD
       liquidityAssets.push({
-        assetId: toAssetId(CHAIN_ID, asset.id),
+        assetId: asset.id.toString(),
         symbol: asset.symbol ?? '??',
         decimals: asset.decimals,
         priceUSD: assetPrice,
@@ -172,7 +164,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       if (asset.isCollateral) {
         suppliedUSD += assetReservesUSD
         liquidityAssets.push({
-          assetId: toAssetId(CHAIN_ID, asset.id),
+          assetId: asset.id.toString(),
           symbol: asset.symbol ?? '??',
           decimals: asset.decimals,
           priceUSD: assetPrice,
@@ -185,7 +177,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
         })
       } else {
         liquidityAssets.push({
-          assetId: toAssetId(CHAIN_ID, asset.id),
+          assetId: asset.id.toString(),
           symbol: asset.symbol ?? '??',
           decimals: asset.decimals,
           priceUSD: assetPrice,
@@ -208,45 +200,6 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       suppliedUSD,
       assets: liquidityAssets,
     })
-  }
-
-  function toSwapEventPayload(
-    name: 'swap' | 'swap_intent',
-    { assetIn, assetOut, amountIn, amountOut, marketId }: SwapRoute,
-    { blockNumber, txHash, who }: { blockNumber: string; txHash: string; who: string },
-    metadataMap: Map<AssetId, AssetMetadata>,
-  ): DefiEventPayload | null {
-    const assetInMeta = metadataMap.get(assetIn)
-    const assetOutMeta = metadataMap.get(assetOut)
-
-    if (!assetInMeta || !assetOutMeta) {
-      return null
-    }
-
-    return {
-      type: 'event',
-      networkId: CHAIN_ID,
-      protocol: PROTOCOL_NAME,
-      blockNumber,
-      txHash,
-      name,
-      marketId,
-      data: {
-        origin: who,
-        in: {
-          amount: formatUnits(amountIn, assetInMeta.decimals ?? 0),
-          assetId: toAssetId(CHAIN_ID, assetIn),
-          symbol: assetInMeta.symbol ?? '??',
-          amountUSD: bigintToUsd(amountIn, assetInMeta.decimals ?? 0, prices.get(assetIn) ?? 0),
-        },
-        out: {
-          amount: formatUnits(amountOut, assetOutMeta.decimals ?? 0),
-          assetId: toAssetId(CHAIN_ID, assetOut),
-          symbol: assetOutMeta.symbol ?? '??',
-          amountUSD: bigintToUsd(amountOut, assetOutMeta.decimals ?? 0, prices.get(assetOut) ?? 0),
-        },
-      },
-    }
   }
 
   async function onBlock(block: Block) {
@@ -272,51 +225,51 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
     const blocks$ = shared$.blocks(CHAIN_ID)
     const events$ = blocks$.pipe(
-      watchEvents(logger),
-      mergeMap((event) => {
-        if (event.type !== 'swap') {
-          return EMPTY
+      watchEvents(logger, fetchAssetMetadata),
+      map((payload) => {
+        if (isSwapEvent(payload)) {
+          const swapIn = payload.data.in
+          const swapOut = payload.data.out
+
+          return {
+            ...payload,
+            data: {
+              ...payload.data,
+              in: {
+                ...swapIn,
+                amountUSD: Number(swapIn.amount) * (prices.get(Number(swapIn.assetId)) ?? 0),
+              },
+              out: {
+                ...swapOut,
+                amountUSD: Number(swapOut.amount) * (prices.get(Number(swapOut.assetId)) ?? 0),
+              },
+            },
+          }
         }
-
-        const { assetIn, assetOut, route, blockNumber, extrinsic, who } = event
-
-        const assetIds = [
-          ...new Set([
-            assetIn.toString(),
-            assetOut.toString(),
-            ...route.flatMap((r) => [r.assetIn.toString(), r.assetOut.toString()]),
-          ]),
-        ]
-
-        return from(fetchAssetMetadata(assetIds)).pipe(
-          mergeMap((results) => {
-            const metadataMap = new Map<AssetId, AssetMetadata>(results.map((meta) => [meta.id, meta]))
-
-            const swapCtx = {
-              who,
-              blockNumber: blockNumber.toString(),
-              txHash: extrinsic?.txHash ?? 'intrinsic',
-            }
-
-            const internalSwaps = route
-              .map((r) => toSwapEventPayload('swap', r, swapCtx, metadataMap))
-              .filter((r): r is DefiEventPayload => r !== null)
-
-            const swapIntentEvent = toSwapEventPayload('swap_intent', event, swapCtx, metadataMap)
-
-            if (swapIntentEvent === null) {
-              return [...internalSwaps]
-            }
-
-            return [swapIntentEvent, ...internalSwaps]
-          }),
-        )
+        return payload
       }),
+      share()
     )
+
+    subs.push(events$.subscribe((payload) => subject.next(payload)))
+    logger.info('[dex:hydration] Subscribed to events.')
+
     const latestBlock = await firstValueFrom(blocks$)
     await initialise(latestBlock)
+    logger.info('[dex:hydration] Initialised pools.')
 
-    subs.push(blocks$.subscribe(onBlock))
+    subs.push(
+      blocks$
+        .pipe(
+          smartTrigger<Block>({
+            events$,
+            maxStaleBlocks: 50,
+          }),
+        )
+        .subscribe(onBlock),
+    )
+
+    logger.info('[dex:hydration] Subscribed to pool liquidity.')
   }
 
   return {

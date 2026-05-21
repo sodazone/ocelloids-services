@@ -3,6 +3,7 @@ import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
 import { EventRecordWithIndex, HydrationSwapEvent, SwapRoute } from './types.js'
+import { asPublicKey } from '@/common/util.js'
 
 type RouterExecutedEvent = {
   asset_in: number
@@ -70,7 +71,7 @@ export function routerExecutedHandler(
   const { amount_in, amount_out, asset_in, asset_out } = value as RouterExecutedEvent
   const { address, hash: txHash, evmTxHash, module: txModule, method } = extrinsic
   const swappedEvents = siblings
-    .filter((e) => matchEvent(e.event, 'broadcast', 'swapped3'))
+    .filter((e) => matchEvent(e.event, 'Broadcast', 'Swapped3'))
     .map((e) => e.event.value as BroadcastSwapped)
 
   const route: SwapRoute[] = swappedEvents.map(({ inputs, outputs, filler }) => {
@@ -79,7 +80,7 @@ export function routerExecutedHandler(
     const amountIn = inputs[0].amount
     const amountOut = outputs[0].amount
     return {
-      marketId: filler,
+      marketId: asPublicKey(filler),
       assetIn,
       amountIn,
       assetOut,
@@ -103,7 +104,7 @@ export function routerExecutedHandler(
       module: txModule,
       method,
     },
-    who: address,
+    who: asPublicKey(address),
     marketId: ROUTER_ADDRESS,
     assetIn: asset_in,
     amountIn: amount_in,
