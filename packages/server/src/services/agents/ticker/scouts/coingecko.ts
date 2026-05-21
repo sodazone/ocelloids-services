@@ -80,7 +80,7 @@ const CG_ID_MAP: Record<string, string> = {
   HOLLAR: 'hydrated-dollar',
   GDOT: 'gigadot',
   GETH: 'gigaeth',
-  APYUSD: 'apyusd'
+  APYUSD: 'apyusd',
 }
 
 const CG_SYMBOL_MAP = Object.fromEntries(Object.entries(CG_ID_MAP).map(([k, v]) => [v, k])) as Record<
