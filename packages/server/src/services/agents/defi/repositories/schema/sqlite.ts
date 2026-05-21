@@ -68,6 +68,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('event_name', 'text', (cb) => cb.notNull())
       .addColumn('actor_address', 'text', (cb) => cb.notNull())
       .addColumn('lp_amount', 'text')
+      .addColumn('status', 'varchar(100)')
       .execute()
 
     await db.schema

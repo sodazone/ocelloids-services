@@ -108,10 +108,12 @@ export class DefiRepository {
 
       let actorAddress = ''
       let lpAmount: string | null = null
+      let status: string | null = null
       const assetRowsToInsert: Omit<NewDefiEventAsset, 'event_id'>[] = []
 
       if (isSwapEvent(payload)) {
         actorAddress = payload.data.origin
+        status = 'status' in payload ? (payload.status ?? null) : null
 
         const assetIn = payload.data.in
         assetRowsToInsert.push({
@@ -159,6 +161,7 @@ export class DefiRepository {
           event_name: payload.name,
           actor_address: actorAddress,
           lp_amount: lpAmount,
+          status,
         })
         .execute()
 

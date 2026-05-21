@@ -73,6 +73,7 @@ export interface DefiEventTable {
   event_name: ColumnType<DefiEventAction>
   actor_address: ColumnType<string>
   lp_amount: ColumnType<string | null>
+  status: ColumnType<string | null>
 }
 
 export interface DefiEventAssetTable {
