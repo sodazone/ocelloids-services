@@ -160,11 +160,11 @@ export type DefiEventPayload = {
   txHash: string
 } & (
   | {
-      name: 'swap'
+      name: 'swap' | 'swap_intent'
       data: {
         origin: string
-        in: DefiEventAsset[]
-        out: DefiEventAsset[]
+        in: DefiEventAsset
+        out: DefiEventAsset
       }
     }
   | {
@@ -187,9 +187,15 @@ export type DefiEventPayload = {
 /**
  * @public
  */
-export type DefiEventAction = 'mint' | 'burn' | 'borrow' | 'repay' | 'liquidate' | 'swap'
+export type DefiEventAction = 'mint' | 'burn' | 'borrow' | 'repay' | 'liquidate' | 'swap' | 'swap_intent'
 
 /**
  * @public
  */
 export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload
+
+export function isSwapEvent(
+  payload: DefiEventPayload,
+): payload is Extract<DefiEventPayload, { name: 'swap' | 'swap_intent' }> {
+  return payload.name === 'swap' || payload.name === 'swap_intent'
+}

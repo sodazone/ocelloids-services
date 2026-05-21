@@ -142,20 +142,16 @@ export function createStellaswapProcessor({
               name: 'swap',
               data: {
                 origin: args.sender,
-                in: [
-                  {
-                    assetId: (isA0In ? token0 : token1).address.toLowerCase(),
-                    symbol: isA0In ? pool.token0 : pool.token1,
-                    amount: formatUnits(isA0In ? a0 : a1, (isA0In ? token0 : token1).decimals),
-                  },
-                ],
-                out: [
-                  {
-                    assetId: (isA0In ? token1 : token0).address.toLowerCase(),
-                    symbol: isA0In ? pool.token1 : pool.token0,
-                    amount: formatUnits(isA0In ? -a1 : -a0, (isA0In ? token1 : token0).decimals),
-                  },
-                ],
+                in: {
+                  assetId: (isA0In ? token0 : token1).address.toLowerCase(),
+                  symbol: isA0In ? pool.token0 : pool.token1,
+                  amount: formatUnits(isA0In ? a0 : a1, (isA0In ? token0 : token1).decimals),
+                },
+                out: {
+                  assetId: (isA0In ? token1 : token0).address.toLowerCase(),
+                  symbol: isA0In ? pool.token1 : pool.token0,
+                  amount: formatUnits(isA0In ? -a1 : -a0, (isA0In ? token1 : token0).decimals),
+                },
               },
             } as DefiEventPayload
           }
