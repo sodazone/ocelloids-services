@@ -32,8 +32,8 @@ import { isGreaterThan, isGreaterThanOrEqual, isLessThanOrEqual, isSubscriptionI
  *
  * @public
  */
-export class OcelloidsAgentApi<T>
-  implements SubscribableApi<T>, QueryableApi, StreamableApi, OcelloidsClientApi
+export class OcelloidsAgentApi<T, P = AnyJson>
+  implements SubscribableApi<T, P>, QueryableApi, StreamableApi, OcelloidsClientApi
 {
   readonly #agentId: AgentId
   readonly #config: Required<OcelloidsClientConfig>
@@ -189,7 +189,7 @@ export class OcelloidsAgentApi<T>
    * @param onDemandHandlers - The on-demand subscription handlers.
    * @returns A promise that resolves with the WebSocket instance.
    */
-  async subscribe<P = AnyJson>(
+  async subscribe(
     subscription: SubscriptionId | T,
     handlers: WebSocketHandlers<P>,
     onDemandHandlers?: OnDemandSubscriptionHandlers<T>,

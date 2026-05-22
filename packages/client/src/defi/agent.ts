@@ -8,11 +8,19 @@ import { DefiAgentInputs, DefiEventPayload, DefiSubscriptionPayload } from './ty
  * @public
  */
 export class DefiAgentApi
-  extends OcelloidsAgentApi<DefiAgentInputs>
+  extends OcelloidsAgentApi<DefiAgentInputs, DefiSubscriptionPayload>
   implements SubscribableWithReplayApi<DefiAgentInputs, DefiSubscriptionPayload>
 {
   constructor(clientApi: OcelloidsClient) {
     super(clientApi.config, 'defi', clientApi)
+  }
+
+  async subscribe(
+    subscription: string | DefiAgentInputs,
+    handlers: WebSocketHandlers<DefiSubscriptionPayload>,
+    onDemandHandlers?: OnDemandSubscriptionHandlers<DefiAgentInputs> | undefined,
+  ): Promise<WebSocket> {
+    return super.subscribe(subscription, handlers, onDemandHandlers)
   }
 
   async subscribeWithReplay(

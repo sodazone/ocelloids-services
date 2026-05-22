@@ -1,5 +1,5 @@
 import { type DoFetch, type RequestOptions } from '../http/fetch'
-import type { AgentId } from '../lib'
+import type { AgentId, AnyJson } from '../lib'
 import { type AnySubscriptionInputs } from '../types'
 import { OcelloidsAgentApi } from './api'
 import { doFetchWithConfig, type FetchFn } from './transport'
@@ -130,8 +130,8 @@ export class OcelloidsClient implements OcelloidsClientApi {
    * @param agentId - The ID of the agent.
    * @returns An instance of OcelloidsAgentApi for the specified agent.
    */
-  agent<T = AnySubscriptionInputs>(agentId: AgentId) {
-    return new OcelloidsAgentApi<T>(this.#config, agentId, this)
+  agent<T = AnySubscriptionInputs, P = AnyJson>(agentId: AgentId) {
+    return new OcelloidsAgentApi<T, P>(this.#config, agentId, this)
   }
 
   /**

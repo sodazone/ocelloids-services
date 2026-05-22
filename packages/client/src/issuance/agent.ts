@@ -13,7 +13,7 @@ import {
  * @public
  */
 export class CrosschainIssuanceAgentApi
-  extends OcelloidsAgentApi<CrosschainIssuanceSubscriptionInputs>
+  extends OcelloidsAgentApi<CrosschainIssuanceSubscriptionInputs, CrosschainIssuancePayload>
   implements
     SubscribableApi<CrosschainIssuanceSubscriptionInputs, CrosschainIssuancePayload>,
     QueryableApi<CrosschainIssuanceQueryArgs, CrosschainIssuancePayload>
@@ -22,9 +22,9 @@ export class CrosschainIssuanceAgentApi
     super(clientApi.config, 'issuance', clientApi)
   }
 
-  async subscribe<P = CrosschainIssuancePayload>(
+  async subscribe(
     subscription: SubscriptionId | CrosschainIssuanceSubscriptionInputs,
-    handlers: WebSocketHandlers<P>,
+    handlers: WebSocketHandlers<CrosschainIssuancePayload>,
     onDemandHandlers?: OnDemandSubscriptionHandlers<CrosschainIssuanceSubscriptionInputs>,
   ) {
     if (isSubscriptionInputs(subscription)) {
