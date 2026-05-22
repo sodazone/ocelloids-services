@@ -7,11 +7,24 @@ import { Block, BlockEvent } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { DefiEventPayload, SwapIntentStatus } from '../../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from '../consts.js'
+import { evmLogHandler } from './evm.js'
 import { routerExecutedHandler } from './router.js'
-import { EventHandler, EventRecordWithIndex, HydrationSwapEvent, SwapRoute } from './types.js'
+import {
+  EventHandler,
+  EventRecordWithIndex,
+  HydrationLendingEvent,
+  HydrationSwapEvent,
+  SwapRoute,
+} from './types.js'
 
+const baseEventPayload: Pick<DefiEventPayload, 'type' | 'networkId' | 'protocol'> = {
+  type: 'event',
+  networkId: CHAIN_ID,
+  protocol: PROTOCOL_NAME,
+}
 const handlers: Record<string, EventHandler> = {
   'extrinsic.router.executed': routerExecutedHandler,
+  'extrinsic.evm.log': evmLogHandler,
 }
 
 function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
@@ -39,10 +52,8 @@ function toSwapEventPayload(
 
   if (name === 'swap') {
     return {
+      ...baseEventPayload,
       id: ulid(),
-      type: 'event',
-      networkId: CHAIN_ID,
-      protocol: PROTOCOL_NAME,
       name,
       blockNumber,
       blockHash,
@@ -65,10 +76,8 @@ function toSwapEventPayload(
   }
 
   return {
+    ...baseEventPayload,
     id: ulid(),
-    type: 'event',
-    networkId: CHAIN_ID,
-    protocol: PROTOCOL_NAME,
     name,
     blockNumber,
     blockHash,
@@ -89,6 +98,41 @@ function toSwapEventPayload(
       },
     },
   }
+}
+
+function mapLending(
+  { amount, asset, action, blockHash, blockNumber, marketId, extrinsic, who }: HydrationLendingEvent,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+): Observable<DefiEventPayload> {
+  const assetIdAsString = asset.toString()
+  return from(fetchAssetMetadata([assetIdAsString])).pipe(
+    map((results) => {
+      if (results.length === 0) {
+        return null
+      }
+      const assetMeta = results[0]
+      return {
+        ...baseEventPayload,
+        id: ulid(),
+        name: action,
+        blockNumber: blockNumber.toString(),
+        blockHash,
+        txHash: extrinsic ? extrinsic.txHash : null,
+        marketId,
+        data: {
+          provider: who,
+          assets: [
+            {
+              amount: formatUnits(amount, assetMeta.decimals ?? 0),
+              assetId: assetIdAsString,
+              symbol: assetMeta.symbol ?? '??',
+            },
+          ],
+        },
+      }
+    }),
+    filter((ev) => ev !== null),
+  )
 }
 
 function mapSwaps(
@@ -184,6 +228,9 @@ export function watchEvents(
       mergeMap((event) => {
         if (event.type === 'swap') {
           return mapSwaps(event, fetchAssetMetadata)
+        }
+        if (event.type === 'lending') {
+          return mapLending(event, fetchAssetMetadata)
         }
 
         return EMPTY

@@ -156,6 +156,11 @@ export type SwapIntentStatus = 'initiated' | 'partially_filled' | 'filled'
 /**
  * @public
  */
+export type MoneyMarketActions = 'borrow' | 'repay' | 'withdraw' | 'supply'
+
+/**
+ * @public
+ */
 export type DefiEventPayload = {
   type: 'event'
   id: string
@@ -192,7 +197,7 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: 'borrow' | 'repay'
+      name: MoneyMarketActions
       data: {
         provider: string
         assets: DefiEventAsset[]
@@ -203,7 +208,7 @@ export type DefiEventPayload = {
 /**
  * @public
  */
-export type DefiEventAction = 'mint' | 'burn' | 'borrow' | 'repay' | 'liquidate' | 'swap' | 'swap_intent'
+export type DefiEventAction = MoneyMarketActions | 'liquidate' | 'mint' | 'burn' | 'swap' | 'swap_intent'
 
 /**
  * @public

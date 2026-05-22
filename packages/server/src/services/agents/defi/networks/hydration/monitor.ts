@@ -1,4 +1,5 @@
 import { firstValueFrom, map, Subject, Subscription, share } from 'rxjs'
+import { formatUnits } from 'viem'
 import { DataSteward } from '@/services/agents/steward/agent.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
@@ -7,7 +8,13 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
-import { DefiEventPayload, DefiLiquidityAsset, DefiSubscriptionPayload, isSwapEvent } from '../../types.js'
+import {
+  DefiEventAsset,
+  DefiEventPayload,
+  DefiLiquidityAsset,
+  DefiSubscriptionPayload,
+  isSwapEvent,
+} from '../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from './consts.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
@@ -92,7 +99,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       logger.warn(`[dex:hydration] No underlying token found in AAVE pool ${pool.address}`)
       return
     }
-    const reserves = underlying.reserves.toString()
+    const reserves = formatUnits(underlying.reserves, underlying.decimals ?? 0)
     const assetPrice = prices.get(underlying.id) ?? pool.oraclePrice
     const suppliedUSD = bigintToUsd(underlying.reserves, underlying.decimals, assetPrice)
 
@@ -125,7 +132,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     let suppliedUSD = 0
     for (const asset of pool.tokens) {
       const assetPrice = prices.get(asset.id) ?? 0
-      const reserves = asset.reserves.toString()
+      const reserves = formatUnits(asset.reserves, asset.decimals ?? 0)
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
       suppliedUSD += assetReservesUSD
       liquidityAssets.push({
@@ -158,7 +165,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
 
     for (const asset of pool.tokens) {
       const assetPrice = prices.get(asset.id) ?? 0
-      const reserves = asset.reserves.toString()
+      const reserves = formatUnits(asset.reserves, asset.decimals ?? 0)
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
 
       if (asset.isCollateral) {
@@ -202,6 +209,13 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     })
   }
 
+  function withUsdValue(asset: DefiEventAsset): DefiEventAsset {
+    return {
+      ...asset,
+      amountUSD: Number(asset.amount) * (prices.get(Number(asset.assetId)) ?? 0),
+    }
+  }
+
   async function onBlock(block: Block) {
     if (!initialised || inFlight > 0) {
       return
@@ -235,18 +249,20 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
             ...payload,
             data: {
               ...payload.data,
-              in: {
-                ...swapIn,
-                amountUSD: Number(swapIn.amount) * (prices.get(Number(swapIn.assetId)) ?? 0),
-              },
-              out: {
-                ...swapOut,
-                amountUSD: Number(swapOut.amount) * (prices.get(Number(swapOut.assetId)) ?? 0),
-              },
+              in: withUsdValue(swapIn),
+              out: withUsdValue(swapOut),
             },
           } as DefiEventPayload
         }
-        return payload
+
+        const assetsWithVolume = payload.data.assets.map(withUsdValue)
+        return {
+          ...payload,
+          data: {
+            ...payload.data,
+            assets: assetsWithVolume,
+          },
+        }
       }),
       share(),
     )

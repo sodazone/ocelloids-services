@@ -1,6 +1,11 @@
-import { BlockEvent, Event, EventRecord } from '@/services/networking/substrate/types.js'
+import { BlockEvent, BlockEvmEvent, Event, EventRecord } from '@/services/networking/substrate/types.js'
+import { MoneyMarketActions } from '../../../types.js'
 
-export type EventHandler = (event: BlockEvent, siblings: EventRecordWithIndex[]) => HydrationDefiEvent
+export type EventHandler = (event: BlockEvent, siblings: EventRecordWithIndex[]) => HydrationDefiEvent | null
+export type EvmEventHandler = (
+  event: BlockEvmEvent,
+  siblings: EventRecordWithIndex[],
+) => HydrationDefiEvent | null
 
 export type EventRecordWithIndex = EventRecord<Event> & { index: number }
 
@@ -35,4 +40,12 @@ export interface HydrationSwapEvent extends SwapRoute, BaseHydrationDefiEvent {
   route: SwapRoute[]
 }
 
-export type HydrationDefiEvent = HydrationSwapEvent
+export interface HydrationLendingEvent extends BaseHydrationDefiEvent {
+  type: 'lending'
+  action: MoneyMarketActions | 'liquidate'
+  marketId: string
+  asset: number
+  amount: bigint
+}
+
+export type HydrationDefiEvent = HydrationSwapEvent | HydrationLendingEvent
