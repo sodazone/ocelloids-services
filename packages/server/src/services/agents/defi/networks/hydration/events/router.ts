@@ -3,7 +3,7 @@ import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
-import { EventRecordWithIndex, HydrationSwapEvent, SwapRoute } from './types.js'
+import { EventRecordWithIndex, FillerType, FillerTypeName, HydrationSwapEvent, SwapRoute } from './types.js'
 
 type RouterExecutedEvent = {
   asset_in: number
@@ -12,15 +12,6 @@ type RouterExecutedEvent = {
   amount_out: bigint
   event_id: number
 }
-
-export type FillerType = Enum<{
-  Omnipool: undefined
-  Stableswap: number
-  XYK: number
-  LBP: undefined
-  OTC: number
-  Aave: undefined
-}>
 
 export type BroadcastSwapped = {
   swapper: string
@@ -74,13 +65,16 @@ export function routerExecutedHandler(
     .filter((e) => matchEvent(e.event, 'Broadcast', 'Swapped3'))
     .map((e) => e.event.value as BroadcastSwapped)
 
-  const route: SwapRoute[] = swappedEvents.map(({ inputs, outputs, filler }) => {
+  const route: SwapRoute[] = swappedEvents.map(({ inputs, outputs, filler, filler_type }): SwapRoute => {
     const assetIn = inputs[0].asset
     const assetOut = outputs[0].asset
     const amountIn = inputs[0].amount
     const amountOut = outputs[0].amount
+    const protocol = filler_type.type.toLowerCase() as FillerTypeName
+
     return {
       marketId: asPublicKey(filler),
+      protocol,
       assetIn,
       amountIn,
       assetOut,
@@ -90,6 +84,7 @@ export function routerExecutedHandler(
 
   return {
     type: 'swap',
+    protocol: 'router',
     timestamp,
     blockNumber,
     blockHash,

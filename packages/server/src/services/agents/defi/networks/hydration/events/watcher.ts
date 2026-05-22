@@ -17,11 +17,11 @@ import {
   SwapRoute,
 } from './types.js'
 
-const baseEventPayload: Pick<DefiEventPayload, 'type' | 'networkId' | 'protocol'> = {
+const baseEventPayload: Pick<DefiEventPayload, 'type' | 'networkId'> = {
   type: 'event',
   networkId: CHAIN_ID,
-  protocol: PROTOCOL_NAME,
 }
+
 const handlers: Record<string, EventHandler> = {
   'extrinsic.router.executed': routerExecutedHandler,
   'extrinsic.evm.log': evmLogHandler,
@@ -33,7 +33,7 @@ function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
 
 function toSwapEventPayload(
   name: 'swap' | 'swap_intent',
-  { assetIn, assetOut, amountIn, amountOut, marketId }: SwapRoute,
+  { assetIn, assetOut, amountIn, amountOut, marketId, protocol: swapProtocol }: SwapRoute,
   {
     blockHash,
     blockNumber,
@@ -50,10 +50,13 @@ function toSwapEventPayload(
     return null
   }
 
+  const protocol = `${PROTOCOL_NAME}.${swapProtocol}`
+
   if (name === 'swap') {
     return {
       ...baseEventPayload,
       id: ulid(),
+      protocol,
       name,
       blockNumber,
       blockHash,
@@ -78,6 +81,7 @@ function toSwapEventPayload(
   return {
     ...baseEventPayload,
     id: ulid(),
+    protocol,
     name,
     blockNumber,
     blockHash,
@@ -101,7 +105,7 @@ function toSwapEventPayload(
 }
 
 function mapLending(
-  { amount, asset, action, blockHash, blockNumber, marketId, extrinsic, who }: HydrationLendingEvent,
+  { amount, asset, action, blockHash, blockNumber, marketId, extrinsic, who, protocol }: HydrationLendingEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
 ): Observable<DefiEventPayload> {
   const assetIdAsString = asset.toString()
@@ -115,6 +119,7 @@ function mapLending(
         ...baseEventPayload,
         id: ulid(),
         name: action,
+        protocol: `${PROTOCOL_NAME}.${protocol}`,
         blockNumber: blockNumber.toString(),
         blockHash,
         txHash: extrinsic ? extrinsic.txHash : null,

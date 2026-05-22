@@ -66,6 +66,7 @@ export function aaveBorrowHandler(
   return {
     type: 'lending',
     action: 'borrow',
+    protocol: 'aave',
     blockNumber,
     blockHash,
     marketId: address,
