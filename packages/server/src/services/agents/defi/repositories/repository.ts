@@ -8,6 +8,7 @@ import {
   DefiEventPayload,
   DefiLiquidityAsset,
   DefiLiquidityPayload,
+  isLiquidationEvent,
   isSwapEvent,
   MoneyMarketPayload,
 } from '../types.js'
@@ -107,7 +108,7 @@ export class DefiRepository {
         .executeTakeFirst()
 
       let actorAddress = ''
-      let lpAmount: string | null = null
+      let counterparty: string | null = null
       let status: string | null = null
       const assetRowsToInsert: Omit<NewDefiEventAsset, 'event_id'>[] = []
 
@@ -132,9 +133,27 @@ export class DefiRepository {
           amount_usd: assetOut.amountUSD,
           role: 'swap_out',
         })
+      } else if (isLiquidationEvent(payload)) {
+        actorAddress = payload.data.origin
+        counterparty = payload.data.counterparty
+        const debt = payload.data.debt
+        const collateral = payload.data.collateral
+        assetRowsToInsert.push({
+          asset_id: debt.assetId,
+          symbol: debt.symbol,
+          amount: debt.amount,
+          amount_usd: debt.amountUSD,
+          role: 'liquidation_debt',
+        })
+        assetRowsToInsert.push({
+          asset_id: collateral.assetId,
+          symbol: collateral.symbol,
+          amount: collateral.amount,
+          amount_usd: collateral.amountUSD,
+          role: 'liquidation_collateral',
+        })
       } else {
         actorAddress = payload.data.provider
-        lpAmount = 'lpAmount' in payload.data ? (payload.data.lpAmount ?? null) : null
 
         payload.data.assets.forEach((asset) =>
           assetRowsToInsert.push({
@@ -160,7 +179,7 @@ export class DefiRepository {
           tx_hash: payload.txHash,
           event_name: payload.name,
           actor_address: actorAddress,
-          lp_amount: lpAmount,
+          counterparty_address: counterparty ?? null,
           status,
         })
         .execute()

@@ -189,11 +189,10 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: 'mint' | 'burn' | 'liquidate'
+      name: 'mint' | 'burn'
       data: {
         provider: string
         assets: DefiEventAsset[]
-        lpAmount?: string
       }
     }
   | {
@@ -201,6 +200,15 @@ export type DefiEventPayload = {
       data: {
         provider: string
         assets: DefiEventAsset[]
+      }
+    }
+  | {
+      name: 'liquidate'
+      data: {
+        origin: string
+        counterparty: string
+        debt: DefiEventAsset
+        collateral: DefiEventAsset
       }
     }
 )
@@ -219,4 +227,10 @@ export function isSwapEvent(
   payload: DefiEventPayload,
 ): payload is Extract<DefiEventPayload, { name: 'swap' | 'swap_intent' }> {
   return payload.name === 'swap' || payload.name === 'swap_intent'
+}
+
+export function isLiquidationEvent(
+  payload: DefiEventPayload,
+): payload is Extract<DefiEventPayload, { name: 'liquidate' }> {
+  return payload.name === 'liquidate'
 }

@@ -67,7 +67,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('tx_hash', 'text')
       .addColumn('event_name', 'text', (cb) => cb.notNull())
       .addColumn('actor_address', 'text', (cb) => cb.notNull())
-      .addColumn('lp_amount', 'text')
+      .addColumn('counterparty_address', 'varchar(255)')
       .addColumn('status', 'varchar(100)')
       .execute()
 

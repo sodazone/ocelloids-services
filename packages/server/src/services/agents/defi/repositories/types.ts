@@ -56,7 +56,17 @@ export type DefiPoolAssetUpdate = Updateable<DefiPoolAssetTable>
  *
  * @public
  */
-export type DefiEventAssetRole = 'swap_in' | 'swap_out' | 'fee' | 'asset'
+export type DefiEventAssetRole =
+  | 'swap_in'
+  | 'swap_out'
+  | 'fee'
+  | 'supplied'
+  | 'withdrawn'
+  | 'borrowed'
+  | 'repaid'
+  | 'liquidation_debt'
+  | 'liquidation_collateral'
+  | 'asset'
 
 export interface DefiEventTable {
   id: ColumnType<string>
@@ -72,6 +82,7 @@ export interface DefiEventTable {
 
   event_name: ColumnType<DefiEventAction>
   actor_address: ColumnType<string>
+  counterparty_address: ColumnType<string | null>
   lp_amount: ColumnType<string | null>
   status: ColumnType<string | null>
 }

@@ -80,6 +80,44 @@ export function createMoonwellProcessor({
 
             const underlyingToken = defs.tokens[marketMeta.underlyingToken]
 
+            if (eventName === 'LiquidateBorrow') {
+              const collateralAddress = args.mTokenCollateral.toLowerCase()
+              const collateralMeta = Object.values(defs.markets).find(
+                (m) => defs.tokens[m.marketToken].address.toLowerCase() === collateralAddress,
+              )
+              const collateralToken = collateralMeta ? defs.tokens[collateralMeta.underlyingToken] : undefined
+              if (!collateralToken) {
+                return
+              }
+
+              subject.next({
+                type: 'event',
+                id: ulid(),
+                marketId: targetMarketAddress,
+                protocol: 'moonwell',
+                networkId: chainId,
+                blockNumber: log.blockNumber,
+                blockHash: log.blockHash,
+                txHash: log.transactionHash,
+                name: 'liquidate',
+                data: {
+                  origin: args.liquidator.toLowerCase(),
+                  counterparty: args.borrower.toLowerCase(),
+                  debt: {
+                    assetId: underlyingToken.address,
+                    symbol: underlyingToken.symbol,
+                    amount: args.repayAmount.toString(),
+                  },
+                  collateral: {
+                    assetId: collateralToken.address,
+                    symbol: collateralToken.symbol,
+                    amount: args.seizeTokens, // TODO: double-check if amount is for mtokens or collateral
+                  },
+                },
+              })
+              return
+            }
+
             let actionType: DefiEventAction
             let providerAddress = ''
             let underlyingAmount = 0n
@@ -110,13 +148,6 @@ export function createMoonwellProcessor({
                 actionType = 'repay'
                 providerAddress = args.payer
                 underlyingAmount = args.repayAmount
-                break
-
-              case 'LiquidateBorrow':
-                actionType = 'liquidate'
-                providerAddress = args.liquidator
-                underlyingAmount = args.repayAmount
-                lpAmount = args.seizeTokens
                 break
 
               default:
