@@ -1,6 +1,7 @@
 import { firstValueFrom, map, Subject, Subscription, share } from 'rxjs'
 import { formatUnits } from 'viem'
 import { DataSteward } from '@/services/agents/steward/agent.js'
+import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
 import { QueryParams, QueryResult } from '@/services/agents/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
@@ -41,6 +42,19 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
 
     return items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
+  }
+
+  const fetchAccounts = async (accounts: string[]): Promise<(SubstrateAccountMetadata | Empty)[]> => {
+    const { items } = (await steward.query({
+      args: {
+        op: 'accounts',
+        criteria: {
+          accounts,
+        },
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<SubstrateAccountMetadata | Empty>
+
+    return items
   }
 
   const poolsManager = createPoolManager(logger, ingress, fetchAssetMetadata)
@@ -240,7 +254,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
     const blocks$ = shared$.blocks(CHAIN_ID)
     const events$ = blocks$.pipe(
-      watchEvents(logger, fetchAssetMetadata),
+      watchEvents(logger, fetchAssetMetadata, fetchAccounts),
       map((payload) => {
         if (isSwapEvent(payload)) {
           const swapIn = payload.data.in

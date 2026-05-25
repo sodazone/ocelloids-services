@@ -1,11 +1,12 @@
-import { EMPTY, filter, from, map, mergeMap, Observable } from 'rxjs'
+import { EMPTY, filter, forkJoin, from, map, mergeMap, Observable } from 'rxjs'
 import { ulid } from 'ulidx'
 import { formatUnits } from 'viem'
-import { AssetId, AssetMetadata } from '@/services/agents/steward/types.js'
+import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
+import { AssetId, AssetMetadata, Empty } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { Block, BlockEvent } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
-import { DefiEventPayload, SwapIntentStatus } from '../../../types.js'
+import { DefiEventPayload, MoneyMarketActions, SwapIntentStatus } from '../../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from '../consts.js'
 import { evmLogHandler } from './evm.js'
 import { routerExecutedHandler } from './router.js'
@@ -18,7 +19,7 @@ import {
   SwapRoute,
 } from './types.js'
 
-const baseEventPayload: Pick<DefiEventPayload, 'type' | 'networkId'> = {
+const eventPayloadConsts: Pick<DefiEventPayload, 'type' | 'networkId'> = {
   type: 'event',
   networkId: CHAIN_ID,
 }
@@ -30,6 +31,35 @@ const handlers: Record<string, EventHandler> = {
 
 function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
   return `${isExtrinsicEvent ? 'extrinsic' : 'intrinsic'}.${event.module.toLowerCase()}.${event.name.toLowerCase()}`
+}
+
+function resolveAssets(ids: string[], fetchAssetMetadata: (ids: string[]) => Promise<AssetMetadata[]>) {
+  return from(fetchAssetMetadata(ids)).pipe(map((assets) => new Map(assets.map((a) => [a.id, a]))))
+}
+
+function resolveAccounts(
+  accounts: string[],
+  fetchAccounts: (a: string[]) => Promise<SubstrateAccountMetadata[]>,
+) {
+  return from(fetchAccounts(accounts)).pipe(
+    map((res) => {
+      const map = new Map<string, string>()
+
+      accounts.forEach((addr, i) => {
+        map.set(addr, res[i]?.publicKey ?? addr)
+      })
+
+      return map
+    }),
+  )
+}
+
+function basePayload(overrides: Omit<DefiEventPayload, 'type' | 'data' | 'id' | 'networkId' | 'name'>) {
+  return {
+    id: ulid(),
+    ...eventPayloadConsts,
+    ...overrides,
+  }
 }
 
 function toSwapEventPayload(
@@ -55,7 +85,7 @@ function toSwapEventPayload(
 
   if (name === 'swap') {
     return {
-      ...baseEventPayload,
+      ...eventPayloadConsts,
       id: ulid(),
       protocol,
       name,
@@ -80,7 +110,7 @@ function toSwapEventPayload(
   }
 
   return {
-    ...baseEventPayload,
+    ...eventPayloadConsts,
     id: ulid(),
     protocol,
     name,
@@ -106,41 +136,37 @@ function toSwapEventPayload(
 }
 
 function mapLending(
-  {
-    amount,
-    asset,
-    action,
-    blockHash,
-    blockNumber,
-    marketId,
-    extrinsic,
-    who,
-    protocol,
-  }: HydrationLendingEvent,
-  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  event: HydrationLendingEvent,
+  fetchAssetMetadata: any,
+  fetchAccounts: any,
 ): Observable<DefiEventPayload> {
-  const assetIdAsString = asset.toString()
-  return from(fetchAssetMetadata([assetIdAsString])).pipe(
-    map((results) => {
-      if (results.length === 0) {
+  const assetId = event.asset.toString()
+
+  return forkJoin({
+    assets: resolveAssets([assetId], fetchAssetMetadata),
+    accounts: resolveAccounts([event.who], fetchAccounts),
+  }).pipe(
+    map(({ assets, accounts }) => {
+      const assetMeta = assets.get(assetId)
+      if (!assetMeta) {
         return null
       }
-      const assetMeta = results[0]
+
       return {
-        ...baseEventPayload,
-        id: ulid(),
-        name: action,
-        protocol: `${PROTOCOL_NAME}.${protocol}`,
-        blockNumber: blockNumber.toString(),
-        blockHash,
-        txHash: extrinsic ? extrinsic.txHash : null,
-        marketId,
+        ...basePayload({
+          protocol: `${PROTOCOL_NAME}.${event.protocol}`,
+          blockNumber: event.blockNumber.toString(),
+          blockHash: event.blockHash,
+          txHash: event.extrinsic?.txHash ?? null,
+          marketId: event.marketId,
+        }),
+        name: event.action as MoneyMarketActions,
         data: {
-          provider: who,
+          provider: accounts.get(event.who)!,
           assets: [
             {
-              amount: formatUnits(amount, assetMeta.decimals ?? 0),
-              assetId: assetIdAsString,
+              amount: formatUnits(event.amount, assetMeta.decimals ?? 0),
+              assetId,
               symbol: assetMeta.symbol ?? '??',
             },
           ],
@@ -152,54 +178,46 @@ function mapLending(
 }
 
 function mapLiquidation(
-  {
-    collateralAsset,
-    collateralLiquidated,
-    counterparty,
-    debtAsset,
-    debtCovered,
-    blockHash,
-    blockNumber,
-    marketId,
-    extrinsic,
-    who,
-    protocol,
-  }: HydrationLiquidationEvent,
-  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  event: HydrationLiquidationEvent,
+  fetchAssetMetadata: any,
+  fetchAccounts: any,
 ): Observable<DefiEventPayload> {
-  const assetIds = [collateralAsset.toString(), debtAsset.toString()]
+  const debtId = event.debtAsset.toString()
+  const colId = event.collateralAsset.toString()
   const name = 'liquidate' as const
 
-  return from(fetchAssetMetadata(assetIds)).pipe(
-    map((results) => {
-      const collateralAssetMeta = results.find((a) => a.id === collateralAsset)
-      const debtAssetMeta = results.find((a) => a.id === debtAsset)
-
-      if (!collateralAssetMeta || !debtAssetMeta) {
+  return forkJoin({
+    assets: resolveAssets([debtId, colId], fetchAssetMetadata),
+    accounts: resolveAccounts([event.who, event.counterparty], fetchAccounts),
+  }).pipe(
+    map(({ assets, accounts }) => {
+      const debt = assets.get(debtId)
+      const collateral = assets.get(colId)
+      if (!debt || !collateral) {
         return null
       }
 
       return {
-        ...baseEventPayload,
-        id: ulid(),
+        ...basePayload({
+          protocol: `${PROTOCOL_NAME}.${event.protocol}`,
+          blockNumber: event.blockNumber.toString(),
+          blockHash: event.blockHash,
+          txHash: event.extrinsic?.txHash ?? null,
+          marketId: event.marketId,
+        }),
         name,
-        protocol: `${PROTOCOL_NAME}.${protocol}`,
-        blockNumber: blockNumber.toString(),
-        blockHash,
-        txHash: extrinsic ? extrinsic.txHash : null,
-        marketId,
         data: {
-          origin: who,
-          counterparty,
+          origin: accounts.get(event.who)!,
+          counterparty: accounts.get(event.counterparty)!,
           debt: {
-            amount: formatUnits(debtCovered, debtAssetMeta.decimals ?? 0),
-            assetId: debtAsset.toString(),
-            symbol: debtAssetMeta.symbol ?? '??',
+            amount: formatUnits(event.debtCovered, debt.decimals ?? 0),
+            assetId: debtId,
+            symbol: debt.symbol ?? '??',
           },
           collateral: {
-            amount: formatUnits(collateralLiquidated, collateralAssetMeta.decimals ?? 0),
-            assetId: collateralAsset.toString(),
-            symbol: collateralAssetMeta.symbol ?? '??',
+            amount: formatUnits(event.collateralLiquidated, collateral.decimals ?? 0),
+            assetId: colId,
+            symbol: collateral.symbol ?? '??',
           },
         },
       }
@@ -208,48 +226,30 @@ function mapLiquidation(
   )
 }
 
-function mapSwaps(
-  event: HydrationSwapEvent,
-  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
-) {
-  const { assetIn, assetOut, route, blockNumber, blockHash, extrinsic, who } = event
-  const assetIds = [
-    ...new Set([
-      assetIn.toString(),
-      assetOut.toString(),
-      ...route.flatMap((r) => [r.assetIn.toString(), r.assetOut.toString()]),
-    ]),
+function mapSwaps(event: HydrationSwapEvent, fetchAssetMetadata: any) {
+  const ids = [
+    event.assetIn.toString(),
+    event.assetOut.toString(),
+    ...event.route.flatMap((r) => [r.assetIn.toString(), r.assetOut.toString()]),
   ]
 
-  return from(fetchAssetMetadata(assetIds)).pipe(
-    mergeMap((results) => {
-      const metadataMap = new Map<AssetId, AssetMetadata>(results.map((meta) => [meta.id, meta]))
-
-      const swapCtx: {
-        blockNumber: string
-        blockHash: string
-        txHash: string
-        who: string
-        status: SwapIntentStatus
-      } = {
-        who,
-        blockNumber: blockNumber.toString(),
-        blockHash,
-        txHash: extrinsic?.txHash ?? 'intrinsic',
-        status: 'filled',
+  return resolveAssets([...new Set(ids)], fetchAssetMetadata).pipe(
+    mergeMap((assets) => {
+      const ctx = {
+        who: event.who,
+        blockNumber: event.blockNumber.toString(),
+        blockHash: event.blockHash,
+        txHash: event.extrinsic?.txHash ?? 'intrinsic',
+        status: 'filled' as const,
       }
 
-      const internalSwaps = route
-        .map((r) => toSwapEventPayload('swap', r, swapCtx, metadataMap))
-        .filter((r): r is DefiEventPayload => r !== null)
+      const route = event.route
+        .map((r) => toSwapEventPayload('swap', r, ctx, assets))
+        .filter((s) => s !== null)
 
-      const swapIntentEvent = toSwapEventPayload('swap_intent', event, swapCtx, metadataMap)
+      const intent = toSwapEventPayload('swap_intent', event, ctx, assets)
 
-      if (swapIntentEvent === null) {
-        return [...internalSwaps]
-      }
-
-      return [swapIntentEvent, ...internalSwaps]
+      return intent ? [intent, ...route] : route
     }),
   )
 }
@@ -257,6 +257,7 @@ function mapSwaps(
 export function watchEvents(
   logger: Logger,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
 ) {
   return (source$: Observable<Block>): Observable<DefiEventPayload> =>
     source$.pipe(
@@ -303,10 +304,10 @@ export function watchEvents(
           return mapSwaps(event, fetchAssetMetadata)
         }
         if (event.type === 'lending') {
-          return mapLending(event, fetchAssetMetadata)
+          return mapLending(event, fetchAssetMetadata, fetchAccounts)
         }
         if (event.type === 'liquidation') {
-          return mapLiquidation(event, fetchAssetMetadata)
+          return mapLiquidation(event, fetchAssetMetadata, fetchAccounts)
         }
 
         return EMPTY
