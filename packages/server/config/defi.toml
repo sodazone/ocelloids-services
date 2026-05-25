@@ -28,6 +28,28 @@ relay = "urn:ocn:polkadot:0"
   ]
 
 [[substrate.networks]]
+id = "urn:ocn:polkadot:2006"
+relay = "urn:ocn:polkadot:0"
+   [substrate.networks.provider]
+   type = "rpc"
+   url = [
+    "wss://rpc.astar.network",
+    "wss://astar-rpc.n.dwellir.com"
+   ]
+
+#[[substrate.networks]]
+#id = "urn:ocn:polkadot:3367"
+#relay = "urn:ocn:polkadot:0"
+#    [substrate.networks.provider]
+#    type = "rpc"
+#    url = [
+#     "wss://nexus.rpc.polytope.technology",
+#     "wss://nexus.ibp.network",
+#     "wss://nexus.dotters.network",
+#     "wss://hyperbridge-nexus-rpc.blockops.network"
+#    ]
+
+[[substrate.networks]]
 id = "urn:ocn:polkadot:2030"
 relay = "urn:ocn:polkadot:0"
 
@@ -63,17 +85,49 @@ relay = "urn:ocn:polkadot:0"
     "wss://moonbeam.api.onfinality.io/public-ws"
   ]
 
-#[[substrate.networks]]
-#id = "urn:ocn:polkadot:2104"
-#relay = "urn:ocn:polkadot:0"
-#
-#  [substrate.networks.provider]
-#  type = "rpc"
-#  url = "wss://ws.manta.systems"
+## Kusama
+
+[[substrate.networks]]
+id = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://rpc.ibp.network/kusama",
+    "wss://rpc.dotters.network/kusama",
+    "wss://kusama.api.onfinality.io/public-ws"
+  ]
+[[substrate.networks]]
+id = "urn:ocn:kusama:1000"
+relay = "urn:ocn:kusama:0"
+  [substrate.networks.provider]
+  type = "rpc"
+  url = [
+    "wss://sys.ibp.network/statemine",
+    "wss://asset-hub-kusama.dotters.network",
+    "wss://rpc-asset-hub-kusama.luckyfriday.io",
+    "wss://kusama-asset-hub-rpc.polkadot.io",
+    "wss://asset-hub-kusama-rpc.n.dwellir.com"
+  ]
+
 
 # ==========================================
 # EVM networks
 # ==========================================
+
+[[evm.networks]]
+id = "urn:ocn:ethereum:1"
+maxBlockDist = 25
+  [evm.networks.provider]
+  type = "rpc"
+  url = [
+      "wss://ethereum-rpc.publicnode.com",
+      "wss://mainnet.gateway.tenderly.co",
+      "https://eth.llamarpc.com",
+      "https://rpc.mevblocker.io",
+      "https://ethereum-rpc.publicnode.com",
+      "https://eth1.lava.build",
+      "https://eth.blockrazor.xyz"
+  ]
 
 [[evm.networks]]
 id = "urn:ocn:ethereum:1284"
