@@ -13,6 +13,7 @@ import {
   DefiEventPayload,
   DefiLiquidityAsset,
   DefiSubscriptionPayload,
+  isLiquidationEvent,
   isSwapEvent,
 } from '../../types.js'
 import { CHAIN_ID, PROTOCOL_NAME } from './consts.js'
@@ -251,6 +252,18 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
               ...payload.data,
               in: withUsdValue(swapIn),
               out: withUsdValue(swapOut),
+            },
+          } as DefiEventPayload
+        }
+        if (isLiquidationEvent(payload)) {
+          const debt = payload.data.debt
+          const collateral = payload.data.collateral
+          return {
+            ...payload,
+            data: {
+              ...payload.data,
+              debt: withUsdValue(debt),
+              collateral: withUsdValue(collateral),
             },
           } as DefiEventPayload
         }

@@ -13,6 +13,7 @@ import {
   EventHandler,
   EventRecordWithIndex,
   HydrationLendingEvent,
+  HydrationLiquidationEvent,
   HydrationSwapEvent,
   SwapRoute,
 } from './types.js'
@@ -105,7 +106,17 @@ function toSwapEventPayload(
 }
 
 function mapLending(
-  { amount, asset, action, blockHash, blockNumber, marketId, extrinsic, who, protocol }: HydrationLendingEvent,
+  {
+    amount,
+    asset,
+    action,
+    blockHash,
+    blockNumber,
+    marketId,
+    extrinsic,
+    who,
+    protocol,
+  }: HydrationLendingEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
 ): Observable<DefiEventPayload> {
   const assetIdAsString = asset.toString()
@@ -133,6 +144,63 @@ function mapLending(
               symbol: assetMeta.symbol ?? '??',
             },
           ],
+        },
+      }
+    }),
+    filter((ev) => ev !== null),
+  )
+}
+
+function mapLiquidation(
+  {
+    collateralAsset,
+    collateralLiquidated,
+    counterparty,
+    debtAsset,
+    debtCovered,
+    blockHash,
+    blockNumber,
+    marketId,
+    extrinsic,
+    who,
+    protocol,
+  }: HydrationLiquidationEvent,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+): Observable<DefiEventPayload> {
+  const assetIds = [collateralAsset.toString(), debtAsset.toString()]
+  const name = 'liquidate' as const
+
+  return from(fetchAssetMetadata(assetIds)).pipe(
+    map((results) => {
+      const collateralAssetMeta = results.find((a) => a.id === collateralAsset)
+      const debtAssetMeta = results.find((a) => a.id === debtAsset)
+
+      if (!collateralAssetMeta || !debtAssetMeta) {
+        return null
+      }
+
+      return {
+        ...baseEventPayload,
+        id: ulid(),
+        name,
+        protocol: `${PROTOCOL_NAME}.${protocol}`,
+        blockNumber: blockNumber.toString(),
+        blockHash,
+        txHash: extrinsic ? extrinsic.txHash : null,
+        marketId,
+        data: {
+          origin: who,
+          counterparty,
+          debt: {
+            amount: formatUnits(debtCovered, debtAssetMeta.decimals ?? 0),
+            assetId: debtAsset.toString(),
+            symbol: debtAssetMeta.symbol ?? '??',
+          },
+          collateral: {
+            amount: formatUnits(collateralLiquidated, collateralAssetMeta.decimals ?? 0),
+            assetId: collateralAsset.toString(),
+            symbol: collateralAssetMeta.symbol ?? '??',
+          },
         },
       }
     }),
@@ -236,6 +304,9 @@ export function watchEvents(
         }
         if (event.type === 'lending') {
           return mapLending(event, fetchAssetMetadata)
+        }
+        if (event.type === 'liquidation') {
+          return mapLiquidation(event, fetchAssetMetadata)
         }
 
         return EMPTY

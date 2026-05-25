@@ -1,6 +1,6 @@
+import { Enum } from 'polkadot-api'
 import { BlockEvent, BlockEvmEvent, Event, EventRecord } from '@/services/networking/substrate/types.js'
 import { MoneyMarketActions } from '../../../types.js'
-import { Enum } from 'polkadot-api'
 
 export type EventHandler = (event: BlockEvent, siblings: EventRecordWithIndex[]) => HydrationDefiEvent | null
 export type EvmEventHandler = (
@@ -37,9 +37,7 @@ export type FillerType = Enum<{
   Aave: undefined
 }>
 
-export type FillerTypeName = Lowercase<
-  FillerType['type']
->
+export type FillerTypeName = Lowercase<FillerType['type']>
 
 export interface SwapRoute {
   marketId: string
@@ -57,11 +55,22 @@ export interface HydrationSwapEvent extends SwapRoute, BaseHydrationDefiEvent {
 
 export interface HydrationLendingEvent extends BaseHydrationDefiEvent {
   type: 'lending'
-  action: MoneyMarketActions | 'liquidate'
-  protocol: 'aave',
+  action: MoneyMarketActions
+  protocol: 'aave'
   marketId: string
   asset: number
   amount: bigint
 }
 
-export type HydrationDefiEvent = HydrationSwapEvent | HydrationLendingEvent
+export interface HydrationLiquidationEvent extends BaseHydrationDefiEvent {
+  type: 'liquidation'
+  protocol: 'aave'
+  marketId: string
+  debtAsset: number
+  debtCovered: bigint
+  collateralAsset: number
+  collateralLiquidated: bigint
+  counterparty: string
+}
+
+export type HydrationDefiEvent = HydrationSwapEvent | HydrationLendingEvent | HydrationLiquidationEvent
