@@ -107,9 +107,25 @@ export type DefiEventUpdate = Updateable<DefiEventTable>
 export type DefiEventAsset = Selectable<DefiEventAssetTable>
 export type NewDefiEventAsset = Insertable<DefiEventAssetTable>
 
+export interface DefiPriceTable {
+  id: Generated<number>
+  network: ColumnType<string>
+  protocol: ColumnType<string>
+  asset_id: ColumnType<string>
+  symbol: ColumnType<string>
+  decimals: ColumnType<number>
+  price_usd: ColumnType<string>
+  updated_at: ColumnType<number>
+}
+
+export type DefiPrice = Selectable<DefiPriceTable>
+export type NewDefiPrice = Insertable<DefiPriceTable>
+export type DefiPriceUpdate = Updateable<DefiPriceTable>
+
 export interface DefiDatabase {
   defi_pool: DefiPoolTable
   defi_pool_asset: DefiPoolAssetTable
   defi_event: DefiEventTable
   defi_event_asset: DefiEventAssetTable
+  defi_price: DefiPriceTable
 }

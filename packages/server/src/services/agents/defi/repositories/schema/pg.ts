@@ -85,6 +85,34 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('amount_usd', 'text')
       .addColumn('role', 'varchar(10)', (cb) => cb.notNull())
       .execute()
+
+    await db.schema
+      .createTable('defi_price')
+      .ifNotExists()
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
+      .addColumn('network', 'varchar(100)', (cb) => cb.notNull())
+      .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
+      .addColumn('asset_id', 'varchar(255)', (cb) => cb.notNull())
+      .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
+      .addColumn('decimals', 'integer', (cb) => cb.notNull())
+      .addColumn('price_usd', 'text', (cb) => cb.notNull())
+      .addColumn('updated_at', 'integer', (cb) => cb.notNull())
+      .addUniqueConstraint('token_price_network_protocol_asset_unique', ['network', 'protocol', 'asset_id'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_defi_price_lookup')
+      .ifNotExists()
+      .on('defi_price')
+      .columns(['network', 'asset_id'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_defi_price_protocol_lookup')
+      .ifNotExists()
+      .on('defi_price')
+      .columns(['network', 'protocol'])
+      .execute()
   } catch (error) {
     console.error('PostgreSQL Migration failed:', error)
     throw error
@@ -94,4 +122,5 @@ export async function up(db: Kysely<any>): Promise<void> {
 export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('defi_pool_asset').execute()
   await db.schema.dropTable('defi_pool').execute()
+  await db.schema.dropTable('defi_price').execute()
 }

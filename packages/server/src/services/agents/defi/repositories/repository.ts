@@ -8,6 +8,7 @@ import {
   DefiEventPayload,
   DefiLiquidityAsset,
   DefiLiquidityPayload,
+  DefiPricePayload,
   isLiquidationEvent,
   isSwapEvent,
   MoneyMarketPayload,
@@ -193,6 +194,27 @@ export class DefiRepository {
         await trx.insertInto('defi_event_asset').values(finalAssetRows).execute()
       }
     })
+  }
+
+  async upsertDefiPrice(payload: DefiPricePayload) {
+    return this.#db
+      .insertInto('defi_price')
+      .values({
+        asset_id: payload.assetId,
+        decimals: payload.decimals,
+        network: payload.networkId,
+        price_usd: payload.priceUSD,
+        symbol: payload.symbol,
+        updated_at: payload.updatedAt,
+        protocol: payload.protocol,
+      })
+      .onConflict((oc: any) =>
+        oc.columns(['network', 'protocol', 'asset_id']).doUpdateSet({
+          price_usd: (eb: any) => eb.ref('excluded.price_usd'),
+          updated_at: (eb: any) => eb.ref('excluded.updated_at'),
+        }),
+      )
+      .execute()
   }
 
   async getPoolById(id: number): Promise<DefiPool> {
@@ -441,6 +463,67 @@ export class DefiRepository {
       }),
       limit,
     )
+  }
+
+  async getLatestPrices(params: QueryParams<DefiAgentQueryArgs>): Promise<QueryResult<DefiPricePayload>> {
+    if (params.args.op !== 'price.last') {
+      throw new Error('op must be price.last')
+    }
+
+    const targetNetworks = fromWildcardOrArray(params.args.criteria.networks)
+
+    const limit = params.pagination?.limit ?? 100
+    const cursor = params.pagination?.cursor
+
+    let query = this.#db
+      .selectFrom('defi_price as p')
+      .select([
+        'p.id',
+        'p.network',
+        'p.protocol',
+        'p.asset_id',
+        'p.symbol',
+        'p.decimals',
+        'p.price_usd',
+        'p.updated_at',
+      ])
+
+    if (targetNetworks?.length) {
+      query = query.where('p.network', 'in', targetNetworks)
+    }
+
+    if (cursor) {
+      if (Number.isNaN(cursor)) {
+        throw new TypeError('Pagination cursor must be a numeric string or number')
+      }
+      query = query.where('p.id', '<', Number(cursor))
+    }
+
+    query = query.orderBy('p.id', 'desc').limit(limit + 1)
+
+    const rows = await query.execute()
+
+    const hasNextPage = rows.length > limit
+    const items = hasNextPage ? rows.slice(0, limit) : rows
+
+    const endCursor = items.length > 0 ? String(items[items.length - 1].id) : ''
+
+    return {
+      items: items.map((r) => ({
+        type: 'price',
+        networkId: r.network,
+        protocol: r.protocol,
+        assetId: r.asset_id,
+        symbol: r.symbol,
+        decimals: r.decimals,
+        priceUSD: r.price_usd,
+        updatedAt: r.updated_at,
+      })),
+      pageInfo: {
+        endCursor,
+        hasNextPage,
+      },
+    }
   }
 
   #asBoolVal(v: boolean | undefined) {
