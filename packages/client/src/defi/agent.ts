@@ -3,7 +3,13 @@ import { OcelloidsClient } from '../core/client'
 import { EventId, SubscribableWithReplayApi, SubscribeReplayContext } from '../core/types'
 import { isSubscriptionInputs } from '../core/utils'
 import { NetworkURN, OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
-import { DefiAgentInputs, DefiAgentQueryArgs, DefiEventPayload, DefiLiquidityPayload, DefiSubscriptionPayload } from './types'
+import {
+  DefiAgentInputs,
+  DefiAgentQueryArgs,
+  DefiEventPayload,
+  DefiLiquidityPayload,
+  DefiSubscriptionPayload,
+} from './types'
 
 /**
  * @public
@@ -43,7 +49,7 @@ export class DefiAgentApi
         },
         onDemandHandlers,
       )
-    } else if(topic === 'liquidity') {
+    } else if (topic === 'liquidity') {
       if (isSubscriptionInputs(subscription)) {
         return super.subscribe(subscription, handlers, onDemandHandlers)
       }
@@ -51,8 +57,8 @@ export class DefiAgentApi
       const { items } = await this.query<DefiAgentQueryArgs, DefiLiquidityPayload>({
         op: 'liquidity.last',
         criteria: {
-          networks
-        }
+          networks,
+        },
       })
 
       const ws = await super.subscribe(subscription, handlers, onDemandHandlers)
@@ -76,7 +82,7 @@ export class DefiAgentApi
       return ws
     }
 
-    throw new Error("topic not supported")
+    throw new Error('topic not supported')
   }
 
   #buildReplayQuery(networks?: NetworkURN[]) {
