@@ -21,7 +21,7 @@ relay = "urn:ocn:polkadot:0"
   type = "rpc"
   url = [
     "wss://rpc.hydradx.cloud",
-    "wss://rpc.helikon.io/hydradx",
+    #"wss://rpc.helikon.io/hydradx",
     "wss://hydration-rpc.n.dwellir.com",
     "wss://hydration.ibp.network",
     "wss://hydration.dotters.network"
