@@ -1,9 +1,7 @@
 import { firstValueFrom, map, Subject, Subscription, share } from 'rxjs'
 import { formatUnits } from 'viem'
-import { DataSteward } from '@/services/agents/steward/agent.js'
 import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
-import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '@/services/agents/steward/types.js'
-import { QueryParams, QueryResult } from '@/services/agents/types.js'
+import { AssetMetadata, Empty } from '@/services/agents/steward/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block } from '@/services/networking/substrate/types.js'
@@ -13,6 +11,7 @@ import {
   DefiEventAsset,
   DefiEventPayload,
   DefiLiquidityAsset,
+  DefiPricePayload,
   DefiSubscriptionPayload,
   isLiquidationEvent,
   isSwapEvent,
@@ -26,36 +25,22 @@ import { AavePool, AaveToken, HsmPool, Path, Pool } from './types.js'
 import { bigintToUsd } from './utils.js'
 
 const DEFAULT_QUOTE_TOKEN = 10
+const PRICE_EMISSION_THRESHOLD = 0.0001
 
-export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, steward: DataSteward) {
-  const fetchAssetMetadata = async (assets: string[]): Promise<AssetMetadata[]> => {
-    const { items } = (await steward.query({
-      args: {
-        op: 'assets',
-        criteria: [
-          {
-            network: CHAIN_ID,
-            assets,
-          },
-        ],
-      },
-    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
-
-    return items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
-  }
-
-  const fetchAccounts = async (accounts: string[]): Promise<(SubstrateAccountMetadata | Empty)[]> => {
-    const { items } = (await steward.query({
-      args: {
-        op: 'accounts',
-        criteria: {
-          accounts,
-        },
-      },
-    } as QueryParams<StewardQueryArgs>)) as QueryResult<SubstrateAccountMetadata | Empty>
-
-    return items
-  }
+export function hydrationDexMonitor(
+  logger: Logger,
+  ingress: IngressConsumers,
+  {
+    fetchAccounts,
+    fetchAssetMetadata: fetchAssetMeta,
+    listLatestPrices,
+  }: {
+    fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
+    fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
+    listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
+  },
+) {
+  const fetchAssetMetadata = (assets: string[]) => fetchAssetMeta(CHAIN_ID, assets)
 
   const poolsManager = createPoolManager(logger, ingress, fetchAssetMetadata)
 
@@ -69,13 +54,33 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
   let inFlight = 0
   let initialised = false
 
+  async function loadData() {
+    const latestPrices = await listLatestPrices(CHAIN_ID)
+    if (latestPrices.length === 0) {
+      logger.info('[dex:hydration] No prices data in db.')
+      return
+    }
+    for (const { assetId, priceUSD } of latestPrices) {
+      try {
+        const numericId = Number(assetId)
+        allTokens.add(numericId)
+        prices.set(numericId, Number(priceUSD))
+      } catch (e) {
+        logger.warn(e, `Error loading data for asset: ${assetId}`)
+      }
+    }
+    logger.info('[dex:hydration] Latest prices loaded.')
+  }
+
   async function initialise(latestBlock: Block) {
     await poolsManager.init(latestBlock)
 
     const allPools: Pool[] = poolsManager.getSwappablePools()
     for (const pool of allPools) {
       for (const token of pool.tokens) {
-        allTokens.add(token.id)
+        if (!allTokens.has(token.id)) {
+          allTokens.add(token.id)
+        }
       }
     }
 
@@ -89,7 +94,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
     initialised = true
   }
 
-  function updatePrices() {
+  async function updatePrices() {
     for (const [asset, path] of cachedPaths) {
       if (!path) {
         logger.warn('[dex:hydration] No path found for asset %s', asset)
@@ -98,7 +103,29 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
       try {
         const spot = asset === DEFAULT_QUOTE_TOKEN ? 1 : calculateSpot(poolsManager, path)
         if (spot) {
+          const prevPrice = prices.get(asset)
+
+          if (prevPrice !== undefined) {
+            const diff = Math.abs(spot - prevPrice) / prevPrice
+            if (diff < PRICE_EMISSION_THRESHOLD) {
+              continue
+            }
+          }
+
           prices.set(asset, spot)
+
+          const metaResult = await fetchAssetMetadata([asset.toString()])
+          const meta = metaResult.length > 0 ? metaResult[0] : null
+          subject.next({
+            type: 'price',
+            assetId: asset.toString(),
+            networkId: CHAIN_ID,
+            protocol: PROTOCOL_NAME,
+            priceUSD: spot.toString(),
+            updatedAt: Date.now(),
+            decimals: meta?.decimals ?? 0,
+            symbol: meta?.symbol ?? '??',
+          })
         } else {
           logger.warn('[dex:hydration] No spot price calculated for asset %s', asset)
         }
@@ -240,7 +267,7 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
 
     try {
       await poolsManager.updateReserves(block)
-      updatePrices()
+      await updatePrices()
 
       poolsManager.getLiquidityPools().forEach(emitLiquidityEvent)
       poolsManager.getPools('aave').forEach(emitMMLiquidityEvent)
@@ -251,6 +278,8 @@ export function hydrationDexMonitor(logger: Logger, ingress: IngressConsumers, s
   }
 
   async function start() {
+    await loadData()
+
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
     const blocks$ = shared$.blocks(CHAIN_ID)
     const events$ = blocks$.pipe(

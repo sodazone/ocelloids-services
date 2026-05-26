@@ -7,7 +7,9 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
+import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { DataSteward } from '../steward/agent.js'
+import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '../steward/types.js'
 import { TickerAgent } from '../ticker/agent.js'
 import {
   Agent,
@@ -28,6 +30,7 @@ import {
   $DefiAgentQueryArgs,
   DefiAgentInputs,
   DefiAgentQueryArgs,
+  DefiPricePayload,
   DefiSubscriptionPayload,
 } from './types.js'
 
@@ -108,7 +111,11 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
     }
 
     this.#addMonitors(
-      hydrationDexMonitor(this.#log, this.#ingress, this.#dependencies.steward),
+      hydrationDexMonitor(this.#log, this.#ingress, {
+        fetchAccounts: this.#fetchAccounts.bind(this),
+        fetchAssetMetadata: this.#fetchAssetMetadata.bind(this),
+        listLatestPrices: this.#listLatestPrices.bind(this),
+      }),
       moonbeamDexMonitor(this.#ingress.evm),
     )
 
@@ -120,6 +127,8 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
               await this.#repository.upsertLiquidityData(payload)
             } else if (payload.type === 'event') {
               await this.#repository.insertDefiEvent(payload)
+            } else if (payload.type === 'price') {
+              await this.#repository.upsertDefiPrice(payload)
             }
           },
         }),
@@ -253,5 +262,67 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
         this.#log.warn('[agent:%s] network %s not defined, monitor not started', this.id, m.chainId)
       }
     }
+  }
+
+  async #listLatestPrices(network: string): Promise<DefiPricePayload[]> {
+    let cursor: string | undefined = undefined
+    let hasNextPage = true
+
+    const all: DefiPricePayload[] = []
+
+    while (hasNextPage) {
+      const res = await this.#getLatestPrices(network, cursor)
+
+      all.push(...res.items)
+
+      hasNextPage = res.pageInfo?.hasNextPage ?? false
+      cursor = res.pageInfo?.endCursor
+    }
+
+    return all
+  }
+
+  async #getLatestPrices(network: string, cursor?: string): Promise<QueryResult<DefiPricePayload>> {
+    return this.#repository.getLatestPrices({
+      args: {
+        op: 'price.last',
+        criteria: {
+          networks: [network],
+        },
+      },
+      pagination: {
+        cursor,
+        limit: 50,
+      },
+    })
+  }
+
+  async #fetchAssetMetadata(network: string, assets: string[]): Promise<AssetMetadata[]> {
+    const { items } = (await this.#dependencies.steward.query({
+      args: {
+        op: 'assets',
+        criteria: [
+          {
+            network,
+            assets,
+          },
+        ],
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
+
+    return items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
+  }
+
+  async #fetchAccounts(accounts: string[]): Promise<(SubstrateAccountMetadata | Empty)[]> {
+    const { items } = (await this.#dependencies.steward.query({
+      args: {
+        op: 'accounts',
+        criteria: {
+          accounts,
+        },
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<SubstrateAccountMetadata | Empty>
+
+    return items
   }
 }

@@ -63,6 +63,10 @@ export const $DefiAgentQueryArgs = z.discriminatedUnion('op', [
       })
       .optional(),
   }),
+  z.object({
+    op: z.literal('price.last'),
+    criteria: z.object({ networks: z.literal('*').or(z.array($NetworkString)).optional() }),
+  }),
 ])
 
 /**
@@ -221,7 +225,20 @@ export type DefiEventAction = MoneyMarketActions | 'liquidate' | 'mint' | 'burn'
 /**
  * @public
  */
-export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload
+export type DefiPricePayload = {
+  type: 'price'
+  networkId: string
+  protocol: string
+  assetId: string
+  symbol: string
+  decimals: number
+  priceUSD: string
+  updatedAt: number
+}
+/**
+ * @public
+ */
+export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload | DefiPricePayload
 
 export function isSwapEvent(
   payload: DefiEventPayload,

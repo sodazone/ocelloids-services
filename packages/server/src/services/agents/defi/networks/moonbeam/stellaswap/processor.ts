@@ -12,6 +12,8 @@ import { algebraPools, tokens } from './definitions.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
+const PRICE_EMISSION_THRESHOLD = 0.0001
+
 export function createStellaswapProcessor({
   chainId,
   ingress,
@@ -25,6 +27,7 @@ export function createStellaswapProcessor({
 
   const poolAddresses = algebraPools.map((p) => p.address)
   const poolLookup = new Map(algebraPools.map((p) => [p.address.toLowerCase(), p]))
+  const prices: Map<string, number> = new Map()
 
   const subs: Subscription[] = []
 
@@ -104,6 +107,34 @@ export function createStellaswapProcessor({
               balances: { total: p.reserve1, reserves: p.reserve1 },
             },
           ],
+        })
+      }
+
+      for (const [assetSymbol, price] of Object.entries(usdPrices)) {
+        const prevPrice = prices.get(assetSymbol)
+
+        if (prevPrice !== undefined) {
+          const diff = Math.abs(price - prevPrice) / prevPrice
+          if (diff < PRICE_EMISSION_THRESHOLD) {
+            continue
+          }
+        }
+
+        prices.set(assetSymbol, price)
+
+        const tokenMeta = tokens[assetSymbol]
+        if (!tokenMeta) {
+          continue
+        }
+        subject.next({
+          type: 'price',
+          assetId: tokenMeta.address.toLowerCase(),
+          decimals: tokenMeta.decimals,
+          networkId: chainId,
+          priceUSD: price.toString(),
+          protocol: 'stellaswap',
+          symbol: assetSymbol,
+          updatedAt: Date.now(),
         })
       }
     } catch (err) {
