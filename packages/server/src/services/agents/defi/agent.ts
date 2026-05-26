@@ -248,6 +248,10 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
       return await this.#repository.findEvents(params)
     }
 
+    if (args.op === 'price.last') {
+      return await this.#repository.getLatestPrices(params)
+    }
+
     throw new Error('Unknown query op')
   }
 
