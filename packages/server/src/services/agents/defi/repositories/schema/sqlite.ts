@@ -120,4 +120,6 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('defi_pool_asset').execute()
   await db.schema.dropTable('defi_pool').execute()
   await db.schema.dropTable('defi_price').execute()
+  await db.schema.dropTable('defi_evemt_asset').execute()
+  await db.schema.dropTable('defi_event').execute()
 }
