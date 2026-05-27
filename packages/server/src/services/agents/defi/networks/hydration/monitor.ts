@@ -162,6 +162,8 @@ export function hydrationDexMonitor(
           balances: {
             total: reserves,
             reserves,
+            available: formatUnits(underlying.available, underlying.decimals ?? 0),
+            borrowed: formatUnits(underlying.borrowed, underlying.decimals ?? 0),
           },
           role: 'collateral',
         },
