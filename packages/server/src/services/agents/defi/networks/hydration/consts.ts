@@ -1,8 +1,6 @@
 import { toSystemAccountKey } from '@/services/agents/common/accounts.js'
 import { networks } from '@/services/agents/common/networks.js'
 
-export const PROTOCOL_NAME = 'hydration'
-
 export const CHAIN_ID = networks.hydration
 export const EVM_CHAIN_ID = 'urn:ocn:ethereum:222222'
 export const HSM_FACILITATOR_ADDRESS = toSystemAccountKey('modlpy/hsmod')

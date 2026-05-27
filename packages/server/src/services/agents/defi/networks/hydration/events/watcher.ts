@@ -7,7 +7,8 @@ import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { Block, BlockEvent } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { DefiEventPayload, MoneyMarketActions, SwapIntentStatus } from '../../../types.js'
-import { CHAIN_ID, PROTOCOL_NAME } from '../consts.js'
+import { CHAIN_ID } from '../consts.js'
+import { toProtocol } from '../utils.js'
 import { evmLogHandler } from './evm.js'
 import { routerExecutedHandler } from './router.js'
 import {
@@ -81,13 +82,11 @@ function toSwapEventPayload(
     return null
   }
 
-  const protocol = `${PROTOCOL_NAME}.${swapProtocol}`
-
   if (name === 'swap') {
     return {
       ...eventPayloadConsts,
       id: ulid(),
-      protocol,
+      protocol: toProtocol(swapProtocol),
       name,
       blockNumber,
       blockHash,
@@ -112,7 +111,7 @@ function toSwapEventPayload(
   return {
     ...eventPayloadConsts,
     id: ulid(),
-    protocol,
+    protocol: toProtocol(swapProtocol),
     name,
     blockNumber,
     blockHash,
@@ -154,7 +153,7 @@ function mapLending(
 
       return {
         ...basePayload({
-          protocol: `${PROTOCOL_NAME}.${event.protocol}`,
+          protocol: toProtocol(event.protocol),
           blockNumber: event.blockNumber.toString(),
           blockHash: event.blockHash,
           txHash: event.extrinsic?.txHash ?? null,
@@ -199,7 +198,7 @@ function mapLiquidation(
 
       return {
         ...basePayload({
-          protocol: `${PROTOCOL_NAME}.${event.protocol}`,
+          protocol: toProtocol(event.protocol),
           blockNumber: event.blockNumber.toString(),
           blockHash: event.blockHash,
           txHash: event.extrinsic?.txHash ?? null,

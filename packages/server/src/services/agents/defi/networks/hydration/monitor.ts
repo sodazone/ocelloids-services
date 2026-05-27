@@ -16,13 +16,13 @@ import {
   isLiquidationEvent,
   isSwapEvent,
 } from '../../types.js'
-import { CHAIN_ID, PROTOCOL_NAME } from './consts.js'
+import { CHAIN_ID } from './consts.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
 import { calculateSpot } from './pricing/index.js'
 import { buildGraph, getSwapPath } from './routing.js'
 import { AavePool, AaveToken, HsmPool, Path, Pool } from './types.js'
-import { bigintToUsd } from './utils.js'
+import { bigintToUsd, toProtocol } from './utils.js'
 
 const DEFAULT_QUOTE_TOKEN = 10
 const PRICE_EMISSION_THRESHOLD = 0.0001
@@ -120,7 +120,7 @@ export function hydrationDexMonitor(
             type: 'price',
             assetId: asset.toString(),
             networkId: CHAIN_ID,
-            protocol: PROTOCOL_NAME,
+            protocol: toProtocol('router'),
             priceUSD: spot.toString(),
             updatedAt: Date.now(),
             decimals: meta?.decimals ?? 0,
@@ -148,7 +148,7 @@ export function hydrationDexMonitor(
     subject.next({
       type: 'liquidity',
       category: 'money-market',
-      protocol: PROTOCOL_NAME,
+      protocol: toProtocol(pool.type),
       networkId: CHAIN_ID,
       marketId: pool.address,
       suppliedUSD,
@@ -194,7 +194,7 @@ export function hydrationDexMonitor(
       type: 'liquidity',
       networkId: CHAIN_ID,
       category: 'exchange',
-      protocol: PROTOCOL_NAME,
+      protocol: toProtocol(pool.type),
       marketId: pool.address,
       suppliedUSD,
       assets: liquidityAssets,
@@ -244,7 +244,7 @@ export function hydrationDexMonitor(
       type: 'liquidity',
       networkId: CHAIN_ID,
       category: 'stability',
-      protocol: PROTOCOL_NAME,
+      protocol: toProtocol(pool.type),
       marketId: pool.address,
       suppliedUSD,
       assets: liquidityAssets,

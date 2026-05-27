@@ -27,3 +27,7 @@ export function bigintToNumber(value: bigint, decimals: number): number {
 
   return parseFloat(`${integerPart}.${fractionalPart}`)
 }
+
+export function toProtocol(poolType: string) {
+  return `hydration.${poolType}`
+}

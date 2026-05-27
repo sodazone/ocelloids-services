@@ -220,7 +220,14 @@ export type DefiEventPayload = {
 /**
  * @public
  */
-export type DefiEventAction = MoneyMarketActions | 'liquidate' | 'mint' | 'burn' | 'swap' | 'swap_intent'
+export type DefiEventAction =
+  | MoneyMarketActions
+  | 'liquidate'
+  | 'mint'
+  | 'burn'
+  | 'swap'
+  | 'swap_intent'
+  | 'swap_fill'
 
 /**
  * @public
