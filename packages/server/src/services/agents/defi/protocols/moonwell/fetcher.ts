@@ -87,9 +87,23 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
     const totalUnderlyingSupply = (totalSupply * exchangeRate) / BigInt(1e18)
     const suppliedUSD = Number(formatUnits(totalUnderlyingSupply, underlying.decimals)) * priceUSDNum
 
+    const totalPoolLiquidity = cash + totalBorrows - totalReserves
+    const utilization = totalPoolLiquidity > 0n ? Number(totalBorrows) / Number(totalPoolLiquidity) : 0
+
+    // Interest APR Scaling
     const SECONDS_PER_YEAR = 31_536_000n
     const supplyAPR = (Number(supplyRate) / 1e18) * Number(SECONDS_PER_YEAR) * 100
     const borrowAPR = (Number(borrowRate) / 1e18) * Number(SECONDS_PER_YEAR) * 100
+
+    const totalProtocolAssets = cash + totalBorrows
+    const totalProtocolLiabilities = totalUnderlyingSupply + totalReserves
+
+    const solvencyRatio =
+      totalProtocolLiabilities > 0n ? Number(totalProtocolAssets) / Number(totalProtocolLiabilities) : 1
+
+    const badDebtUnderlying =
+      totalProtocolLiabilities > totalProtocolAssets ? totalProtocolLiabilities - totalProtocolAssets : 0n
+    const badDebtUSD = Number(formatUnits(badDebtUnderlying, underlying.decimals)) * priceUSDNum
 
     return {
       type: 'liquidity',
@@ -113,27 +127,15 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
         },
       ],
       lending: {
-        utilization:
-          totalUnderlyingSupply > 0n ? (Number(totalBorrows) / Number(totalUnderlyingSupply)) * 100 : 0,
+        utilization,
         supplyAPR,
         borrowAPR,
         isPaused: isMintPaused || isBorrowPaused,
         canBorrow: !isBorrowPaused,
         borrowCap: formatUnits(borrowCap, underlying.decimals),
         health: {
-          solvencyRatio:
-            totalUnderlyingSupply > 0n
-              ? (Number(cash + totalBorrows) / Number(totalUnderlyingSupply)) * 100
-              : 100,
-          badDebtUSD:
-            Number(
-              formatUnits(
-                totalUnderlyingSupply > cash + totalBorrows
-                  ? totalUnderlyingSupply - (cash + totalBorrows)
-                  : 0n,
-                underlying.decimals,
-              ),
-            ) * priceUSDNum,
+          solvencyRatio,
+          badDebtUSD,
         },
       },
     }
