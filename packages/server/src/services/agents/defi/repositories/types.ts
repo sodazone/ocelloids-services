@@ -83,7 +83,6 @@ export interface DefiEventTable {
   event_name: ColumnType<DefiEventAction>
   actor_address: ColumnType<string>
   counterparty_address: ColumnType<string | null>
-  lp_amount: ColumnType<string | null>
   status: ColumnType<string | null>
 }
 

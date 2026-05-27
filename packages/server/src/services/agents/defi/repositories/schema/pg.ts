@@ -68,7 +68,6 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('event_name', 'varchar(20)', (cb) => cb.notNull())
       .addColumn('actor_address', 'varchar(255)', (cb) => cb.notNull())
       .addColumn('counterparty_address', 'varchar(255)')
-      .addColumn('lp_amount', 'text')
       .addColumn('status', 'varchar(100)')
       .execute()
 
