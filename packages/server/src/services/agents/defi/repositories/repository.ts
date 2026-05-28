@@ -385,7 +385,6 @@ export class DefiRepository {
         'e.tx_hash as txHash',
         'e.event_name as eventName',
         'e.actor_address as actorAddress',
-        'e.lp_amount as lpAmount',
         (eb) =>
           eb
             .fn(aggregateFn, [
@@ -444,7 +443,6 @@ export class DefiRepository {
           dataBlock = {
             provider: evt.actorAddress,
             assets: rawAssets.filter((a) => a.direction === 'action'),
-            ...(evt.lpAmount !== null && { lpAmount: evt.lpAmount }),
           }
         }
 

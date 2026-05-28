@@ -144,6 +144,7 @@ export function hydrationDexMonitor(
     const reserves = formatUnits(underlying.reserves, underlying.decimals ?? 0)
     const assetPrice = prices.get(underlying.id) ?? pool.oraclePrice
     const suppliedUSD = bigintToUsd(underlying.reserves, underlying.decimals, assetPrice)
+    const borrowedUSD = bigintToUsd(underlying.borrowed, underlying.decimals, assetPrice)
 
     subject.next({
       type: 'liquidity',
@@ -152,7 +153,10 @@ export function hydrationDexMonitor(
       networkId: CHAIN_ID,
       marketId: pool.address,
       suppliedUSD,
-      lending: pool.details,
+      lending: {
+        ...pool.details,
+        borrowedUSD,
+      },
       assets: [
         {
           assetId: underlying.id.toString(),
