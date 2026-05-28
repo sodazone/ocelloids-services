@@ -8,6 +8,7 @@ import {
   DefiEventPayload,
   DefiLiquidityAsset,
   DefiLiquidityPayload,
+  DefiOrderPayload,
   DefiPricePayload,
   isLiquidationEvent,
   isSwapEvent,
@@ -15,6 +16,14 @@ import {
 } from '../types.js'
 import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiPoolAsset } from './types.js'
 import { calculateBorrowedUsd, calculateSuppliedUsd } from './util.js'
+
+function buildOrderKey(network: string, protocol: string, order_id: string) {
+  return `${network}:${protocol}:${order_id}`
+}
+
+function addBigIntString(a: string, b: string) {
+  return (BigInt(a) + BigInt(b)).toString()
+}
 
 export class DefiRepository {
   readonly #db: Kysely<DefiDatabase>
@@ -110,12 +119,10 @@ export class DefiRepository {
 
       let actorAddress = ''
       let counterparty: string | null = null
-      let status: string | null = null
       const assetRowsToInsert: Omit<NewDefiEventAsset, 'event_id'>[] = []
 
       if (isSwapEvent(payload)) {
         actorAddress = payload.data.origin
-        status = 'status' in payload ? (payload.status ?? null) : null
 
         const assetIn = payload.data.in
         assetRowsToInsert.push({
@@ -181,7 +188,6 @@ export class DefiRepository {
           event_name: payload.name,
           actor_address: actorAddress,
           counterparty_address: counterparty ?? null,
-          status,
         })
         .execute()
 
@@ -215,6 +221,109 @@ export class DefiRepository {
         }),
       )
       .execute()
+  }
+
+  async processOrderFill(payload: DefiOrderPayload) {
+    const order_key = buildOrderKey(payload.networkId, payload.protocol, payload.orderId)
+    const fill = payload.fill
+
+    return this.#db.transaction().execute(async (trx) => {
+      const existingOrder = await trx
+        .selectFrom('defi_order')
+        .select(['fill_count', 'filled_amount_in', 'filled_amount_out', 'filled_amount_usd'])
+        .where('order_key', '=', order_key)
+        .executeTakeFirst()
+
+      if (!existingOrder) {
+        if (!payload.order) {
+          throw new Error(`Missing order for order_key=${order_key}`)
+        }
+
+        await trx
+          .insertInto('defi_order')
+          .values({
+            network: payload.networkId,
+            protocol: payload.protocol,
+            order_id: payload.orderId,
+            order_key,
+            owner: payload.owner,
+
+            asset_in: payload.order.assetIn,
+            asset_out: payload.order.assetOut,
+            symbol_in: payload.order.symbolIn,
+            symbol_out: payload.order.symbolOut,
+            amount_in: payload.order.amountIn ?? null,
+            amount_out: payload.order.amountOut ?? null,
+
+            status: payload.status,
+
+            fill_count: 0,
+            filled_amount_in: '0',
+            filled_amount_out: '0',
+            filled_amount_usd: '0',
+
+            created_at: payload.order.createdAt,
+            created_block_number: payload.order.createdAtBlock,
+            created_block_hash: payload.order.blockHash,
+            created_tx_hash: payload.order.txHash ?? null,
+          })
+          .onConflict((oc) => oc.column('order_key').doNothing())
+          .execute()
+      }
+
+      if (!fill) {
+        return
+      }
+
+      const insertResult = await trx
+        .insertInto('defi_order_fill')
+        .values({
+          order_key,
+          filler: fill.filler ?? null,
+          amount_in: fill.amountIn,
+          amount_out: fill.amountOut,
+          amount_usd: fill.amountUSD,
+          tx_hash: fill.txHash ?? null,
+          block_number: fill.blockNumber,
+          block_hash: fill.blockHash,
+          block_event_index: fill.eventIndex,
+          timestamp: fill.timestamp,
+        })
+        .onConflict((oc) => oc.columns(['order_key', 'block_hash', 'block_event_index']).doNothing())
+        .executeTakeFirst()
+
+      const inserted = Number(insertResult.numInsertedOrUpdatedRows ?? 0) > 0
+
+      if (!inserted) {
+        return
+      }
+
+      const prev = existingOrder ?? {
+        fill_count: 0,
+        filled_amount_in: '0',
+        filled_amount_out: '0',
+        filled_amount_usd: '0',
+      }
+
+      const nextFillCount = prev.fill_count + 1
+      const nextIn = addBigIntString(prev.filled_amount_in, fill.amountIn)
+      const nextOut = addBigIntString(prev.filled_amount_out, fill.amountOut)
+      const nextUsd = addBigIntString(prev.filled_amount_usd, fill.amountUSD)
+
+      await trx
+        .updateTable('defi_order')
+        .set({
+          fill_count: nextFillCount,
+          filled_amount_in: nextIn,
+          filled_amount_out: nextOut,
+          filled_amount_usd: nextUsd,
+          status: payload.status,
+          updated_at: fill.timestamp,
+          updated_at_block: fill.blockNumber,
+        })
+        .where('order_key', '=', order_key)
+        .execute()
+    })
   }
 
   async getPoolById(id: number): Promise<DefiPool> {

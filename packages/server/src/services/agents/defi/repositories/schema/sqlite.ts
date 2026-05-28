@@ -67,8 +67,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('tx_hash', 'text')
       .addColumn('event_name', 'text', (cb) => cb.notNull())
       .addColumn('actor_address', 'text', (cb) => cb.notNull())
-      .addColumn('counterparty_address', 'varchar(255)')
-      .addColumn('status', 'varchar(100)')
+      .addColumn('counterparty_address', 'text')
       .execute()
 
     await db.schema
@@ -87,10 +86,10 @@ export async function up(db: Kysely<any>): Promise<void> {
       .createTable('defi_price')
       .ifNotExists()
       .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
-      .addColumn('network', 'varchar(100)', (cb) => cb.notNull())
-      .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
-      .addColumn('asset_id', 'varchar(255)', (cb) => cb.notNull())
-      .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
+      .addColumn('network', 'text', (cb) => cb.notNull())
+      .addColumn('protocol', 'text', (cb) => cb.notNull())
+      .addColumn('asset_id', 'text', (cb) => cb.notNull())
+      .addColumn('symbol', 'text', (cb) => cb.notNull())
       .addColumn('decimals', 'integer', (cb) => cb.notNull())
       .addColumn('price_usd', 'text', (cb) => cb.notNull())
       .addColumn('updated_at', 'integer', (cb) => cb.notNull())
@@ -110,6 +109,89 @@ export async function up(db: Kysely<any>): Promise<void> {
       .on('defi_price')
       .columns(['network', 'protocol'])
       .execute()
+
+    await db.schema
+      .createTable('defi_order')
+      .ifNotExists()
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
+      .addColumn('network', 'text', (cb) => cb.notNull())
+      .addColumn('protocol', 'text', (cb) => cb.notNull())
+      .addColumn('order_id', 'text', (cb) => cb.notNull())
+      .addColumn('order_key', 'text', (cb) => cb.notNull())
+
+      .addColumn('owner', 'text', (cb) => cb.notNull())
+      .addColumn('asset_in', 'text', (cb) => cb.notNull())
+      .addColumn('asset_out', 'text', (cb) => cb.notNull())
+      .addColumn('symbol_in', 'text', (cb) => cb.notNull())
+      .addColumn('symbol_out', 'text', (cb) => cb.notNull())
+      .addColumn('amount_in', 'text')
+      .addColumn('amount_out', 'text')
+
+      .addColumn('fill_count', 'integer', (cb) => cb.notNull().defaultTo(0))
+      .addColumn('filled_amount_in', 'text', (cb) => cb.defaultTo('0'))
+      .addColumn('filled_amount_out', 'text', (cb) => cb.defaultTo('0'))
+      .addColumn('filled_amount_usd', 'text', (cb) => cb.defaultTo('0'))
+      .addColumn('status', 'text', (cb) => cb.notNull())
+
+      .addColumn('created_tx_hash', 'text')
+      .addColumn('created_block_number', 'integer', (cb) => cb.notNull())
+      .addColumn('created_block_hash', 'text', (cb) => cb.notNull())
+      .addColumn('created_at', 'integer', (cb) => cb.notNull())
+      .addColumn('updated_at_block', 'integer')
+      .addColumn('updated_at', 'integer')
+      .addUniqueConstraint('defi_order_unique_order_key', ['order_key'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_defi_order_owner')
+      .ifNotExists()
+      .on('defi_order')
+      .columns(['owner'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_defi_order_status')
+      .ifNotExists()
+      .on('defi_order')
+      .columns(['status'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_defi_network_protocol')
+      .ifNotExists()
+      .on('defi_order')
+      .columns(['network', 'protocol'])
+      .execute()
+
+    await db.schema
+      .createIndex('idx_defi_created_at_id')
+      .ifNotExists()
+      .on('defi_order')
+      .columns(['created_at', 'id'])
+      .execute()
+
+    await db.schema
+      .createTable('defi_order_fill')
+      .ifNotExists()
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
+      .addColumn('order_key', 'text', (cb) =>
+        cb.references('defi_order.order_key').onDelete('cascade').notNull(),
+      )
+      .addColumn('filler', 'text')
+      .addColumn('amount_in', 'text', (cb) => cb.notNull())
+      .addColumn('amount_out', 'text', (cb) => cb.notNull())
+      .addColumn('amount_usd', 'text', (cb) => cb.notNull())
+      .addColumn('tx_hash', 'text')
+      .addColumn('block_number', 'integer', (cb) => cb.notNull())
+      .addColumn('block_hash', 'text', (cb) => cb.notNull())
+      .addColumn('block_event_index', 'integer', (cb) => cb.notNull())
+      .addColumn('timestamp', 'integer', (cb) => cb.notNull())
+      .addUniqueConstraint('defi_order_fill_unique_order_block_event', [
+        'order_key',
+        'block_hash',
+        'block_event_index',
+      ])
+      .execute()
   } catch (error) {
     console.error('SQLite Migration failed:', error)
     throw error
@@ -120,6 +202,8 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('defi_pool_asset').execute()
   await db.schema.dropTable('defi_pool').execute()
   await db.schema.dropTable('defi_price').execute()
-  await db.schema.dropTable('defi_evemt_asset').execute()
+  await db.schema.dropTable('defi_event_asset').execute()
   await db.schema.dropTable('defi_event').execute()
+  await db.schema.dropTable('defi_order').execute()
+  await db.schema.dropTable('defi_order_fill').execute()
 }

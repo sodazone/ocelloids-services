@@ -155,7 +155,7 @@ export type DefiEventAsset = {
 /**
  * @public
  */
-export type SwapIntentStatus = 'initiated' | 'partially_filled' | 'filled'
+export type DefiOrderStatus = 'placed' | 'partially_filled' | 'filled' | 'cancelled' | 'expired'
 
 /**
  * @public
@@ -177,15 +177,6 @@ export type DefiEventPayload = {
 } & (
   | {
       name: 'swap'
-      data: {
-        origin: string
-        in: DefiEventAsset
-        out: DefiEventAsset
-      }
-    }
-  | {
-      name: 'swap_intent'
-      status: SwapIntentStatus
       data: {
         origin: string
         in: DefiEventAsset
@@ -242,15 +233,50 @@ export type DefiPricePayload = {
   priceUSD: string
   updatedAt: number
 }
+
+export type DefiOrderPayload = {
+  type: 'order'
+  networkId: string
+  protocol: string
+  orderId: string
+  owner: string
+  status: DefiOrderStatus
+
+  order?: {
+    assetIn: string
+    assetOut: string
+    symbolIn: string
+    symbolOut: string
+    createdAtBlock: string
+    createdAt: number
+    blockHash: string
+    txHash?: string
+    amountIn?: string
+    amountOut?: string
+  }
+
+  fill?: {
+    filler: string
+    amountIn: string
+    amountOut: string
+    amountUSD: string
+    blockNumber: string
+    blockHash: string
+    eventIndex: number
+    timestamp: number
+    txHash?: string
+  }
+}
+
 /**
  * @public
  */
-export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload | DefiPricePayload
+export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload | DefiPricePayload | DefiOrderPayload
 
 export function isSwapEvent(
   payload: DefiEventPayload,
-): payload is Extract<DefiEventPayload, { name: 'swap' | 'swap_intent' }> {
-  return payload.name === 'swap' || payload.name === 'swap_intent'
+): payload is Extract<DefiEventPayload, { name: 'swap' }> {
+  return payload.name === 'swap'
 }
 
 export function isLiquidationEvent(

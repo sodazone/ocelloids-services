@@ -1,5 +1,5 @@
 import { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely'
-import { DefiEventAction, DefiLiquidityCategory } from '../types.js'
+import { DefiEventAction, DefiLiquidityCategory, DefiOrderStatus } from '../types.js'
 
 export type PoolKey = {
   network: string
@@ -83,7 +83,6 @@ export interface DefiEventTable {
   event_name: ColumnType<DefiEventAction>
   actor_address: ColumnType<string>
   counterparty_address: ColumnType<string | null>
-  status: ColumnType<string | null>
 }
 
 export interface DefiEventAssetTable {
@@ -121,10 +120,56 @@ export type DefiPrice = Selectable<DefiPriceTable>
 export type NewDefiPrice = Insertable<DefiPriceTable>
 export type DefiPriceUpdate = Updateable<DefiPriceTable>
 
+export interface DefiOrderTable {
+  id: Generated<number>
+
+  network: ColumnType<string>
+  protocol: ColumnType<string>
+  order_id: ColumnType<string>
+  order_key: ColumnType<string>
+
+  owner: ColumnType<string>
+  asset_in: ColumnType<string>
+  symbol_in: ColumnType<string>
+  asset_out: ColumnType<string>
+  symbol_out: ColumnType<string>
+  amount_in: ColumnType<string | null>
+  amount_out: ColumnType<string | null>
+
+  fill_count: ColumnType<number>
+  filled_amount_in: ColumnType<string>
+  filled_amount_out: ColumnType<string>
+  filled_amount_usd: ColumnType<string>
+  status: ColumnType<DefiOrderStatus>
+
+  created_block_number: ColumnType<string>
+  created_block_hash: ColumnType<string>
+  created_at: ColumnType<number>
+  created_tx_hash: ColumnType<string | null>
+  updated_at_block: ColumnType<string | null>
+  updated_at: ColumnType<number | null>
+}
+
+export interface DefiOrderFillTable {
+  id: Generated<number>
+  order_key: ColumnType<string>
+  filler: ColumnType<string>
+  amount_in: ColumnType<string>
+  amount_out: ColumnType<string>
+  amount_usd: ColumnType<string>
+  block_number: ColumnType<string>
+  block_hash: ColumnType<string>
+  block_event_index: ColumnType<number>
+  timestamp: ColumnType<number>
+  tx_hash: ColumnType<string | null>
+}
+
 export interface DefiDatabase {
   defi_pool: DefiPoolTable
   defi_pool_asset: DefiPoolAssetTable
   defi_event: DefiEventTable
   defi_event_asset: DefiEventAssetTable
   defi_price: DefiPriceTable
+  defi_order: DefiOrderTable
+  defi_order_fill: DefiOrderFillTable
 }
