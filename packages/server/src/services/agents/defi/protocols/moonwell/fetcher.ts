@@ -102,9 +102,9 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
     const solvencyRatio =
       totalProtocolLiabilities > 0n ? Number(totalProtocolAssets) / Number(totalProtocolLiabilities) : 1
 
-    const badDebtUnderlying =
+    const deficitUnderlying =
       totalProtocolLiabilities > totalProtocolAssets ? totalProtocolLiabilities - totalProtocolAssets : 0n
-    const badDebtUSD = Number(formatUnits(badDebtUnderlying, underlying.decimals)) * priceUSDNum
+    const tokenDeficitUSD = Number(formatUnits(deficitUnderlying, underlying.decimals)) * priceUSDNum
 
     return {
       type: 'liquidity',
@@ -137,7 +137,7 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
         borrowCap: formatUnits(borrowCap, underlying.decimals),
         health: {
           solvencyRatio,
-          badDebtUSD,
+          tokenDeficitUSD,
         },
       },
     }

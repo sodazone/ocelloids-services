@@ -19,7 +19,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('can_borrow', 'boolean')
       .addColumn('borrow_cap', 'varchar(255)')
       .addColumn('supply_cap', 'varchar(255)')
-      .addColumn('bad_debt_usd', 'numeric')
+      .addColumn('token_deficit_usd', 'numeric')
       .addUniqueConstraint('defi_pool_network_protocol_market_unique', ['network', 'protocol', 'market_id'])
       .execute()
 

@@ -110,7 +110,7 @@ export type MoneyMarketPayload = Partial<{
   supplyCap: string
   health: {
     solvencyRatio: number
-    badDebtUSD?: number
+    tokenDeficitUSD?: number
   }
 }>
 

@@ -48,7 +48,7 @@ export class DefiRepository {
         can_borrow: canBorrowVal,
         borrow_cap: lending?.borrowCap ?? null,
         supply_cap: lending?.supplyCap ?? null,
-        bad_debt_usd: lending?.health?.badDebtUSD ?? null,
+        token_deficit_usd: lending?.health?.tokenDeficitUSD ?? null,
       })
 
       if (isLending) {
@@ -61,7 +61,7 @@ export class DefiRepository {
             can_borrow: canBorrowVal,
             borrow_cap: lending?.borrowCap ?? null,
             supply_cap: lending?.supplyCap ?? null,
-            bad_debt_usd: lending?.health?.badDebtUSD ?? null,
+            token_deficit_usd: lending?.health?.tokenDeficitUSD ?? null,
           }),
         )
       } else {
@@ -255,7 +255,7 @@ export class DefiRepository {
         'p.can_borrow as canBorrow',
         'p.borrow_cap as borrowCap',
         'p.supply_cap as supplyCap',
-        'p.bad_debt_usd as badDebtUsd',
+        'p.token_deficit_usd as tokenDeficitUsd',
         (eb) =>
           eb
             .fn(aggregateFn, [
@@ -332,7 +332,7 @@ export class DefiRepository {
                 supplyCap: pool.supplyCap ?? '0',
                 health: {
                   solvencyRatio: borrowedUSD > 0 ? suppliedUSD / borrowedUSD : 0,
-                  badDebtUSD: pool.badDebtUsd ? Number(pool.badDebtUsd) : 0,
+                  tokenDeficitUSD: pool.tokenDeficitUsd ? Number(pool.tokenDeficitUsd) : 0,
                 },
               }
             : undefined

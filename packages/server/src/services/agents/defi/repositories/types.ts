@@ -22,7 +22,7 @@ export interface DefiPoolTable {
   supply_cap: ColumnType<string | null>
   is_paused: ColumnType<number | boolean | null>
   can_borrow: ColumnType<number | boolean | null>
-  bad_debt_usd: ColumnType<number | null>
+  token_deficit_usd: ColumnType<number | null>
 }
 
 export interface DefiPoolAssetTable {
