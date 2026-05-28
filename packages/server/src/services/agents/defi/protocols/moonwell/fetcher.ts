@@ -89,6 +89,7 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
 
     const totalPoolLiquidity = cash + totalBorrows - totalReserves
     const utilization = totalPoolLiquidity > 0n ? Number(totalBorrows) / Number(totalPoolLiquidity) : 0
+    const borrowedUSD = Number(formatUnits(totalBorrows, underlying.decimals)) * priceUSDNum
 
     // Interest APR Scaling
     const SECONDS_PER_YEAR = 31_536_000n
@@ -132,6 +133,7 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
         borrowAPR,
         isPaused: isMintPaused || isBorrowPaused,
         canBorrow: !isBorrowPaused,
+        borrowedUSD,
         borrowCap: formatUnits(borrowCap, underlying.decimals),
         health: {
           solvencyRatio,
