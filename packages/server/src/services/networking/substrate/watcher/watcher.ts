@@ -225,7 +225,11 @@ export class SubstrateWatcher extends Watcher<Block> {
   }
 
   getApi(chainId: NetworkURN): Promise<SubstrateApi> {
-    return this.#apis[chainId].isReady()
+    try {
+      return this.#apis[chainId].isReady()
+    } catch (error) {
+      throw new Error(`Error while resolving ${chainId}. Probably not configured.`, { cause: error })
+    }
   }
 
   getApi$(chainId: NetworkURN): Observable<SubstrateApi> {
