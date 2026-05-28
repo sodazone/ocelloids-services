@@ -121,7 +121,6 @@ export function createAaveWatcher(
       })
 
       const lendingDetails: MoneyMarketPayload = {
-        utilization,
         borrowAPR: bigintToNumber(variableBorrowRate, RAY_DECIMALS),
         supplyAPR: bigintToNumber(liquidityRate, RAY_DECIMALS),
         borrowCap: borrowCap.toString(),
@@ -137,6 +136,7 @@ export function createAaveWatcher(
           abi: erc20Abi,
           functionName: 'totalSupply',
         })
+        lendingDetails.utilization = utilization
         lendingDetails.health = {
           solvencyRatio: bigintToNumber((supplied * PRECISION_BIGINT) / aTokenSupply, TARGET_PRECISION),
         }
