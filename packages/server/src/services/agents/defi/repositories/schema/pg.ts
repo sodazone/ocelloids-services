@@ -94,7 +94,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('symbol', 'varchar(50)', (cb) => cb.notNull())
       .addColumn('decimals', 'integer', (cb) => cb.notNull())
       .addColumn('price_usd', 'text', (cb) => cb.notNull())
-      .addColumn('updated_at', 'integer', (cb) => cb.notNull())
+      .addColumn('updated_at', 'bigint', (cb) => cb.notNull())
       .addUniqueConstraint('token_price_network_protocol_asset_unique', ['network', 'protocol', 'asset_id'])
       .execute()
 
@@ -138,9 +138,9 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('created_tx_hash', 'varchar(66)')
       .addColumn('created_block_number', 'bigint')
       .addColumn('created_block_hash', 'varchar(66)')
-      .addColumn('created_at', 'integer')
+      .addColumn('created_at', 'bigint')
       .addColumn('updated_at_block', 'bigint', (cb) => cb.notNull())
-      .addColumn('updated_at', 'integer', (cb) => cb.notNull())
+      .addColumn('updated_at', 'bigint', (cb) => cb.notNull())
       .addUniqueConstraint('defi_order_unique_order_key', ['order_key'])
       .execute()
 
@@ -187,7 +187,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('block_number', 'bigint', (cb) => cb.notNull())
       .addColumn('block_hash', 'varchar(66)', (cb) => cb.notNull())
       .addColumn('block_event_index', 'integer', (cb) => cb.notNull())
-      .addColumn('timestamp', 'integer', (cb) => cb.notNull())
+      .addColumn('timestamp', 'bigint', (cb) => cb.notNull())
       .addUniqueConstraint('defi_order_fill_unique_order_block_event', [
         'order_key',
         'block_hash',
