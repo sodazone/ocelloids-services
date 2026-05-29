@@ -21,8 +21,8 @@ function buildOrderKey(network: string, protocol: string, order_id: string) {
   return `${network}:${protocol}:${order_id}`
 }
 
-function addBigIntString(a: string, b: string) {
-  return (BigInt(a) + BigInt(b)).toString()
+function addNumbericString(a: string, b: string) {
+  return (Number(a) + Number(b)).toString()
 }
 
 export class DefiRepository {
@@ -317,10 +317,10 @@ export class DefiRepository {
       }
 
       const nextFillCount = prev.fill_count + 1
-      const nextIn = addBigIntString(prev.filled_amount_in, fill.amountIn)
-      const nextOut = addBigIntString(prev.filled_amount_out, fill.amountOut)
+      const nextIn = addNumbericString(prev.filled_amount_in, fill.amountIn)
+      const nextOut = addNumbericString(prev.filled_amount_out, fill.amountOut)
       const nextUsd = fill.amountUSD
-        ? addBigIntString(prev.filled_amount_usd, fill.amountUSD)
+        ? addNumbericString(prev.filled_amount_usd, fill.amountUSD)
         : prev.filled_amount_usd
 
       await trx
