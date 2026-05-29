@@ -130,7 +130,7 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
             } else if (payload.type === 'price') {
               await this.#repository.upsertDefiPrice(payload)
             } else if (payload.type === 'order') {
-              await this.#repository.processOrderFill(payload)
+              // await this.#repository.processOrderFill(payload)
             }
           },
         }),

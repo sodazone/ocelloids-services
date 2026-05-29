@@ -1,11 +1,11 @@
 {
   "urn:ocn:polkadot:0": {
-    "start": 29937522,
-    "end": 29937532,
+    "start": 31288564,
+    "end": 31290355,
     "emissionRate": 1000,
     "paraIds": [
       "urn:ocn:polkadot:1000",
-      "urn:ocn:polkadot:2034"
+      "urn:ocn:polkadot:1002"
     ]
   }
 }
