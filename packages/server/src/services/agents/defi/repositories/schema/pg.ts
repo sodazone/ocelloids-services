@@ -206,6 +206,6 @@ export async function down(db: Kysely<any>): Promise<void> {
   await db.schema.dropTable('defi_price').execute()
   await db.schema.dropTable('defi_event_asset').execute()
   await db.schema.dropTable('defi_event').execute()
-  await db.schema.dropTable('defi_order').execute()
   await db.schema.dropTable('defi_order_fill').execute()
+  await db.schema.dropTable('defi_order').execute()
 }
