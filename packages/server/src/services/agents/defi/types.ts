@@ -45,6 +45,22 @@ export const $DefiAgentInputs = z.discriminatedUnion('topic', [
 export type DefiAgentInputs = z.infer<typeof $DefiAgentInputs>
 
 /**
+ * @public
+ */
+export const $DefiOrderStatus = z.enum(['placed', 'partially_filled', 'filled', 'cancelled', 'expired'])
+
+export const $DefiOrderFilters = z
+  .object({
+    networks: z.optional(z.array($NetworkString).min(1).max(50)),
+    protocols: z.optional(z.array(z.string()).min(1).max(6)),
+    status: z.optional(z.array($DefiOrderStatus).min(1).max(4)),
+    address: z.optional(z.string().min(3).max(100)),
+    usdAmountGte: z.optional(z.number()),
+    usdAmountLte: z.optional(z.number()),
+  })
+  .optional()
+
+/**
  * @private
  */
 export const $DefiAgentQueryArgs = z.discriminatedUnion('op', [
@@ -67,12 +83,21 @@ export const $DefiAgentQueryArgs = z.discriminatedUnion('op', [
     op: z.literal('price.last'),
     criteria: z.object({ networks: z.literal('*').or(z.array($NetworkString)).optional() }),
   }),
+  z.object({
+    op: z.literal('orders.list'),
+    criteria: $DefiOrderFilters,
+  }),
 ])
 
 /**
  * @private
  */
 export type DefiAgentQueryArgs = z.infer<typeof $DefiAgentQueryArgs>
+
+/**
+ * @private
+ */
+export type DefiOrderFilters = z.infer<typeof $DefiOrderFilters>
 
 /**
  * @public
@@ -155,7 +180,7 @@ export type DefiEventAsset = {
 /**
  * @public
  */
-export type DefiOrderStatus = 'placed' | 'partially_filled' | 'filled' | 'cancelled' | 'expired'
+export type DefiOrderStatus = z.infer<typeof $DefiOrderStatus>
 
 /**
  * @public
@@ -234,6 +259,9 @@ export type DefiPricePayload = {
   updatedAt: number
 }
 
+/**
+ * @public
+ */
 export type DefiOrderPayload = {
   type: 'order'
   networkId: string
@@ -244,7 +272,7 @@ export type DefiOrderPayload = {
   blockNumber: string
   timestamp: number
 
-  order?: {
+  creation?: {
     assetIn: string
     assetOut: string
     symbolIn: string
@@ -259,6 +287,10 @@ export type DefiOrderPayload = {
 
   fill?: {
     filler: string
+    assetIn: string
+    assetOut: string
+    symbolIn: string
+    symbolOut: string
     amountIn: string
     amountOut: string
     amountUSD?: string
@@ -267,6 +299,40 @@ export type DefiOrderPayload = {
     eventIndex: number
     timestamp: number
     txHash?: string
+  }
+}
+
+export type DefiOrder = {
+  id: number
+  networkId: string
+  protocol: string
+  orderId: string
+  orderKey: string
+  owner: string
+
+  assetIn: string
+  assetOut: string
+  symbolIn: string
+  symbolOut: string
+  amountIn: string | null
+  amountOut: string | null
+  fillCount: number
+  filledAmountIn: string
+  filledAmountOut: string
+  filledAmountUsd: string
+
+  status: string
+
+  created?: {
+    txHash: string | null
+    blockNumber: string
+    blockHash: string
+    timestamp: number
+  }
+
+  updated: {
+    blockNumber: string | null
+    timestamp: number
   }
 }
 

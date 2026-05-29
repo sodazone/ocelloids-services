@@ -9,7 +9,7 @@ import { Logger } from '@/services/types.js'
 import { DefiEventPayload, DefiOrderPayload, MoneyMarketActions } from '../../../types.js'
 import { CHAIN_ID } from '../consts.js'
 import { toProtocol } from '../utils.js'
-import { dcaExecutedHandler } from './dca.js'
+import { dcaCompletedHandler, dcaExecutedHandler, dcaScheduledHandler } from './dca.js'
 import { evmLogHandler } from './evm.js'
 import { routerExecutedHandler } from './router.js'
 import {
@@ -32,6 +32,8 @@ const handlers: Record<string, EventHandler> = {
   'extrinsic.router.executed': routerExecutedHandler,
   'extrinsic.evm.log': evmLogHandler,
   'intrinsic.dca.tradeexecuted': dcaExecutedHandler,
+  'extrinsic.dca.scheduled': dcaScheduledHandler,
+  'intrinsic.dca.completed': dcaCompletedHandler,
 }
 
 function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
@@ -138,6 +140,10 @@ function mapSwapToOrderPayload(
 
   const fill = {
     filler: event.who,
+    assetIn: event.assetIn.toString(),
+    assetOut: event.assetOut.toString(),
+    symbolIn: assetInMeta.symbol ?? '??',
+    symbolOut: assetOutMeta.symbol ?? '??',
     amountIn,
     amountOut,
     amountUSD: avgAmountUSD.toString(),
@@ -174,7 +180,7 @@ function mapSwapToOrderPayload(
     blockNumber,
     timestamp,
     fill,
-    order,
+    creation: order,
   }
 }
 
@@ -236,7 +242,7 @@ function mapDca(
       return [
         {
           ...baseOrderDetails,
-          order: {
+          creation: {
             assetIn: event.assetIn.toString(),
             assetOut: event.assetOut.toString(),
             symbolIn: assetInMeta.symbol ?? '??',

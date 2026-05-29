@@ -136,11 +136,11 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('status', 'varchar(50)', (cb) => cb.notNull())
 
       .addColumn('created_tx_hash', 'varchar(66)')
-      .addColumn('created_block_number', 'bigint', (cb) => cb.notNull())
-      .addColumn('created_block_hash', 'varchar(66)', (cb) => cb.notNull())
-      .addColumn('created_at', 'integer', (cb) => cb.notNull())
-      .addColumn('updated_at_block', 'bigint')
-      .addColumn('updated_at', 'integer')
+      .addColumn('created_block_number', 'bigint')
+      .addColumn('created_block_hash', 'varchar(66)')
+      .addColumn('created_at', 'integer')
+      .addColumn('updated_at_block', 'bigint', (cb) => cb.notNull())
+      .addColumn('updated_at', 'integer', (cb) => cb.notNull())
       .addUniqueConstraint('defi_order_unique_order_key', ['order_key'])
       .execute()
 

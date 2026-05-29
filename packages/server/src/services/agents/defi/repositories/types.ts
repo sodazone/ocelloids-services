@@ -142,13 +142,17 @@ export interface DefiOrderTable {
   filled_amount_usd: ColumnType<string>
   status: ColumnType<DefiOrderStatus>
 
-  created_block_number: ColumnType<string>
-  created_block_hash: ColumnType<string>
-  created_at: ColumnType<number>
+  created_block_number: ColumnType<string | null>
+  created_block_hash: ColumnType<string | null>
+  created_at: ColumnType<number | null>
   created_tx_hash: ColumnType<string | null>
-  updated_at_block: ColumnType<string | null>
-  updated_at: ColumnType<number | null>
+  updated_at_block: ColumnType<string>
+  updated_at: ColumnType<number>
 }
+
+export type DefiOrder = Selectable<DefiOrderTable>
+export type NewDefiOrder = Insertable<DefiOrderTable>
+export type DefiOrderUpdate = Updateable<DefiOrderTable>
 
 export interface DefiOrderFillTable {
   id: Generated<number>
@@ -163,6 +167,10 @@ export interface DefiOrderFillTable {
   timestamp: ColumnType<number>
   tx_hash: ColumnType<string | null>
 }
+
+export type DefiOrderFill = Selectable<DefiOrderFillTable>
+export type NewDefiOrderFill = Insertable<DefiOrderFillTable>
+export type DefiOrderUpdateFill = Updateable<DefiOrderFillTable>
 
 export interface DefiDatabase {
   defi_pool: DefiPoolTable

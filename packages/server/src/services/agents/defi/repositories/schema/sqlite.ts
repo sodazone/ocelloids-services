@@ -134,11 +134,11 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('status', 'text', (cb) => cb.notNull())
 
       .addColumn('created_tx_hash', 'text')
-      .addColumn('created_block_number', 'integer', (cb) => cb.notNull())
-      .addColumn('created_block_hash', 'text', (cb) => cb.notNull())
-      .addColumn('created_at', 'integer', (cb) => cb.notNull())
-      .addColumn('updated_at_block', 'integer')
-      .addColumn('updated_at', 'integer')
+      .addColumn('created_block_number', 'integer')
+      .addColumn('created_block_hash', 'text')
+      .addColumn('created_at', 'integer')
+      .addColumn('updated_at_block', 'integer', (cb) => cb.notNull())
+      .addColumn('updated_at', 'integer', (cb) => cb.notNull())
       .addUniqueConstraint('defi_order_unique_order_key', ['order_key'])
       .execute()
 

@@ -1,20 +1,23 @@
 import { Kysely } from 'kysely'
-import { QueryParams, QueryResult } from '@/lib.js'
 import { SQLDialect } from '@/services/persistence/kysely/db.js'
+import { decodeCursor, encodeCursor } from '../../common/explorer.js'
 import { fromWildcardOrArray, limitCap, paginatedResultsFromArray } from '../../common/query.js'
+import { QueryPagination, QueryParams, QueryResult } from '../../types.js'
 import {
   DefiAgentQueryArgs,
   DefiEventAction,
   DefiEventPayload,
   DefiLiquidityAsset,
   DefiLiquidityPayload,
+  DefiOrder,
+  DefiOrderFilters,
   DefiOrderPayload,
   DefiPricePayload,
   isLiquidationEvent,
   isSwapEvent,
   MoneyMarketPayload,
 } from '../types.js'
-import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiPoolAsset } from './types.js'
+import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiOrder, NewDefiPoolAsset } from './types.js'
 import { calculateBorrowedUsd, calculateSuppliedUsd } from './util.js'
 
 function buildOrderKey(network: string, protocol: string, order_id: string) {
@@ -230,62 +233,83 @@ export class DefiRepository {
     return this.#db.transaction().execute(async (trx) => {
       const existingOrder = await trx
         .selectFrom('defi_order')
-        .select(['fill_count', 'filled_amount_in', 'filled_amount_out', 'filled_amount_usd'])
+        .select(['status', 'fill_count', 'filled_amount_in', 'filled_amount_out', 'filled_amount_usd'])
         .where('order_key', '=', order_key)
         .executeTakeFirst()
 
+      if (existingOrder && !fill && payload.status !== existingOrder.status) {
+        // Update order status
+        await trx
+          .updateTable('defi_order')
+          .set({
+            status: payload.status,
+            updated_at: payload.timestamp,
+            updated_at_block: payload.blockNumber,
+          })
+          .where('order_key', '=', order_key)
+          .execute()
+
+        return
+      }
+
       if (!existingOrder) {
-        if (!payload.order) {
-          throw new Error(`Missing order for order_key=${order_key}`)
+        // Create and insert new order
+        let newOrder: NewDefiOrder
+        const newOrderBase = {
+          network: payload.networkId,
+          protocol: payload.protocol,
+          order_id: payload.orderId,
+          order_key,
+          owner: payload.owner,
+          status: payload.status,
+          fill_count: 0,
+          filled_amount_in: '0',
+          filled_amount_out: '0',
+          filled_amount_usd: '0',
+          updated_at_block: payload.blockNumber,
+          updated_at: payload.timestamp,
+        }
+
+        if (!payload.creation) {
+          if (!fill) {
+            throw new Error(`No available data to create new order ${payload.orderId}`)
+          }
+          // Backfill order row with order fill info
+          newOrder = {
+            ...newOrderBase,
+            asset_in: fill.assetIn,
+            asset_out: fill.assetOut,
+            symbol_in: fill.symbolIn,
+            symbol_out: fill.symbolOut,
+          }
+        } else {
+          newOrder = {
+            ...newOrderBase,
+            asset_in: payload.creation.assetIn,
+            asset_out: payload.creation.assetOut,
+            symbol_in: payload.creation.symbolIn,
+            symbol_out: payload.creation.symbolOut,
+            amount_in: payload.creation.amountIn ?? null,
+            amount_out: payload.creation.amountOut ?? null,
+            created_at: payload.creation.createdAt ?? null,
+            created_block_number: payload.creation.createdAtBlock ?? null,
+            created_block_hash: payload.creation.blockHash ?? null,
+            created_tx_hash: payload.creation.txHash ?? null,
+          }
         }
 
         await trx
           .insertInto('defi_order')
-          .values({
-            network: payload.networkId,
-            protocol: payload.protocol,
-            order_id: payload.orderId,
-            order_key,
-            owner: payload.owner,
-
-            asset_in: payload.order.assetIn,
-            asset_out: payload.order.assetOut,
-            symbol_in: payload.order.symbolIn,
-            symbol_out: payload.order.symbolOut,
-            amount_in: payload.order.amountIn ?? null,
-            amount_out: payload.order.amountOut ?? null,
-
-            status: payload.status,
-
-            fill_count: 0,
-            filled_amount_in: '0',
-            filled_amount_out: '0',
-            filled_amount_usd: '0',
-
-            created_at: payload.order.createdAt,
-            created_block_number: payload.order.createdAtBlock,
-            created_block_hash: payload.order.blockHash,
-            created_tx_hash: payload.order.txHash ?? null,
-          })
+          .values(newOrder)
           .onConflict((oc) => oc.column('order_key').doNothing())
           .execute()
       }
 
       if (!fill) {
-        if (existingOrder) {
-          await trx
-            .updateTable('defi_order')
-            .set({
-              status: payload.status,
-              updated_at: payload.timestamp,
-              updated_at_block: payload.blockNumber,
-            })
-            .where('order_key', '=', order_key)
-            .execute()
-        }
         return
       }
 
+      // Insert order fill row
       const insertResult = await trx
         .insertInto('defi_order_fill')
         .values({
@@ -309,6 +333,7 @@ export class DefiRepository {
         return
       }
 
+      // If new order fill inserted, update order data
       const prev = existingOrder ?? {
         fill_count: 0,
         filled_amount_in: '0',
@@ -643,6 +668,98 @@ export class DefiRepository {
         endCursor,
         hasNextPage,
       },
+    }
+  }
+
+  async listOrders(
+    filters?: DefiOrderFilters,
+    pagination?: QueryPagination,
+  ): Promise<QueryResult<DefiOrder>> {
+    const limit = limitCap(pagination)
+
+    const cursor = pagination?.cursor ? decodeCursor(pagination.cursor) : null
+
+    let query = this.#db.selectFrom('defi_order').selectAll()
+
+    if (filters?.networks && filters.networks.length > 0) {
+      query = query.where('network', 'in', filters.networks)
+    }
+    if (filters?.protocols && filters.protocols.length > 0) {
+      query = query.where('protocol', 'in', filters.protocols)
+    }
+    if (filters?.status && filters.status.length > 0) {
+      query = query.where('status', 'in', filters.status)
+    }
+
+    if (cursor) {
+      query = query.where((eb) =>
+        eb.or([
+          eb('created_at', '>', cursor.timestamp),
+          eb.and([eb('created_at', '=', cursor.timestamp), eb('id', '>', cursor.id)]),
+        ]),
+      )
+    }
+
+    const rows = await query
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
+      .limit(limit + 1)
+      .execute()
+
+    const hasNextPage = rows.length > limit
+
+    const items = rows.slice(0, limit)
+
+    return {
+      items: items.map((row) => ({
+        id: row.id,
+        networkId: row.network,
+        protocol: row.protocol,
+        orderId: row.order_id,
+        orderKey: row.order_key,
+        owner: row.owner,
+
+        assetIn: row.asset_in,
+        assetOut: row.asset_out,
+        symbolIn: row.symbol_in,
+        symbolOut: row.symbol_out,
+        amountIn: row.amount_in,
+        amountOut: row.amount_out,
+        fillCount: row.fill_count,
+        filledAmountIn: row.filled_amount_in,
+        filledAmountOut: row.filled_amount_out,
+        filledAmountUsd: row.filled_amount_usd,
+
+        status: row.status,
+
+        created:
+          row.created_block_number && row.created_at && row.created_block_hash
+            ? {
+                txHash: row.created_tx_hash,
+                blockNumber: row.created_block_number,
+                blockHash: row.created_block_hash,
+                timestamp: row.created_at,
+              }
+            : undefined,
+
+        updated: {
+          blockNumber: row.updated_at_block,
+          timestamp: row.updated_at,
+        },
+      })),
+
+      pageInfo:
+        hasNextPage && items.length > 0
+          ? {
+              endCursor: encodeCursor(
+                items.map((i) => ({
+                  sent_at: i.updated_at,
+                  id: Number(i.id),
+                })),
+              ),
+              hasNextPage: true,
+            }
+          : undefined,
     }
   }
 
