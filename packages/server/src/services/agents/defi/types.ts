@@ -241,6 +241,8 @@ export type DefiOrderPayload = {
   orderId: string
   owner: string
   status: DefiOrderStatus
+  blockNumber: string
+  timestamp: number
 
   order?: {
     assetIn: string
@@ -259,7 +261,7 @@ export type DefiOrderPayload = {
     filler: string
     amountIn: string
     amountOut: string
-    amountUSD: string
+    amountUSD?: string
     blockNumber: string
     blockHash: string
     eventIndex: number
@@ -271,16 +273,24 @@ export type DefiOrderPayload = {
 /**
  * @public
  */
-export type DefiSubscriptionPayload = DefiEventPayload | DefiLiquidityPayload | DefiPricePayload | DefiOrderPayload
+export type DefiSubscriptionPayload =
+  | DefiEventPayload
+  | DefiLiquidityPayload
+  | DefiPricePayload
+  | DefiOrderPayload
+
+export function isOrder(payload: DefiSubscriptionPayload): payload is DefiOrderPayload {
+  return payload.type === 'order'
+}
 
 export function isSwapEvent(
-  payload: DefiEventPayload,
+  payload: DefiSubscriptionPayload,
 ): payload is Extract<DefiEventPayload, { name: 'swap' }> {
-  return payload.name === 'swap'
+  return payload.type === 'event' && payload.name === 'swap'
 }
 
 export function isLiquidationEvent(
-  payload: DefiEventPayload,
+  payload: DefiSubscriptionPayload,
 ): payload is Extract<DefiEventPayload, { name: 'liquidate' }> {
-  return payload.name === 'liquidate'
+  return payload.type === 'event' && payload.name === 'liquidate'
 }

@@ -1,4 +1,4 @@
-import { firstValueFrom, map, Subject, Subscription, share } from 'rxjs'
+import { firstValueFrom, Subject, Subscription, share } from 'rxjs'
 import { formatUnits } from 'viem'
 import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
 import { AssetMetadata, Empty } from '@/services/agents/steward/types.js'
@@ -7,15 +7,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
-import {
-  DefiEventAsset,
-  DefiEventPayload,
-  DefiLiquidityAsset,
-  DefiPricePayload,
-  DefiSubscriptionPayload,
-  isLiquidationEvent,
-  isSwapEvent,
-} from '../../types.js'
+import { DefiLiquidityAsset, DefiPricePayload, DefiSubscriptionPayload } from '../../types.js'
 import { CHAIN_ID } from './consts.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
@@ -257,11 +249,8 @@ export function hydrationDexMonitor(
     })
   }
 
-  function withUsdValue(asset: DefiEventAsset): DefiEventAsset {
-    return {
-      ...asset,
-      amountUSD: Number(asset.amount) * (prices.get(Number(asset.assetId)) ?? 0),
-    }
+  function computeUsdValue(assetId: number, amount: number): number {
+    return amount * (prices.get(assetId) ?? 0)
   }
 
   async function onBlock(block: Block) {
@@ -289,43 +278,7 @@ export function hydrationDexMonitor(
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
     const blocks$ = shared$.blocks(CHAIN_ID)
     const events$ = blocks$.pipe(
-      watchEvents(logger, fetchAssetMetadata, fetchAccounts),
-      map((payload) => {
-        if (isSwapEvent(payload)) {
-          const swapIn = payload.data.in
-          const swapOut = payload.data.out
-
-          return {
-            ...payload,
-            data: {
-              ...payload.data,
-              in: withUsdValue(swapIn),
-              out: withUsdValue(swapOut),
-            },
-          } as DefiEventPayload
-        }
-        if (isLiquidationEvent(payload)) {
-          const debt = payload.data.debt
-          const collateral = payload.data.collateral
-          return {
-            ...payload,
-            data: {
-              ...payload.data,
-              debt: withUsdValue(debt),
-              collateral: withUsdValue(collateral),
-            },
-          } as DefiEventPayload
-        }
-
-        const assetsWithVolume = payload.data.assets.map(withUsdValue)
-        return {
-          ...payload,
-          data: {
-            ...payload.data,
-            assets: assetsWithVolume,
-          },
-        }
-      }),
+      watchEvents(logger, fetchAssetMetadata, fetchAccounts, computeUsdValue),
       share(),
     )
 

@@ -319,7 +319,9 @@ export class DefiRepository {
       const nextFillCount = prev.fill_count + 1
       const nextIn = addBigIntString(prev.filled_amount_in, fill.amountIn)
       const nextOut = addBigIntString(prev.filled_amount_out, fill.amountOut)
-      const nextUsd = fill.amountUSD ? addBigIntString(prev.filled_amount_usd, fill.amountUSD) : prev.filled_amount_usd
+      const nextUsd = fill.amountUSD
+        ? addBigIntString(prev.filled_amount_usd, fill.amountUSD)
+        : prev.filled_amount_usd
 
       await trx
         .updateTable('defi_order')

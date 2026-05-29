@@ -1,19 +1,22 @@
-import { EMPTY, filter, forkJoin, from, map, mergeMap, Observable } from 'rxjs'
+import { EMPTY, filter, forkJoin, from, map, mergeMap, Observable, of } from 'rxjs'
 import { ulid } from 'ulidx'
 import { formatUnits } from 'viem'
 import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
-import { AssetId, AssetMetadata, Empty } from '@/services/agents/steward/types.js'
+import { AssetId, AssetMetadata, Empty, isAccountMetadata } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
 import { Block, BlockEvent } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
-import { DefiEventPayload, MoneyMarketActions, SwapIntentStatus } from '../../../types.js'
+import { DefiEventPayload, DefiOrderPayload, MoneyMarketActions } from '../../../types.js'
 import { CHAIN_ID } from '../consts.js'
 import { toProtocol } from '../utils.js'
+import { dcaExecutedHandler } from './dca.js'
 import { evmLogHandler } from './evm.js'
 import { routerExecutedHandler } from './router.js'
 import {
   EventHandler,
   EventRecordWithIndex,
+  HydrationDcaEvent,
+  HydrationDcaExecutedEvent,
   HydrationLendingEvent,
   HydrationLiquidationEvent,
   HydrationSwapEvent,
@@ -28,6 +31,7 @@ const eventPayloadConsts: Pick<DefiEventPayload, 'type' | 'networkId'> = {
 const handlers: Record<string, EventHandler> = {
   'extrinsic.router.executed': routerExecutedHandler,
   'extrinsic.evm.log': evmLogHandler,
+  'intrinsic.dca.tradeexecuted': dcaExecutedHandler,
 }
 
 function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
@@ -40,14 +44,17 @@ function resolveAssets(ids: string[], fetchAssetMetadata: (ids: string[]) => Pro
 
 function resolveAccounts(
   accounts: string[],
-  fetchAccounts: (a: string[]) => Promise<SubstrateAccountMetadata[]>,
+  fetchAccounts: (a: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
 ) {
   return from(fetchAccounts(accounts)).pipe(
     map((res) => {
       const map = new Map<string, string>()
 
       accounts.forEach((addr, i) => {
-        map.set(addr, res[i]?.publicKey ?? addr)
+        const result = res[i]
+        if (isAccountMetadata(result)) {
+          map.set(addr, result.publicKey ?? addr)
+        }
       })
 
       return map
@@ -64,16 +71,15 @@ function basePayload(overrides: Omit<DefiEventPayload, 'type' | 'data' | 'id' | 
 }
 
 function toSwapEventPayload(
-  name: 'swap' | 'swap_intent',
   { assetIn, assetOut, amountIn, amountOut, marketId, protocol: swapProtocol }: SwapRoute,
   {
     blockHash,
     blockNumber,
     txHash,
     who,
-    status,
-  }: { blockNumber: string; blockHash: string; txHash: string; who: string; status: SwapIntentStatus },
+  }: { blockNumber: string; blockHash: string; txHash: string; who: string },
   metadataMap: Map<AssetId, AssetMetadata>,
+  computeUsdValue: (assetId: number, amount: number) => number,
 ): DefiEventPayload | null {
   const assetInMeta = metadataMap.get(assetIn)
   const assetOutMeta = metadataMap.get(assetOut)
@@ -81,63 +87,178 @@ function toSwapEventPayload(
   if (!assetInMeta || !assetOutMeta) {
     return null
   }
+  const normalizedAmountIn = formatUnits(amountIn, assetInMeta.decimals ?? 0)
+  const normalizedAmountOut = formatUnits(amountOut, assetOutMeta.decimals ?? 0)
 
-  if (name === 'swap') {
-    return {
-      ...eventPayloadConsts,
-      id: ulid(),
+  return {
+    ...basePayload({
       protocol: toProtocol(swapProtocol),
-      name,
-      blockNumber,
+      blockNumber: blockNumber.toString(),
       blockHash,
       txHash,
       marketId,
-      data: {
-        origin: who,
-        in: {
-          amount: formatUnits(amountIn, assetInMeta.decimals ?? 0),
-          assetId: assetIn.toString(),
-          symbol: assetInMeta.symbol ?? '??',
-        },
-        out: {
-          amount: formatUnits(amountOut, assetOutMeta.decimals ?? 0),
-          assetId: assetOut.toString(),
-          symbol: assetOutMeta.symbol ?? '??',
-        },
-      },
-    }
-  }
-
-  return {
-    ...eventPayloadConsts,
-    id: ulid(),
-    protocol: toProtocol(swapProtocol),
-    name,
-    blockNumber,
-    blockHash,
-    txHash,
-    marketId,
-    status,
+    }),
+    name: 'swap',
     data: {
       origin: who,
       in: {
-        amount: formatUnits(amountIn, assetInMeta.decimals ?? 0),
+        amount: normalizedAmountIn,
         assetId: assetIn.toString(),
         symbol: assetInMeta.symbol ?? '??',
+        amountUSD: computeUsdValue(assetIn, Number(normalizedAmountIn)),
       },
       out: {
-        amount: formatUnits(amountOut, assetOutMeta.decimals ?? 0),
+        amount: normalizedAmountOut,
         assetId: assetOut.toString(),
         symbol: assetOutMeta.symbol ?? '??',
+        amountUSD: computeUsdValue(assetOut, Number(normalizedAmountOut)),
       },
     },
   }
 }
 
+function mapSwapToOrderPayload(
+  event: HydrationSwapEvent | HydrationDcaExecutedEvent,
+  metadataMap: Map<AssetId, AssetMetadata>,
+  computeUsdValue: (assetId: number, amount: number) => number,
+): DefiOrderPayload | null {
+  const assetInMeta = metadataMap.get(event.assetIn)
+  const assetOutMeta = metadataMap.get(event.assetOut)
+
+  if (!assetInMeta || !assetOutMeta) {
+    return null
+  }
+  const amountIn = formatUnits(event.amountIn, assetInMeta.decimals ?? 0)
+  const amountOut = formatUnits(event.amountOut, assetOutMeta.decimals ?? 0)
+  const avgAmountUSD =
+    (computeUsdValue(event.assetIn, Number(amountIn)) + computeUsdValue(event.assetOut, Number(amountOut))) /
+    2
+  const blockNumber = event.blockNumber.toString()
+  const timestamp = event.timestamp ?? Date.now()
+
+  const fill = {
+    filler: event.who,
+    amountIn,
+    amountOut,
+    amountUSD: avgAmountUSD.toString(),
+    blockNumber,
+    blockHash: event.blockHash,
+    eventIndex: event.event.blockPosition,
+    timestamp,
+    txHash: event.extrinsic?.txHash,
+  }
+
+  const order =
+    event.type === 'swap'
+      ? {
+          assetIn: event.assetIn.toString(),
+          assetOut: event.assetOut.toString(),
+          symbolIn: assetInMeta.symbol ?? '??',
+          symbolOut: assetOutMeta.symbol ?? '??',
+          createdAtBlock: blockNumber,
+          createdAt: timestamp,
+          blockHash: event.blockHash,
+          txHash: event.extrinsic?.txHash,
+          amountIn,
+          amountOut,
+        }
+      : undefined
+
+  return {
+    type: 'order',
+    networkId: CHAIN_ID,
+    orderId: event.orderId,
+    owner: event.who,
+    protocol: event.type === 'swap' ? event.protocol : 'dca',
+    status: event.status,
+    blockNumber,
+    timestamp,
+    fill,
+    order,
+  }
+}
+
+function mapDca(
+  event: HydrationDcaEvent,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  computeUsdValue: (assetId: number, amount: number) => number,
+): Observable<DefiEventPayload | DefiOrderPayload> {
+  const blockNumber = event.blockNumber.toString()
+  const timestamp = event.timestamp ?? Date.now()
+
+  const baseOrderDetails: DefiOrderPayload = {
+    type: 'order',
+    networkId: CHAIN_ID,
+    orderId: event.orderId,
+    owner: event.who,
+    protocol: 'dca',
+    status: event.status,
+    blockNumber,
+    timestamp,
+  }
+
+  if (event.type === 'dca.completed') {
+    return of(baseOrderDetails)
+  }
+
+  const routeAssets =
+    event.type === 'dca.executed'
+      ? event.route.flatMap((r) => [r.assetIn.toString(), r.assetOut.toString()])
+      : []
+
+  return resolveAssets(
+    [...new Set([event.assetIn.toString(), event.assetOut.toString(), ...routeAssets])],
+    fetchAssetMetadata,
+  ).pipe(
+    mergeMap((assets) => {
+      if (event.type === 'dca.executed') {
+        const ctx = {
+          who: event.who,
+          blockNumber: event.blockNumber.toString(),
+          blockHash: event.blockHash,
+          txHash: event.extrinsic?.txHash ?? 'intrinsic',
+        }
+
+        const route = event.route
+          .map((r) => toSwapEventPayload(r, ctx, assets, computeUsdValue))
+          .filter((s) => s !== null)
+
+        const order = mapSwapToOrderPayload(event, assets, computeUsdValue)
+
+        return order ? [order, ...route] : route
+      }
+      const assetInMeta = assets.get(event.assetIn)
+      const assetOutMeta = assets.get(event.assetOut)
+
+      if (!assetInMeta || !assetOutMeta) {
+        return []
+      }
+      return [
+        {
+          ...baseOrderDetails,
+          order: {
+            assetIn: event.assetIn.toString(),
+            assetOut: event.assetOut.toString(),
+            symbolIn: assetInMeta.symbol ?? '??',
+            symbolOut: assetOutMeta.symbol ?? '??',
+            createdAtBlock: blockNumber,
+            createdAt: timestamp,
+            blockHash: event.blockHash,
+            txHash: event.extrinsic?.txHash,
+            amountIn: event.amountIn ? formatUnits(event.amountIn, assetInMeta.decimals ?? 0) : undefined,
+            amountOut: event.amountOut ? formatUnits(event.amountOut, assetOutMeta.decimals ?? 0) : undefined,
+          },
+        },
+      ]
+    }),
+  )
+}
+
 function mapLending(
   event: HydrationLendingEvent,
-  fetchAssetMetadata: any,
-  fetchAccounts: any,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
+  computeUsdValue: (assetId: number, amount: number) => number,
 ): Observable<DefiEventPayload> {
   const assetId = event.asset.toString()
 
@@ -150,6 +271,7 @@ function mapLending(
       if (!assetMeta) {
         return null
       }
+      const normalizedAmount = formatUnits(event.amount, assetMeta.decimals ?? 0)
 
       return {
         ...basePayload({
@@ -164,9 +286,10 @@ function mapLending(
           provider: accounts.get(event.who)!,
           assets: [
             {
-              amount: formatUnits(event.amount, assetMeta.decimals ?? 0),
+              amount: normalizedAmount,
               assetId,
               symbol: assetMeta.symbol ?? '??',
+              amountUSD: computeUsdValue(event.asset, Number(normalizedAmount)),
             },
           ],
         },
@@ -178,8 +301,9 @@ function mapLending(
 
 function mapLiquidation(
   event: HydrationLiquidationEvent,
-  fetchAssetMetadata: any,
-  fetchAccounts: any,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
+  computeUsdValue: (assetId: number, amount: number) => number,
 ): Observable<DefiEventPayload> {
   const debtId = event.debtAsset.toString()
   const colId = event.collateralAsset.toString()
@@ -195,6 +319,8 @@ function mapLiquidation(
       if (!debt || !collateral) {
         return null
       }
+      const normalizedDebtAmount = formatUnits(event.debtCovered, debt.decimals ?? 0)
+      const normalizedCollateralAmount = formatUnits(event.collateralLiquidated, collateral.decimals ?? 0)
 
       return {
         ...basePayload({
@@ -209,14 +335,16 @@ function mapLiquidation(
           origin: accounts.get(event.who)!,
           counterparty: accounts.get(event.counterparty)!,
           debt: {
-            amount: formatUnits(event.debtCovered, debt.decimals ?? 0),
+            amount: normalizedDebtAmount,
             assetId: debtId,
             symbol: debt.symbol ?? '??',
+            amountUSD: computeUsdValue(event.debtAsset, Number(normalizedDebtAmount)),
           },
           collateral: {
-            amount: formatUnits(event.collateralLiquidated, collateral.decimals ?? 0),
+            amount: normalizedCollateralAmount,
             assetId: colId,
             symbol: collateral.symbol ?? '??',
+            amountUSD: computeUsdValue(event.collateralAsset, Number(normalizedCollateralAmount)),
           },
         },
       }
@@ -225,7 +353,11 @@ function mapLiquidation(
   )
 }
 
-function mapSwaps(event: HydrationSwapEvent, fetchAssetMetadata: any) {
+function mapSwaps(
+  event: HydrationSwapEvent,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  computeUsdValue: (assetId: number, amount: number) => number,
+) {
   const ids = [
     event.assetIn.toString(),
     event.assetOut.toString(),
@@ -239,16 +371,15 @@ function mapSwaps(event: HydrationSwapEvent, fetchAssetMetadata: any) {
         blockNumber: event.blockNumber.toString(),
         blockHash: event.blockHash,
         txHash: event.extrinsic?.txHash ?? 'intrinsic',
-        status: 'filled' as const,
       }
 
       const route = event.route
-        .map((r) => toSwapEventPayload('swap', r, ctx, assets))
+        .map((r) => toSwapEventPayload(r, ctx, assets, computeUsdValue))
         .filter((s) => s !== null)
 
-      const intent = toSwapEventPayload('swap_intent', event, ctx, assets)
+      const order = mapSwapToOrderPayload(event, assets, computeUsdValue)
 
-      return intent ? [intent, ...route] : route
+      return order ? [order, ...route] : route
     }),
   )
 }
@@ -257,8 +388,9 @@ export function watchEvents(
   logger: Logger,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
+  computeUsdValue: (assetId: number, amount: number) => number,
 ) {
-  return (source$: Observable<Block>): Observable<DefiEventPayload> =>
+  return (source$: Observable<Block>): Observable<DefiEventPayload | DefiOrderPayload> =>
     source$.pipe(
       mergeMap(({ events, extrinsics, hash, number, specVersion }) => {
         const timestamp = getTimestampFromBlock(extrinsics)
@@ -299,17 +431,19 @@ export function watchEvents(
       }),
       filter((defiEvent) => defiEvent !== null),
       mergeMap((event) => {
-        if (event.type === 'swap') {
-          return mapSwaps(event, fetchAssetMetadata)
-        }
-        if (event.type === 'lending') {
-          return mapLending(event, fetchAssetMetadata, fetchAccounts)
-        }
-        if (event.type === 'liquidation') {
-          return mapLiquidation(event, fetchAssetMetadata, fetchAccounts)
-        }
+        switch (event.type) {
+          case 'swap':
+            return mapSwaps(event, fetchAssetMetadata, computeUsdValue)
+          case 'lending':
+            return mapLending(event, fetchAssetMetadata, fetchAccounts, computeUsdValue)
+          case 'liquidation':
+            return mapLiquidation(event, fetchAssetMetadata, fetchAccounts, computeUsdValue)
+          case 'dca.executed':
+            return mapDca(event, fetchAssetMetadata, computeUsdValue)
 
-        return EMPTY
+          default:
+            return EMPTY
+        }
       }),
     )
 }

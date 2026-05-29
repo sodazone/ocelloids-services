@@ -1,9 +1,14 @@
-import { Enum, FixedSizeArray, FixedSizeBinary } from 'polkadot-api'
 import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
-import { EventRecordWithIndex, FillerType, FillerTypeName, HydrationSwapEvent, SwapRoute } from './types.js'
+import {
+  BroadcastSwapped,
+  EventRecordWithIndex,
+  FillerTypeName,
+  HydrationSwapEvent,
+  SwapRoute,
+} from './types.js'
 
 type RouterExecutedEvent = {
   asset_in: number
@@ -11,43 +16,6 @@ type RouterExecutedEvent = {
   amount_in: bigint
   amount_out: bigint
   event_id: number
-}
-
-export type BroadcastSwapped = {
-  swapper: string
-  filler: string
-  filler_type: FillerType
-  fees: {
-    asset: number
-    amount: bigint
-    destination: Enum<{
-      Account: string
-      Burned: undefined
-    }>
-  }[]
-  inputs: {
-    asset: number
-    amount: bigint
-  }[]
-  outputs: {
-    asset: number
-    amount: bigint
-  }[]
-  operation: Enum<{
-    ExactIn: undefined
-    ExactOut: undefined
-    Limit: undefined
-    LiquidityAdd: undefined
-    LiquidityRemove: undefined
-  }>
-  operation_stack: Enum<{
-    Router: number
-    DCA: FixedSizeArray<2, number>
-    Batch: number
-    Omnipool: number
-    XcmExchange: number
-    Xcm: [FixedSizeBinary<32>, number]
-  }>[]
 }
 
 export function routerExecutedHandler(
@@ -59,7 +27,7 @@ export function routerExecutedHandler(
   if (!extrinsic) {
     throw new Error('No extrinsic in router executed event')
   }
-  const { amount_in, amount_out, asset_in, asset_out } = value as RouterExecutedEvent
+  const { amount_in, amount_out, asset_in, asset_out, event_id } = value as RouterExecutedEvent
   const { address, hash: txHash, evmTxHash, module: txModule, method } = extrinsic
   const swappedEvents = siblings
     .filter((e) => matchEvent(e.event, 'Broadcast', 'Swapped3'))
@@ -85,6 +53,7 @@ export function routerExecutedHandler(
   return {
     type: 'swap',
     protocol: 'router',
+    orderId: `router-${event_id}`,
     timestamp,
     blockNumber,
     blockHash,
@@ -99,6 +68,7 @@ export function routerExecutedHandler(
       module: txModule,
       method,
     },
+    status: 'filled',
     who: asPublicKey(address),
     marketId: ROUTER_ADDRESS,
     assetIn: asset_in,
