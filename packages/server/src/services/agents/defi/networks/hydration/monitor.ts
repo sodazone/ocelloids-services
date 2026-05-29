@@ -39,7 +39,7 @@ export function hydrationDexMonitor(
   const subject = new Subject<DefiSubscriptionPayload>()
 
   const allTokens = new Set<number>()
-  const cachedPaths: Map<number, Path | null> = new Map()
+  const cachedPaths: Map<number, Path> = new Map()
   const prices: Map<number, number> = new Map()
 
   const subs: Subscription[] = []
@@ -79,7 +79,12 @@ export function hydrationDexMonitor(
     const graph = buildGraph(allPools)
     for (const token of allTokens) {
       if (!cachedPaths.has(token)) {
-        cachedPaths.set(token, getSwapPath(graph, token, DEFAULT_QUOTE_TOKEN))
+        const path = getSwapPath(graph, token, DEFAULT_QUOTE_TOKEN)
+        if (path) {
+          cachedPaths.set(token, path)
+        } else {
+          logger.warn('[dex:hydration] No path found for asset %s', token)
+        }
       }
     }
 
@@ -88,10 +93,6 @@ export function hydrationDexMonitor(
 
   async function updatePrices() {
     for (const [asset, path] of cachedPaths) {
-      if (!path) {
-        logger.warn('[dex:hydration] No path found for asset %s', asset)
-        continue
-      }
       try {
         const spot = asset === DEFAULT_QUOTE_TOKEN ? 1 : calculateSpot(poolsManager, path)
         if (spot) {
