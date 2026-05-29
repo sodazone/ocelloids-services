@@ -694,15 +694,15 @@ export class DefiRepository {
     if (cursor) {
       query = query.where((eb) =>
         eb.or([
-          eb('created_at', '>', cursor.timestamp),
-          eb.and([eb('created_at', '=', cursor.timestamp), eb('id', '>', cursor.id)]),
+          eb('updated_at', '<', cursor.timestamp),
+          eb.and([eb('updated_at', '=', cursor.timestamp), eb('id', '<', cursor.id)]),
         ]),
       )
     }
 
     const rows = await query
-      .orderBy('created_at', 'asc')
-      .orderBy('id', 'asc')
+      .orderBy('updated_at', 'desc')
+      .orderBy('id', 'desc')
       .limit(limit + 1)
       .execute()
 
