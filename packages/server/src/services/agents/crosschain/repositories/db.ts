@@ -13,6 +13,8 @@ export function createCrosschainDatabase(connectionString: string) {
       migrations: {
         '2025-09-22_create_xc_tables': sqliteSchema,
       },
+      migrationTableName: 'kysely_migration_xc',
+      migrationLockTableName: 'kysely_migration_lock_xc',
     })
   } else {
     return createKyselyDatabase<CrosschainDatabase>({
@@ -21,6 +23,8 @@ export function createCrosschainDatabase(connectionString: string) {
       migrations: {
         '2025-09-22_create_xc_tables': pgSchema,
       },
+      migrationTableName: 'kysely_migration_xc',
+      migrationLockTableName: 'kysely_migration_lock_xc',
     })
   }
 }

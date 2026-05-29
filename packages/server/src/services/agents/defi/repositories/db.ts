@@ -14,6 +14,8 @@ export function createDefiDatabase(connectionString: string) {
       migrations: {
         '2026-04-22_create_defi_tables': sqliteSchema,
       },
+      migrationTableName: 'kysely_migration_defi',
+      migrationLockTableName: 'kysely_migration_lock_defi',
     })
   } else {
     return createKyselyDatabase<DefiDatabase>({
