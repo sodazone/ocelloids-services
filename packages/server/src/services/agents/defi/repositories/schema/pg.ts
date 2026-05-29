@@ -115,7 +115,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     await db.schema
       .createTable('defi_order')
       .ifNotExists()
-      .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
       .addColumn('network', 'varchar(100)', (cb) => cb.notNull())
       .addColumn('protocol', 'varchar(100)', (cb) => cb.notNull())
       .addColumn('order_id', 'varchar(255)', (cb) => cb.notNull())
@@ -175,7 +175,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     await db.schema
       .createTable('defi_order_fill')
       .ifNotExists()
-      .addColumn('id', 'integer', (cb) => cb.primaryKey().autoIncrement())
+      .addColumn('id', 'integer', (cb) => cb.primaryKey().generatedByDefaultAsIdentity())
       .addColumn('order_key', 'varchar(255)', (cb) =>
         cb.references('defi_order.order_key').onDelete('cascade').notNull(),
       )
