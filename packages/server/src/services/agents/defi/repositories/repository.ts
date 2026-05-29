@@ -272,6 +272,17 @@ export class DefiRepository {
       }
 
       if (!fill) {
+        if (existingOrder) {
+          await trx
+            .updateTable('defi_order')
+            .set({
+              status: payload.status,
+              updated_at: payload.timestamp,
+              updated_at_block: payload.blockNumber,
+            })
+            .where('order_key', '=', order_key)
+            .execute()
+        }
         return
       }
 
@@ -282,7 +293,7 @@ export class DefiRepository {
           filler: fill.filler ?? null,
           amount_in: fill.amountIn,
           amount_out: fill.amountOut,
-          amount_usd: fill.amountUSD,
+          amount_usd: fill.amountUSD ?? null,
           tx_hash: fill.txHash ?? null,
           block_number: fill.blockNumber,
           block_hash: fill.blockHash,
@@ -308,7 +319,7 @@ export class DefiRepository {
       const nextFillCount = prev.fill_count + 1
       const nextIn = addBigIntString(prev.filled_amount_in, fill.amountIn)
       const nextOut = addBigIntString(prev.filled_amount_out, fill.amountOut)
-      const nextUsd = addBigIntString(prev.filled_amount_usd, fill.amountUSD)
+      const nextUsd = fill.amountUSD ? addBigIntString(prev.filled_amount_usd, fill.amountUSD) : prev.filled_amount_usd
 
       await trx
         .updateTable('defi_order')

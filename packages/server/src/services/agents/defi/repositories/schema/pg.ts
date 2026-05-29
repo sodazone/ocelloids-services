@@ -182,7 +182,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('filler', 'varchar(255)')
       .addColumn('amount_in', 'text', (cb) => cb.notNull())
       .addColumn('amount_out', 'text', (cb) => cb.notNull())
-      .addColumn('amount_usd', 'text', (cb) => cb.notNull())
+      .addColumn('amount_usd', 'text')
       .addColumn('tx_hash', 'varchar(66)')
       .addColumn('block_number', 'bigint', (cb) => cb.notNull())
       .addColumn('block_hash', 'varchar(66)', (cb) => cb.notNull())

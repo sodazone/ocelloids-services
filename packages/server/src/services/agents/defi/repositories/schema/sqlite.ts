@@ -180,7 +180,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       .addColumn('filler', 'text')
       .addColumn('amount_in', 'text', (cb) => cb.notNull())
       .addColumn('amount_out', 'text', (cb) => cb.notNull())
-      .addColumn('amount_usd', 'text', (cb) => cb.notNull())
+      .addColumn('amount_usd', 'text')
       .addColumn('tx_hash', 'text')
       .addColumn('block_number', 'integer', (cb) => cb.notNull())
       .addColumn('block_hash', 'text', (cb) => cb.notNull())

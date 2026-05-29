@@ -156,7 +156,7 @@ export interface DefiOrderFillTable {
   filler: ColumnType<string>
   amount_in: ColumnType<string>
   amount_out: ColumnType<string>
-  amount_usd: ColumnType<string>
+  amount_usd: ColumnType<string | null>
   block_number: ColumnType<string>
   block_hash: ColumnType<string>
   block_event_index: ColumnType<number>
