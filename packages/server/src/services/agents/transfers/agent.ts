@@ -75,7 +75,7 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
   readonly #log: Logger
   readonly #notifier: Egress
   readonly #repository: IntrachainTransfersRepository
-  readonly #migrator: Migrator
+  readonly #migrator?: Migrator
   readonly #broadcaster: ServerSentEventsBroadcaster
   readonly #steward: DataSteward
 
@@ -112,7 +112,9 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
     this.#log.info('[agent:%s] database at %s', this.id, maskPassword(connectionString))
     const { db, migrator, dialect } = createIntrachainTransfersDatabase(connectionString)
 
-    this.#migrator = migrator
+    if (dialect === 'sqlite') {
+      this.#migrator = migrator
+    }
     this.#repository = new IntrachainTransfersRepository(db, dialect)
 
     const pipeline$ = this.#tracker.transfers$.pipe(
@@ -150,16 +152,20 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
   }
 
   async start(subs: Subscription<TransfersAgentInputs>[] = []) {
+    this.#log.info('[agent:%s] start', this.id)
+
     await this.#tracker.start()
 
-    this.#log.info('[agent:%s] starting db migration', this.id)
-    const result = await this.#migrator.migrateToLatest()
+    if (this.#migrator) {
+      this.#log.info('[agent:%s] starting db migration', this.id)
+      const result = await this.#migrator.migrateToLatest()
 
-    if (result.results && result.results.length > 0) {
-      this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
-    } else if (result.error) {
-      this.#log.error(result.error, '[agent:%s] db migration error', this.id)
-      throw new Error('Error migrating transfers db')
+      if (result.results && result.results.length > 0) {
+        this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
+      } else if (result.error) {
+        this.#log.error(result.error, '[agent:%s] db migration error', this.id)
+        throw new Error('Error migrating transfers ic db')
+      }
     }
 
     this.#connection = this.#icTransfers$.connect()
