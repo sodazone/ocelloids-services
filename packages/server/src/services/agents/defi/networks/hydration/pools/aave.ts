@@ -138,8 +138,10 @@ export function createAaveWatcher(
           functionName: 'totalSupply',
         })
         lendingDetails.utilization = utilization
-        lendingDetails.health = {
-          solvencyRatio: bigintToNumber((supplied * PRECISION_BIGINT) / aTokenSupply, TARGET_PRECISION),
+        if (aTokenSupply > 0n) {
+          lendingDetails.health = {
+            solvencyRatio: bigintToNumber((supplied * PRECISION_BIGINT) / aTokenSupply, TARGET_PRECISION),
+          }
         }
         const atokenMetadata = atokensMetadata.find((m) => m.id === pair.atoken)
         tokens.push({
@@ -154,7 +156,10 @@ export function createAaveWatcher(
       aavePools.push({
         type: 'aave',
         address: aTokenAddress,
-        oraclePrice: Number(priceInMarketReferenceCurrency) / Number(marketReferenceCurrencyUnit),
+        oraclePrice:
+          marketReferenceCurrencyUnit > 0n
+            ? Number(priceInMarketReferenceCurrency) / Number(marketReferenceCurrencyUnit)
+            : Number(priceInMarketReferenceCurrency),
         details: lendingDetails,
         tokens,
         isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(aTokenAddress),
