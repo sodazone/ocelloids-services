@@ -268,6 +268,8 @@ export function hydrationDexMonitor(
       poolsManager.getLiquidityPools().forEach(emitLiquidityEvent)
       poolsManager.getPools('aave').forEach(emitMMLiquidityEvent)
       poolsManager.getPools('hsm').forEach(emitStabilityEvent)
+    } catch (e) {
+      logger.error(e, '[dex:hydration] Error processing block %s (#%s)', block.hash, block.number)
     } finally {
       inFlight--
     }
