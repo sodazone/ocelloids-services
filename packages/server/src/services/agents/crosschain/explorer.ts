@@ -127,6 +127,9 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
 
     if (result.results && result.results.length > 0) {
       this.#log.info('[xc:explorer] migration complete %o', result.results)
+    } else if (result.error) {
+      this.#log.error(result.error, '[agent:%s] db migration error', this.id)
+      throw new Error('Error migrating xc db')
     }
 
     if (subs.length > 0) {

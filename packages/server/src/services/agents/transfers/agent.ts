@@ -157,6 +157,9 @@ export class TransfersAgent implements Agent, Subscribable, Queryable, Streamabl
 
     if (result.results && result.results.length > 0) {
       this.#log.info('[agent:%s] db migration complete %o', this.id, result.results)
+    } else if (result.error) {
+      this.#log.error(result.error, '[agent:%s] db migration error', this.id)
+      throw new Error('Error migrating transfers db')
     }
 
     this.#connection = this.#icTransfers$.connect()
