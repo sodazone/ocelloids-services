@@ -107,7 +107,8 @@ export function createAaveWatcher(
 
       const borrowed = (totalScaledVariableDebt * variableBorrowIndex) / RAY + totalPrincipalStableDebt
       const reserves = availableLiquidity + borrowed
-      const utilization = bigintToNumber((borrowed * PRECISION_BIGINT) / reserves, TARGET_PRECISION)
+      const utilization =
+        reserves > 0n ? bigintToNumber((borrowed * PRECISION_BIGINT) / reserves, TARGET_PRECISION) : undefined
       const supplied = reserves - unbacked
 
       tokens.push({
