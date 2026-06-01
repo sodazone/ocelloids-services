@@ -9,8 +9,13 @@ export type {
   DefiLiquidityAsset,
   DefiLiquidityCategory,
   DefiLiquidityPayload,
+  DefiOrderPayload,
+  DefiOrderStatus,
+  DefiPricePayload,
   DefiSubscriptionPayload,
+  MoneyMarketActions,
   MoneyMarketPayload,
+  $DefiOrderStatus
 } from './types.js'
 
 /**
