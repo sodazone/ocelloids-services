@@ -31,12 +31,17 @@ export class CrosschainIssuanceAgentApi
       return super.subscribe(subscription, handlers, onDemandHandlers)
     }
 
-    const { items } = await this.query<CrosschainIssuanceQueryArgs, CrosschainIssuancePayload>({
-      op: 'issuance.last',
-      criteria: {
-        subscriptionId: subscription,
+    const { items } = await this.query<CrosschainIssuanceQueryArgs, CrosschainIssuancePayload>(
+      {
+        op: 'issuance.last',
+        criteria: {
+          subscriptionId: subscription,
+        },
       },
-    })
+      {
+        limit: 50,
+      },
+    )
 
     const ws = await super.subscribe(subscription, handlers, onDemandHandlers)
 
