@@ -154,14 +154,14 @@ export class DefiRepository {
           symbol: debt.symbol,
           amount: debt.amount,
           amount_usd: debt.amountUSD,
-          role: 'liquidation_debt',
+          role: 'lqd_debt',
         })
         assetRowsToInsert.push({
           asset_id: collateral.assetId,
           symbol: collateral.symbol,
           amount: collateral.amount,
           amount_usd: collateral.amountUSD,
-          role: 'liquidation_collateral',
+          role: 'lqd_coll',
         })
       } else {
         actorAddress = payload.data.provider

@@ -64,8 +64,8 @@ export type DefiEventAssetRole =
   | 'withdrawn'
   | 'borrowed'
   | 'repaid'
-  | 'liquidation_debt'
-  | 'liquidation_collateral'
+  | 'lqd_debt'
+  | 'lqd_coll'
   | 'asset'
 
 export interface DefiEventTable {
