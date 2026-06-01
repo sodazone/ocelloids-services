@@ -53,7 +53,7 @@ export class WormholeAgent implements Agent {
     name: 'Wormhole Agent',
     description: 'Indexes and tracks Wormhole operations.',
     capabilities: getAgentCapabilities(this),
-    runInBackground: false,
+    runInBackground: true,
   }
 
   readonly #log: Logger
