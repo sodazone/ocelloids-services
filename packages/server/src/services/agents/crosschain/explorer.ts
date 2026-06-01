@@ -48,7 +48,7 @@ const XC_DB_CONNECTION = process.env.OC_XC_DB_CONNECTION
 export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscribable {
   readonly #log: Logger
   readonly #repository: CrosschainRepository
-  readonly #migrator: Migrator
+  readonly #migrator?: Migrator
   readonly #broadcaster: ServerSentEventsBroadcaster
   readonly #notifier: Egress
   readonly inputSchema = $CrosschainSubscriptionInputs
@@ -91,7 +91,10 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
     this.#log.info('[xc:explorer] database at %s', maskPassword(connectionString))
     const { db, migrator, dialect } = createCrosschainDatabase(connectionString)
 
-    this.#migrator = migrator
+    if (dialect === 'sqlite') {
+      this.#migrator = migrator
+    }
+
     this.#repository = new CrosschainRepository(db, dialect)
     this.#broadcaster = broadcaster ?? createCrosschainBroadcaster()
     this.#notifier = egress
@@ -123,10 +126,16 @@ export class CrosschainExplorer implements Agent, Queryable, Streamable, Subscri
   async start(subs: Subscription<CrosschainSubscriptionInputs>[] = []) {
     this.#log.info('[xc:explorer] start')
 
-    const result = await this.#migrator.migrateToLatest()
+    if (this.#migrator) {
+      this.#log.info('[xc:explorer] starting db migration')
+      const result = await this.#migrator.migrateToLatest()
 
-    if (result.results && result.results.length > 0) {
-      this.#log.info('[xc:explorer] migration complete %o', result.results)
+      if (result.results && result.results.length > 0) {
+        this.#log.info('[xc:explorer] migration complete %o', result.results)
+      } else if (result.error) {
+        this.#log.error(result.error, '[xc:explorer] db migration error')
+        throw new Error('Error migrating xc db')
+      }
     }
 
     if (subs.length > 0) {

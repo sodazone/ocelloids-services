@@ -14,6 +14,8 @@ export function createIntrachainTransfersDatabase(connectionString: string) {
       migrations: {
         '2026-01-29_create_ic_tables': sqliteSchema,
       },
+      migrationTableName: 'kysely_migration_ic',
+      migrationLockTableName: 'kysely_migration_lock_ic',
     })
   } else {
     return createKyselyDatabase<IntrachainTransfersDatabase>({
@@ -22,6 +24,8 @@ export function createIntrachainTransfersDatabase(connectionString: string) {
       migrations: {
         '2026-01-29_create_ic_tables': pgSchema,
       },
+      migrationTableName: 'kysely_migration_ic',
+      migrationLockTableName: 'kysely_migration_lock_ic',
     })
   }
 }

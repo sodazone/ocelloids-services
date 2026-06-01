@@ -190,9 +190,9 @@ export class SubstrateWatcher extends Watcher<Block> {
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.catchUpHeads(chainId, api),
           takeUntil(merge(shutdown$, cancel$)),
-          mergeMap(({ hash, status }) =>
+          mergeMap(({ hash, status, ingestionMode }) =>
             from(api.getBlock(hash, true)).pipe(
-              map((block) => ({ status, ...block })),
+              map((block): Block => ({ ...block, ingestionMode: ingestionMode ?? 'live', status })),
               catchError((error) => {
                 this.log.error(error, '[%s] error fetching block %s (%s)', chainId, hash, status)
                 return EMPTY
@@ -225,7 +225,11 @@ export class SubstrateWatcher extends Watcher<Block> {
   }
 
   getApi(chainId: NetworkURN): Promise<SubstrateApi> {
-    return this.#apis[chainId].isReady()
+    try {
+      return this.#apis[chainId].isReady()
+    } catch (error) {
+      throw new Error(`Error while resolving ${chainId}. Probably not configured.`, { cause: error })
+    }
   }
 
   getApi$(chainId: NetworkURN): Observable<SubstrateApi> {

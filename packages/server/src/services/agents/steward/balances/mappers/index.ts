@@ -1,11 +1,10 @@
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { fromHex } from 'polkadot-api/utils'
-import { filter, firstValueFrom } from 'rxjs'
+import { filter } from 'rxjs'
 import { isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { networks } from '@/services/agents/common/networks.js'
-import { getBalanceExtractor } from '@/services/networking/substrate/balances.js'
-import { AssetId } from '../../types.js'
+import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { bigintToPaddedHex } from '../../util.js'
 import {
   BalancesStreamMapper,
@@ -214,31 +213,34 @@ export const balancesRuntimeCallMappers: Record<string, RuntimeCallMapper | null
   },
 }
 
-export const customDiscoveryFetchers: Record<string, CustomDiscoveryFetcher> = {
-  [networks.hydration]: hydrationBalancesFetcher,
+export function customDiscoveryFetchers(
+  ingress: SubstrateIngressConsumer,
+): Record<string, CustomDiscoveryFetcher> {
+  return {
+    [networks.hydration]: hydrationBalancesFetcher(networks.hydration, ingress),
+  }
 }
 
 export const onDemandFetchers: Record<string, CustomDiscoveryFetcher> = {
-  [networks.mythos]: async ({ chainId, account, ingress, apiCtx }) => {
-    const balances: {
-      assetId: AssetId
-      balance: bigint | null
-    }[] = []
-    if (account.length > 42) {
-      // Substrate addresses cannot be mapped to Mythos EVM address
-      return balances
-    }
-
-    const { storageKey, module, name } = toNativeStorageKey(account, apiCtx)
-    const value = await firstValueFrom(ingress.getStorage(chainId, storageKey))
-    const storageCodec = apiCtx.storageCodec(module, name)
-    const balanceExtractor = getBalanceExtractor(module, name)
-    if (balanceExtractor) {
-      balances.push({
-        assetId: 'native',
-        balance: value !== null ? balanceExtractor(storageCodec.value.dec(value)) : null,
-      })
-    }
-    return balances
-  },
+  // [networks.mythos]: async ({ chainId, account, ingress, apiCtx }) => {
+  //   const balances: {
+  //     assetId: AssetId
+  //     balance: bigint | null
+  //   }[] = []
+  //   if (account.length > 42) {
+  //     // Substrate addresses cannot be mapped to Mythos EVM address
+  //     return balances
+  //   }
+  //   const { storageKey, module, name } = toNativeStorageKey(account, apiCtx)
+  //   const value = await firstValueFrom(ingress.getStorage(chainId, storageKey))
+  //   const storageCodec = apiCtx.storageCodec(module, name)
+  //   const balanceExtractor = getBalanceExtractor(module, name)
+  //   if (balanceExtractor) {
+  //     balances.push({
+  //       assetId: 'native',
+  //       balance: value !== null ? balanceExtractor(storageCodec.value.dec(value)) : null,
+  //     })
+  //   }
+  //   return balances
+  // },
 }

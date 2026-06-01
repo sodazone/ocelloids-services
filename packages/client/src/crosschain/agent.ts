@@ -1,6 +1,12 @@
-import { _isAnySubscriptionInputs, OcelloidsAgentApi } from '../core/api'
+import { OcelloidsAgentApi } from '../core/api'
 import { OcelloidsClient } from '../core/client'
-import { QueryableApi, StreamableApi, SubscribableWithReplayApi } from '../core/types'
+import {
+  EventId,
+  QueryableApi,
+  StreamableApi,
+  SubscribableWithReplayApi,
+  SubscribeReplayContext,
+} from '../core/types'
 import { OnDemandSubscriptionHandlers, SubscriptionId, WebSocketHandlers } from '../lib'
 import {
   CrosschainSubscriptionInputs,
@@ -36,21 +42,10 @@ export class CrosschainAgentApi
   async subscribeWithReplay(
     subscription: SubscriptionId | CrosschainSubscriptionInputs,
     handlers: WebSocketHandlers<FullJourneyResponse>,
-    replay: {
-      lastSeenId?: number
-      onPersist: (id: number) => Promise<void>
-      onCompleteRange?: () => void
-      onIncompleteRange?: (range: { from: number | null; to: number | null }) => Promise<void>
-    },
+    replay: SubscribeReplayContext,
     onDemandHandlers?: OnDemandSubscriptionHandlers<CrosschainSubscriptionInputs>,
   ) {
-    let networks: string[] | '*' = '*'
-
-    if (_isAnySubscriptionInputs(subscription)) {
-      networks = subscription.networks
-    } else {
-      networks = (await this.getSubscription(subscription)).args.networks
-    }
+    const { networks } = await this.resolveInputsFromSubscription(subscription)
 
     return this.subscribeWithReplayStrategy(
       subscription,
@@ -58,24 +53,26 @@ export class CrosschainAgentApi
       replay,
       {
         buildReplayQuery: this.#buildQuery(networks !== '*' ? networks : undefined),
-        buildMessageMetadata: this.#buildMetadata,
+        buildReplayedMessageMetadata: this.#buildMetadata,
       },
       onDemandHandlers,
     )
   }
 
   #buildQuery(networks?: string[]) {
-    return (from?: number, to?: number) => {
+    return (from?: EventId, to?: EventId) => {
       if (from === undefined) {
         return null
       }
 
       return {
-        op: 'journeys.by_id_range',
-        criteria: {
-          networks,
-          start: from + 1,
-          ...(to !== undefined ? { end: to - 1 } : {}),
+        args: {
+          op: 'journeys.by_id_range',
+          criteria: {
+            networks,
+            start: Number(from) + 1,
+            ...(to !== undefined ? { end: Number(to) - 1 } : {}),
+          },
         },
       }
     }

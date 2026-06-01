@@ -9,11 +9,15 @@ export * from './agent'
 export * from './core/api'
 export * from './core/client'
 export * from './core/types'
+export { CrosschainAgentApi } from './crosschain/agent'
+export * as crosschain from './crosschain/types'
+export * as defi from './defi/types'
 export type { DoFetch, DoFetchOptions, RequestOptions } from './http/fetch'
+export { CrosschainIssuanceAgentApi } from './issuance/agent'
+export * as issuance from './issuance/types'
+export * as opengov from './opengov/types'
 export * from './query'
 export type {
-  $AgentId,
-  $SubscriptionId,
   AgentId,
   AnyJson,
   AnyQueryArgs,
@@ -28,38 +32,14 @@ export type {
   SubscriptionId,
   SubstrateTypes,
   sourceCrosschain,
+  sourceDefi,
   sourceIssuance,
   sourceSteward,
   sourceTransfers,
   sourceXcm,
 } from './server-types'
+export * as steward from './steward/types'
+export { TransfersAgentApi } from './transfers/agent'
+export * as transfers from './transfers/types'
 export * from './types'
-
-// The "export * as ___" syntax is not supported yet; as a workaround,
-// use "import * as ___" with a separate "export { ___ }" declaration
-import * as xcm from './xcm/types'
-
-export { xcm }
-
-import * as steward from './steward/types'
-
-export * from './crosschain/agent'
-export { steward }
-
-import * as crosschain from './crosschain/types'
-
-export * from './transfers/agent'
-export { crosschain }
-
-import * as transfers from './transfers/types'
-
-export * from './issuance/agent'
-export { transfers }
-
-import * as issuance from './issuance/types'
-
-export { issuance }
-
-import * as opengov from './opengov/types'
-
-export { opengov }
+export * as xcm from './xcm/types'

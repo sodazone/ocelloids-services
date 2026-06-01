@@ -163,6 +163,7 @@ export abstract class Watcher<T = unknown> extends (EventEmitter as new () => Te
         mergeMap((header) =>
           from(this.#targetHeights(chainId, header)).pipe(this.#catchUpToHeight(chainId, api, header)),
         ),
+        map((header) => ({ ...header, ingestionMode: 'catchup' }) as NeutralHeader),
         this.tapError(chainId, '#catchUpHeads()'),
         retryWithTruncatedExpBackoff(RETRY_INFINITE),
       )

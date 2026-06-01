@@ -175,7 +175,7 @@ export class SubstrateBackfill extends Backfill<SubstrateApi, Block> {
     return defer(() => from(api.getBlock(hash, false))).pipe(
       timeout(10_000),
       retryWithTruncatedExpBackoff(RETRY_ONCE),
-      map((block): Block => ({ status: 'finalized', ...block })),
+      map((block): Block => ({ ...block, status: 'finalized', ingestionMode: 'backfill' })),
       catchError((err) => {
         this.log.warn(err, '[backfill] Failed to getBlock for %s', hash)
         return EMPTY

@@ -48,12 +48,9 @@ export type BalancesQueueData = StorageQueueData | RuntimeQueueData
 
 export type EnqueueUpdateItem = (chainId: NetworkURN, key: HexString, data: BalancesQueueData) => void
 
-export type CustomDiscoveryFetcher = (ctx: {
-  chainId: NetworkURN
-  account: HexString
-  ingress: SubstrateIngressConsumer
-  apiCtx: SubstrateApiContext
-}) => Promise<{ assetId: AssetId; balance: bigint | null }[]>
+export type CustomDiscoveryFetcher = (
+  account: HexString,
+) => Promise<{ assetId: AssetId; balance: bigint | null }[]>
 
 export type StorageKeyMapper = (
   asset: AssetMetadata,

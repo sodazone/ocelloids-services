@@ -15,7 +15,7 @@ vi.mock('isows', () => {
 })
 
 import { createXcmAgent } from '../agent'
-import { isSubscriptionError, Subscription, WsAuthErrorEvent } from '../types'
+import { AnySubscriptionInputs, isSubscriptionError, Subscription, WsAuthErrorEvent } from '../types'
 import { isXcmReceived, isXcmRelayed, isXcmSent } from '../xcm/types'
 import { OcelloidsClient } from './client'
 
@@ -72,7 +72,7 @@ describe('OcelloidsClient', () => {
 
       await new Promise<void>((resolve) => {
         let called = 0
-        client.agent('agentid').subscribe<XcmMessagePayload>('subid', {
+        client.agent<AnySubscriptionInputs, XcmMessagePayload>('agentid').subscribe('subid', {
           onMessage: (msg) => {
             expect(msg).toBeDefined()
 

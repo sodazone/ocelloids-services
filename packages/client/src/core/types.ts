@@ -66,15 +66,27 @@ export interface QueryableApi<P = AnyJson, R = AnyJson> {
 }
 
 /**
+ * @public
+ */
+export type EventId = number | string
+
+/**
+ * @public
+ */
+export type SubscribeReplayContext = {
+  lastSeenId?: EventId
+  onPersist: (id: EventId) => Promise<void>
+  onCompleteRange?: () => void
+  onIncompleteRange?: (info: { from: EventId | null; to: EventId | null }) => Promise<void>
+}
+
+/**
  * Subscribable Agent with Replay + Query API.
  *
  * @public
  */
-export interface SubscribableWithReplayApi<
-  T = AnySubscriptionInputs,
-  P extends { id: number } = { id: number },
-  Q = AnyJson,
-> extends SubscribableApi<T, P>,
+export interface SubscribableWithReplayApi<T = AnySubscriptionInputs, P = AnyJson, Q = AnyJson>
+  extends SubscribableApi<T, P>,
     QueryableApi<Q, P> {
   /**
    * subscribeWithReplay emits historical and live events concurrently.
@@ -90,12 +102,7 @@ export interface SubscribableWithReplayApi<
   subscribeWithReplay(
     subscription: SubscriptionId | T,
     handlers: WebSocketHandlers<P>,
-    replayContext: {
-      lastSeenId?: number
-      onPersist: (id: number) => Promise<void>
-      onCompleteRange: () => void
-      onIncompleteRange: (range: { from: number | null; to: number | null }) => Promise<void>
-    },
+    replayContext: SubscribeReplayContext,
     onDemandHandlers?: OnDemandSubscriptionHandlers<T>,
   ): Promise<WebSocket>
 }

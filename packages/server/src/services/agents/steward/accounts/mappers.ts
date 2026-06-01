@@ -1,4 +1,3 @@
-import { blake2b } from '@noble/hashes/blake2'
 import { Binary, FixedSizeBinary, u32 } from '@polkadot-api/substrate-bindings'
 import { fromHex, toHex } from 'polkadot-api/utils'
 
@@ -16,18 +15,16 @@ import {
   switchMap,
   take,
 } from 'rxjs'
+import { itemKeyFromStorageKey } from '@/services/networking/substrate/common/storage.js'
 import { storageKeysAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Hashers } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
+import { getStablePoolPublicKey } from '../../common/hydration.js'
 import { networks } from '../../common/networks.js'
 import { assetOverrides } from '../metadata/overrides.js'
 import { accountOverrides } from './overrides.js'
 import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
-
-const textEncoder = new TextEncoder()
-const sts = textEncoder.encode('sts')
 
 function decodeData(data: any): string | undefined {
   if (!data) {
@@ -73,63 +70,6 @@ function normalizeIdentity(identity: any): {
     judgements,
     extra,
   }
-}
-
-function itemKeyFromStorageKey(
-  fullStorageKey: HexString,
-  prefix: HexString,
-  hashers: Hashers | null,
-): HexString {
-  const fullHex = fullStorageKey.startsWith('0x') ? fullStorageKey.slice(2) : fullStorageKey
-
-  const prefixHex = prefix.startsWith('0x') ? prefix.slice(2) : prefix
-
-  if (!fullHex.startsWith(prefixHex)) {
-    throw new Error('Storage key does not start with given prefix')
-  }
-
-  let remaining = fullHex.slice(prefixHex.length)
-
-  if (hashers === null) {
-    return `0x${remaining}` as HexString
-  }
-
-  for (const hasher of hashers) {
-    switch (hasher.tag) {
-      case 'Identity':
-        return `0x${remaining}` as HexString
-
-      case 'Twox64Concat': {
-        const HASH_BYTES = 8
-        remaining = remaining.slice(HASH_BYTES * 2)
-        return `0x${remaining}` as HexString
-      }
-
-      case 'Blake2128Concat': {
-        const HASH_BYTES = 16
-        remaining = remaining.slice(HASH_BYTES * 2)
-        return `0x${remaining}` as HexString
-      }
-
-      case 'Twox128':
-        remaining = remaining.slice(16 * 2)
-        break
-
-      case 'Blake2128':
-        remaining = remaining.slice(16 * 2)
-        break
-
-      case 'Twox256':
-      case 'Blake2256':
-        remaining = remaining.slice(32 * 2)
-        break
-
-      default:
-        throw new Error(`Unsupported hasher: ${(hasher as any).tag}`)
-    }
-  }
-
-  throw new Error('No raw key present in storage key for given hashers')
 }
 
 function deepEqualIdentity(
@@ -330,17 +270,6 @@ function hydrationEvmAccounts$(ingress: SubstrateIngressConsumer): Observable<Su
   )
 }
 
-export function getStablePoolAddress(id: number): [HexString, HexString] {
-  const bytes = Buffer.alloc(4)
-  bytes.writeUInt32LE(id)
-  const name = Buffer.concat([sts, new Uint8Array(bytes)])
-  const poolKey = blake2b(new Uint8Array(name), {
-    dkLen: 32,
-  })
-  const evmPoolKey = poolKey.subarray(0, 20)
-  return [toHex(poolKey) as HexString, toHex(evmPoolKey) as HexString]
-}
-
 function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observable<SubstrateAccountUpdate> {
   const chainId = networks.hydration
   return ingress.getContext(chainId).pipe(
@@ -365,14 +294,15 @@ function hydrationStableswapAccounts$(ingress: SubstrateIngressConsumer): Observ
                   const poolIdHex = itemKeyFromStorageKey(storageKey, prefix, hashers)
                   const bytes = Buffer.from(poolIdHex.slice(2), 'hex')
                   const poolId = bytes.readUInt32LE(0)
-                  const [publicKey, evmAddress] = getStablePoolAddress(poolId)
+                  const poolKey = getStablePoolPublicKey(poolId)
+                  const evmPoolKey = poolKey.subarray(0, 20)
 
                   return of({
-                    publicKey,
+                    publicKey: toHex(poolKey) as HexString,
                     evm: [
                       {
                         chainId,
-                        address: evmAddress,
+                        address: toHex(evmPoolKey) as HexString,
                       },
                     ],
                     categories: [

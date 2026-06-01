@@ -7,6 +7,8 @@ export interface SQLiteOptions {
   filename: string
   migrations: Record<string, Migration>
   options?: SQLite.Options
+  migrationTableName?: string
+  migrationLockTableName?: string
 }
 
 export interface PostgresOptions {
@@ -14,6 +16,8 @@ export interface PostgresOptions {
   connectionString: string
   migrations: Record<string, Migration>
   poolOptions?: any
+  migrationTableName?: string
+  migrationLockTableName?: string
 }
 
 export type DatabaseOptions = SQLiteOptions | PostgresOptions
@@ -72,11 +76,14 @@ export function createKyselyDatabase<T>(opts: DatabaseOptions) {
     })
   }
 
+  const { migrationTableName, migrationLockTableName } = opts
   const migrator = new Migrator({
     db,
     provider: {
       getMigrations: async () => opts.migrations,
     },
+    migrationTableName,
+    migrationLockTableName,
   })
 
   return {

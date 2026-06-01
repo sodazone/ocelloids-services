@@ -1,10 +1,25 @@
+import { NetworkURN } from '@/lib.js'
+
 export {
-  $AssetId,
-  $CrosschainIssuanceQueryArgs,
-  $CrosschainIssuanceSubscriptionInputs,
   CrosschainIssuance,
   CrosschainIssuanceInputs,
   CrosschainIssuancePayload,
-  CrosschainIssuanceQueryArgs,
-  CrosschainIssuanceSubscriptionInputs,
 } from './types.js'
+
+/**
+ * @public
+ */
+export type CrosschainIssuanceSubscriptionInputs = {
+  reserveChain: NetworkURN
+  remoteChain: NetworkURN
+}
+
+/**
+ * @public
+ */
+export type CrosschainIssuanceQueryArgs = {
+  op: 'issuance.last'
+  criteria: {
+    subscriptionId: string
+  }
+}

@@ -2,7 +2,7 @@ import { NetworkURN } from '@/services/types.js'
 
 const setNetworks = <T extends Record<string, NetworkURN>>(network: T) => network
 
-export const networks = setNetworks({
+export const networks: Record<string, NetworkURN> = setNetworks({
   polkadot: 'urn:ocn:polkadot:0',
   assetHub: 'urn:ocn:polkadot:1000',
   bridgeHub: 'urn:ocn:polkadot:1002',
@@ -10,6 +10,7 @@ export const networks = setNetworks({
   coretime: 'urn:ocn:polkadot:1005',
   acala: 'urn:ocn:polkadot:2000',
   moonbeam: 'urn:ocn:polkadot:2004',
+  moonbeam_evm: 'urn:ocn:ethereum:1284',
   composable: 'urn:ocn:polkadot:2019',
   astar: 'urn:ocn:polkadot:2006',
   nodle: 'urn:ocn:polkadot:2026',

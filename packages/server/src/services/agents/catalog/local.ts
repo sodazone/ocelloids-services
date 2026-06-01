@@ -22,6 +22,7 @@ import { PullCollector } from '@/services/telemetry/types.js'
 import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
+import { DefiAgent } from '../defi/agent.js'
 import { HyperbridgeAgent } from '../hyperbridge/agent.js'
 import { CrosschainIssuanceAgent } from '../issuance/agent.js'
 import { OpenGovAgent } from '../opengov/agent.js'
@@ -76,6 +77,11 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
       ticker: activations['ticker'] as TickerAgent,
     }),
   issuance: (ctx) => new CrosschainIssuanceAgent(ctx),
+  defi: (ctx, activations) =>
+    new DefiAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
+    }),
   ...(DIRTY_TOGGLES['chainspy'] && {
     chainspy: (ctx) => new ChainSpy(ctx),
   }),

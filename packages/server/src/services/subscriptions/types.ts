@@ -23,7 +23,7 @@ export type BlockNumberRange = {
 /**
  * Schema to validate subscription IDs.
  *
- * @public
+ * @private
  */
 export const $SubscriptionId = z
   .string({
@@ -36,7 +36,7 @@ export const $SubscriptionId = z
 /**
  * Subscription identifier.
  *
- * @public
+ * @private
  */
 export type SubscriptionId = z.infer<typeof $SubscriptionId>
 
