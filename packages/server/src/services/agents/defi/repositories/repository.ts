@@ -1,4 +1,4 @@
-import { Kysely } from 'kysely'
+import { Kysely, sql } from 'kysely'
 import { SQLDialect } from '@/services/persistence/kysely/db.js'
 import { decodeCursor, encodeCursor } from '../../common/explorer.js'
 import { fromWildcardOrArray, limitCap, paginatedResultsFromArray } from '../../common/query.js'
@@ -536,15 +536,15 @@ export class DefiRepository {
           eb
             .fn(aggregateFn, [
               eb.fn(objectFn, [
-                eb.val('assetId'),
+                sql`'assetId'`,
                 eb.ref('ea.asset_id'),
-                eb.val('symbol'),
+                sql`'symbol'`,
                 eb.ref('ea.symbol'),
-                eb.val('amount'),
+                sql`'amount'`,
                 eb.ref('ea.amount'),
-                eb.val('amountUSD'),
+                sql`'amountUSD'`,
                 eb.ref('ea.amount_usd'),
-                eb.val('role'),
+                sql`'role'`,
                 eb.ref('ea.role'),
               ]),
             ])
