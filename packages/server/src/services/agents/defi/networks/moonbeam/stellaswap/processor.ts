@@ -5,9 +5,10 @@ import { NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
+import { Logger } from '@/services/types.js'
 import poolAbi from '../../../protocols/algebra/abis/pool.json' with { type: 'json' }
 import { smartTrigger } from '../../../rxjs/trigger.js'
-import type { DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
+import type { DefiEventPayload, DefiPricePayload, DefiSubscriptionPayload } from '../../../types.js'
 import { algebraPools, tokens } from './definitions.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
@@ -15,10 +16,12 @@ import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.
 const PRICE_EMISSION_THRESHOLD = 0.0001
 
 export function createStellaswapProcessor({
+  logger,
   chainId,
   ingress,
   subject,
 }: {
+  logger: Logger
   chainId: NetworkURN
   ingress: EvmIngressConsumer
   subject: Subject<DefiSubscriptionPayload>
@@ -154,6 +157,9 @@ export function createStellaswapProcessor({
 
           const token0 = tokens[pool.token0]
           const token1 = tokens[pool.token1]
+          const price0 = prices.get(pool.token0)
+          const price1 = prices.get(pool.token1)
+
           const base = {
             type: 'event' as const,
             id: ulid(),
@@ -172,6 +178,14 @@ export function createStellaswapProcessor({
             const a1 = BigInt(args.amount1)
             const isA0In = a0 > 0n
 
+            const input = isA0In
+              ? { amount: formatUnits(a0, token0.decimals), price: price0 }
+              : { amount: formatUnits(a1, token1.decimals), price: price1 }
+
+            const output = isA0In
+              ? { amount: formatUnits(-a1, token1.decimals), price: price1 }
+              : { amount: formatUnits(-a0, token0.decimals), price: price0 }
+
             const payload: DefiEventPayload = {
               ...base,
               name: 'swap',
@@ -180,12 +194,14 @@ export function createStellaswapProcessor({
                 in: {
                   assetId: (isA0In ? token0 : token1).address.toLowerCase(),
                   symbol: isA0In ? pool.token0 : pool.token1,
-                  amount: formatUnits(isA0In ? a0 : a1, (isA0In ? token0 : token1).decimals),
+                  amount: input.amount,
+                  amountUSD: input.price ? Number(input.amount) * input.price : undefined,
                 },
                 out: {
                   assetId: (isA0In ? token1 : token0).address.toLowerCase(),
                   symbol: isA0In ? pool.token1 : pool.token0,
-                  amount: formatUnits(isA0In ? -a1 : -a0, (isA0In ? token1 : token0).decimals),
+                  amount: output.amount,
+                  amountUSD: output.price ? Number(output.amount) * output.price : undefined,
                 },
               },
             }
@@ -193,6 +209,9 @@ export function createStellaswapProcessor({
           }
 
           const args = log.args as MintEventArgs | BurnEventArgs
+          const normalized0 = formatUnits(BigInt(args.amount0), token0.decimals)
+          const normalized1 = formatUnits(BigInt(args.amount1), token1.decimals)
+
           const payload: DefiEventPayload = {
             ...base,
             name: log.eventName?.toLowerCase() as 'mint' | 'burn',
@@ -202,12 +221,14 @@ export function createStellaswapProcessor({
                 {
                   assetId: token0.address.toLowerCase(),
                   symbol: pool.token0,
-                  amount: formatUnits(BigInt(args.amount0), token0.decimals),
+                  amount: normalized0,
+                  amountUSD: price0 ? price0 * Number(normalized0) : undefined,
                 },
                 {
                   assetId: token1.address.toLowerCase(),
                   symbol: pool.token1,
-                  amount: formatUnits(BigInt(args.amount1), token1.decimals),
+                  amount: normalized1,
+                  amountUSD: price1 ? price1 * Number(normalized1) : undefined,
                 },
               ],
             },
@@ -219,7 +240,15 @@ export function createStellaswapProcessor({
     }
   }
 
-  function start(blockWithLogs$: Observable<BlockWithLogs>) {
+  function start(blockWithLogs$: Observable<BlockWithLogs>, lastStoredPrices: DefiPricePayload[]) {
+    for (const { priceUSD, symbol } of lastStoredPrices) {
+      try {
+        prices.set(symbol, Number(priceUSD))
+      } catch (e) {
+        logger.warn(e, '[defi:stellaswap] Unable to set last stored price on start for asset %s', symbol)
+      }
+    }
+
     const events$ = blockWithLogs$.pipe(extractPoolEvents(), share())
 
     // Event
@@ -236,6 +265,7 @@ export function createStellaswapProcessor({
         )
         .subscribe((block) => updateAllMarkets(BigInt(block.number))),
     )
+    logger.info('[defi:stellaswap] Processor started.')
   }
 
   return {

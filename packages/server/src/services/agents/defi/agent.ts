@@ -113,13 +113,15 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
       throw new Error('Migration error')
     }
 
+    const deps = {
+      fetchAccounts: this.#fetchAccounts.bind(this),
+      fetchAssetMetadata: this.#fetchAssetMetadata.bind(this),
+      listLatestPrices: this.#listLatestPrices.bind(this),
+    }
+
     this.#addMonitors(
-      hydrationDexMonitor(this.#log, this.#ingress, {
-        fetchAccounts: this.#fetchAccounts.bind(this),
-        fetchAssetMetadata: this.#fetchAssetMetadata.bind(this),
-        listLatestPrices: this.#listLatestPrices.bind(this),
-      }),
-      moonbeamDexMonitor(this.#ingress.evm),
+      hydrationDexMonitor(this.#log, this.#ingress, deps),
+      moonbeamDexMonitor(this.#log, this.#ingress.evm, deps),
     )
 
     for (const monitor of this.#monitors) {
@@ -243,7 +245,7 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
   }
 
   async query(params: QueryParams<DefiAgentQueryArgs>): Promise<QueryResult> {
-    const { args } = params
+    const { args, pagination } = params
 
     if (args.op === 'liquidity.last') {
       return await this.#repository.getLatestPoolStates(params)
@@ -255,6 +257,10 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
 
     if (args.op === 'price.last') {
       return await this.#repository.getLatestPrices(params)
+    }
+
+    if (args.op === 'orders.list') {
+      return await this.#repository.listOrders(args.criteria, pagination)
     }
 
     throw new Error('Unknown query op')

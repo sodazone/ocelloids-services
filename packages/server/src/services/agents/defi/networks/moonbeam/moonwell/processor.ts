@@ -1,21 +1,30 @@
 import { Observable, Subject, Subscription, share } from 'rxjs'
 import { ulid } from 'ulidx'
-import { Abi } from 'viem'
+import { Abi, formatUnits } from 'viem'
 import { NetworkURN } from '@/lib.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
+import { Logger } from '@/services/types.js'
 import { createMoonwellDataFetcher, mTokenAbi } from '../../../protocols/moonwell/fetcher.js'
 import { Market } from '../../../protocols/moonwell/types.js'
 import { smartTrigger } from '../../../rxjs/trigger.js'
-import { DefiEventAction, DefiEventAsset, DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
+import {
+  DefiEventAction,
+  DefiEventAsset,
+  DefiEventPayload,
+  DefiPricePayload,
+  DefiSubscriptionPayload,
+} from '../../../types.js'
 import { defs } from './definitions.js'
 
 export function createMoonwellProcessor({
+  logger,
   chainId,
   ingress,
   subject,
 }: {
+  logger: Logger
   chainId: NetworkURN
   ingress: EvmIngressConsumer
   subject: Subject<DefiSubscriptionPayload>
@@ -25,7 +34,7 @@ export function createMoonwellProcessor({
 
   const activeMarketEntries = Object.values(defs.markets).filter((m) => !('deprecated' in m))
   const marketAddresses = activeMarketEntries.map((m) => defs.tokens[m.marketToken].address)
-
+  const prices: Map<string, number> = new Map()
   /**
    * Refreshes all market data and pushes to the subject
    */
@@ -43,6 +52,11 @@ export function createMoonwellProcessor({
           defs.contracts.comptroller,
           blockNumber,
         )
+
+        for (const a of marketData.assets) {
+          prices.set(a.assetId, a.priceUSD)
+        }
+
         subject.next(marketData)
       }
     } catch (err) {
@@ -50,7 +64,9 @@ export function createMoonwellProcessor({
     }
   }
 
-  function start(blockWithLogs$: Observable<BlockWithLogs>) {
+  async function start(blockWithLogs$: Observable<BlockWithLogs>, _lastStoredPrices: DefiPricePayload[]) {
+    await updateAllMarkets()
+
     const events$ = blockWithLogs$.pipe(
       filterLogs({ abi: mTokenAbi as Abi, addresses: marketAddresses }, [
         'Mint',
@@ -79,6 +95,7 @@ export function createMoonwellProcessor({
             }
 
             const underlyingToken = defs.tokens[marketMeta.underlyingToken]
+            const underlyingPrice = prices.get(underlyingToken.address)
 
             if (eventName === 'LiquidateBorrow') {
               const collateralAddress = args.mTokenCollateral.toLowerCase()
@@ -86,9 +103,13 @@ export function createMoonwellProcessor({
                 (m) => defs.tokens[m.marketToken].address.toLowerCase() === collateralAddress,
               )
               const collateralToken = collateralMeta ? defs.tokens[collateralMeta.underlyingToken] : undefined
-              if (!collateralToken) {
+              if (!collateralToken || !underlyingToken) {
                 return
               }
+
+              const amountDebt = formatUnits(args.repayAmount, underlyingToken.decimals)
+              const amountCollateral = formatUnits(args.seizeTokens, collateralToken.decimals)
+              const priceCollateral = prices.get(collateralToken.address)
 
               subject.next({
                 type: 'event',
@@ -106,12 +127,14 @@ export function createMoonwellProcessor({
                   debt: {
                     assetId: underlyingToken.address,
                     symbol: underlyingToken.symbol,
-                    amount: args.repayAmount.toString(),
+                    amount: amountDebt,
+                    amountUSD: underlyingPrice ? underlyingPrice * Number(amountDebt) : undefined,
                   },
                   collateral: {
                     assetId: collateralToken.address,
                     symbol: collateralToken.symbol,
-                    amount: args.seizeTokens, // TODO: double-check if amount is for mtokens or collateral
+                    amount: amountCollateral,
+                    amountUSD: priceCollateral ? priceCollateral * Number(amountCollateral) : undefined,
                   },
                 },
               })
@@ -155,12 +178,13 @@ export function createMoonwellProcessor({
                 return
             }
 
+            const normalizedAmount = formatUnits(underlyingAmount, underlyingToken.decimals)
             const assets: DefiEventAsset[] = [
               {
                 assetId: underlyingToken.address,
                 symbol: underlyingToken.symbol,
-                amount: underlyingAmount.toString(),
-                // TODO: look up historical prices to compute amountUSD here if available
+                amount: normalizedAmount,
+                amountUSD: underlyingPrice ? underlyingPrice * Number(normalizedAmount) : undefined,
               },
             ]
 
@@ -203,6 +227,7 @@ export function createMoonwellProcessor({
           error: (err) => console.error('[moonwell] Trigger error:', err),
         }),
     )
+    logger.info('[defi:moonwell] Processor started.')
   }
 
   return {
