@@ -273,7 +273,7 @@ function mapLending(
     accounts: resolveAccounts([event.who], fetchAccounts),
   }).pipe(
     map(({ assets, accounts }) => {
-      const assetMeta = assets.get(assetId)
+      const assetMeta = assets.get(event.asset)
       if (!assetMeta) {
         return null
       }
@@ -320,8 +320,8 @@ function mapLiquidation(
     accounts: resolveAccounts([event.who, event.counterparty], fetchAccounts),
   }).pipe(
     map(({ assets, accounts }) => {
-      const debt = assets.get(debtId)
-      const collateral = assets.get(colId)
+      const debt = assets.get(event.debtAsset)
+      const collateral = assets.get(event.collateralAsset)
       if (!debt || !collateral) {
         return null
       }
@@ -445,6 +445,8 @@ export function watchEvents(
           case 'liquidation':
             return mapLiquidation(event, fetchAssetMetadata, fetchAccounts, computeUsdValue)
           case 'dca.executed':
+          case 'dca.scheduled':
+          case 'dca.completed':
             return mapDca(event, fetchAssetMetadata, computeUsdValue)
 
           default:
