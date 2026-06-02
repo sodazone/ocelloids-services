@@ -583,13 +583,13 @@ export class DefiRepository {
         if (eventName === 'swap') {
           dataBlock = {
             origin: evt.actorAddress,
-            in: rawAssets.filter((a) => a.direction === 'in'),
-            out: rawAssets.filter((a) => a.direction === 'out'),
+            in: rawAssets.find((a) => a.role === 'swap_in'),
+            out: rawAssets.find((a) => a.role === 'swap_out'),
           }
         } else {
           dataBlock = {
             provider: evt.actorAddress,
-            assets: rawAssets.filter((a) => a.direction === 'action'),
+            assets: rawAssets,
           }
         }
 
