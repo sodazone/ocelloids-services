@@ -36,26 +36,28 @@ export function routerExecutedHandler(
     .filter((e) => matchEvent(e.event, 'Broadcast', 'Swapped3'))
     .map((e) => e.event.value as BroadcastSwapped)
 
-  const route: SwapRoute[] = swappedEvents.map(({ inputs, outputs, filler, filler_type, swapper }): SwapRoute => {
-    const assetIn = inputs[0].asset
-    const assetOut = outputs[0].asset
-    const amountIn = inputs[0].amount
-    const amountOut = outputs[0].amount
-    const protocol = filler_type.type.toLowerCase() as FillerTypeName
+  const route: SwapRoute[] = swappedEvents.map(
+    ({ inputs, outputs, filler, filler_type, swapper }): SwapRoute => {
+      const assetIn = inputs[0].asset
+      const assetOut = outputs[0].asset
+      const amountIn = inputs[0].amount
+      const amountOut = outputs[0].amount
+      const protocol = filler_type.type.toLowerCase() as FillerTypeName
 
-    if (!swapperAddress) {
-      swapperAddress = swapper
-    }
+      if (!swapperAddress) {
+        swapperAddress = swapper
+      }
 
-    return {
-      marketId: asPublicKey(filler),
-      protocol,
-      assetIn,
-      amountIn,
-      assetOut,
-      amountOut,
-    }
-  })
+      return {
+        marketId: asPublicKey(filler),
+        protocol,
+        assetIn,
+        amountIn,
+        assetOut,
+        amountOut,
+      }
+    },
+  )
 
   return {
     type: 'swap',
