@@ -29,16 +29,23 @@ export function routerExecutedHandler(
   }
   const { amount_in, amount_out, asset_in, asset_out, event_id } = value as RouterExecutedEvent
   const { address, hash: txHash, evmTxHash, module: txModule, method } = extrinsic
+
+  let swapperAddress = address
+
   const swappedEvents = siblings
     .filter((e) => matchEvent(e.event, 'Broadcast', 'Swapped3'))
     .map((e) => e.event.value as BroadcastSwapped)
 
-  const route: SwapRoute[] = swappedEvents.map(({ inputs, outputs, filler, filler_type }): SwapRoute => {
+  const route: SwapRoute[] = swappedEvents.map(({ inputs, outputs, filler, filler_type, swapper }): SwapRoute => {
     const assetIn = inputs[0].asset
     const assetOut = outputs[0].asset
     const amountIn = inputs[0].amount
     const amountOut = outputs[0].amount
     const protocol = filler_type.type.toLowerCase() as FillerTypeName
+
+    if (!swapperAddress) {
+      swapperAddress = swapper
+    }
 
     return {
       marketId: asPublicKey(filler),
@@ -69,7 +76,7 @@ export function routerExecutedHandler(
       method,
     },
     status: 'filled',
-    who: asPublicKey(address),
+    who: asPublicKey(swapperAddress),
     marketId: ROUTER_ADDRESS,
     assetIn: asset_in,
     amountIn: amount_in,
