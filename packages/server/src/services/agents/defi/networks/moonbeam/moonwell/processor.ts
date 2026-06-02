@@ -144,14 +144,12 @@ export function createMoonwellProcessor({
             let actionType: DefiEventAction
             let providerAddress = ''
             let underlyingAmount = 0n
-            let lpAmount: bigint | undefined
 
             switch (eventName) {
               case 'Mint':
                 actionType = 'mint'
                 providerAddress = args.minter
                 underlyingAmount = args.mintAmount
-                lpAmount = args.mintTokens
                 break
 
               case 'Borrow':
@@ -164,7 +162,6 @@ export function createMoonwellProcessor({
                 actionType = 'burn'
                 providerAddress = args.redeemer
                 underlyingAmount = args.redeemAmount
-                lpAmount = args.redeemTokens
                 break
 
               case 'RepayBorrow':
@@ -201,7 +198,6 @@ export function createMoonwellProcessor({
               data: {
                 provider: providerAddress,
                 assets: assets,
-                ...(lpAmount !== undefined && { lpAmount: lpAmount.toString() }),
               },
             }
 
