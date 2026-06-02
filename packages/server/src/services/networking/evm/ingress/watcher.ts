@@ -79,7 +79,7 @@ export class EvmWatcher extends Watcher<Block> {
 
   start() {
     super.start()
-    this.#backfill.start(Object.keys(this.#apis) as NetworkURN[])
+    this.#backfill.start(this.chainIds)
   }
 
   async stop() {
