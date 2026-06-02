@@ -81,7 +81,7 @@ function toSwapEventPayload(
     who,
   }: { blockNumber: string; blockHash: string; txHash: string; who: string },
   metadataMap: Map<AssetId, AssetMetadata>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ): DefiEventPayload | null {
   const assetInMeta = metadataMap.get(assetIn)
   const assetOutMeta = metadataMap.get(assetOut)
@@ -122,7 +122,7 @@ function toSwapEventPayload(
 function mapSwapToOrderPayload(
   event: HydrationSwapEvent | HydrationDcaExecutedEvent,
   metadataMap: Map<AssetId, AssetMetadata>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ): DefiOrderPayload | null {
   const assetInMeta = metadataMap.get(event.assetIn)
   const assetOutMeta = metadataMap.get(event.assetOut)
@@ -132,9 +132,9 @@ function mapSwapToOrderPayload(
   }
   const amountIn = formatUnits(event.amountIn, assetInMeta.decimals ?? 0)
   const amountOut = formatUnits(event.amountOut, assetOutMeta.decimals ?? 0)
-  const avgAmountUSD =
-    (computeUsdValue(event.assetIn, Number(amountIn)) + computeUsdValue(event.assetOut, Number(amountOut))) /
-    2
+  const usdIn = computeUsdValue(event.assetIn, Number(amountIn))
+  const usdOut = computeUsdValue(event.assetOut, Number(amountOut))
+  const avgAmountUSD = usdIn && usdOut ? (usdIn + usdOut) / 2 : (usdIn ?? usdOut)
   const blockNumber = event.blockNumber.toString()
   const timestamp = event.timestamp ?? Date.now()
 
@@ -146,7 +146,7 @@ function mapSwapToOrderPayload(
     symbolOut: assetOutMeta.symbol ?? '??',
     amountIn,
     amountOut,
-    amountUSD: avgAmountUSD.toString(),
+    amountUSD: avgAmountUSD ? avgAmountUSD.toString() : undefined,
     blockNumber,
     blockHash: event.blockHash,
     eventIndex: event.event.blockPosition,
@@ -187,7 +187,7 @@ function mapSwapToOrderPayload(
 function mapDca(
   event: HydrationDcaEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ): Observable<DefiEventPayload | DefiOrderPayload> {
   const blockNumber = event.blockNumber.toString()
   const timestamp = event.timestamp ?? Date.now()
@@ -264,7 +264,7 @@ function mapLending(
   event: HydrationLendingEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ): Observable<DefiEventPayload> {
   const assetId = event.asset.toString()
 
@@ -309,7 +309,7 @@ function mapLiquidation(
   event: HydrationLiquidationEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ): Observable<DefiEventPayload> {
   const debtId = event.debtAsset.toString()
   const colId = event.collateralAsset.toString()
@@ -362,7 +362,7 @@ function mapLiquidation(
 function mapSwaps(
   event: HydrationSwapEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ) {
   const ids = [
     event.assetIn.toString(),
@@ -394,7 +394,7 @@ export function watchEvents(
   logger: Logger,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
-  computeUsdValue: (assetId: number, amount: number) => number,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ) {
   return (source$: Observable<Block>): Observable<DefiEventPayload | DefiOrderPayload> =>
     source$.pipe(

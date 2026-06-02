@@ -250,8 +250,11 @@ export function hydrationDexMonitor(
     })
   }
 
-  function computeUsdValue(assetId: number, amount: number): number {
-    return amount * (prices.get(assetId) ?? 0)
+  function computeUsdValue(assetId: number, amount: number): number | undefined {
+    const p = prices.get(assetId)
+    if (p) {
+      return amount * p
+    }
   }
 
   async function onBlock(block: Block) {
