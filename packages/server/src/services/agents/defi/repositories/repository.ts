@@ -189,7 +189,7 @@ export class DefiRepository {
           block_hash: payload.blockHash,
           tx_hash: payload.txHash,
           event_name: payload.name,
-          actor_address: actorAddress,
+          actor_address: actorAddress ?? '',
           counterparty_address: counterparty ?? null,
         })
         .execute()
