@@ -15,7 +15,6 @@ export type {
   DefiSubscriptionPayload,
   MoneyMarketActions,
   MoneyMarketPayload,
-  $DefiOrderStatus
 } from './types.js'
 
 /**

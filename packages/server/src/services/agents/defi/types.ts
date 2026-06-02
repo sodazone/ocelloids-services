@@ -45,7 +45,7 @@ export const $DefiAgentInputs = z.discriminatedUnion('topic', [
 export type DefiAgentInputs = z.infer<typeof $DefiAgentInputs>
 
 /**
- * @public
+ * @private
  */
 export const $DefiOrderStatus = z.enum(['placed', 'partially_filled', 'filled', 'cancelled', 'expired'])
 
@@ -180,7 +180,7 @@ export type DefiEventAsset = {
 /**
  * @public
  */
-export type DefiOrderStatus = z.infer<typeof $DefiOrderStatus>
+export type DefiOrderStatus = "placed" | "partially_filled" | "filled" | "cancelled" | "expired"
 
 /**
  * @public
