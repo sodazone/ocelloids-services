@@ -180,7 +180,7 @@ export type DefiEventAsset = {
 /**
  * @public
  */
-export type DefiOrderStatus = "placed" | "partially_filled" | "filled" | "cancelled" | "expired"
+export type DefiOrderStatus = 'placed' | 'partially_filled' | 'filled' | 'cancelled' | 'expired'
 
 /**
  * @public
