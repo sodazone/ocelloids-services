@@ -128,14 +128,25 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
       this.#writers.push(
         monitor.events$.subscribe({
           next: async (payload) => {
-            if (payload.type === 'liquidity') {
-              await this.#repository.upsertLiquidityData(payload)
-            } else if (payload.type === 'event') {
-              await this.#repository.insertDefiEvent(payload)
-            } else if (payload.type === 'price') {
-              await this.#repository.upsertDefiPrice(payload)
-            } else if (payload.type === 'order') {
-              // await this.#repository.processOrderFill(payload)
+            try {
+              if (payload.type === 'liquidity') {
+                await this.#repository.upsertLiquidityData(payload)
+              } else if (payload.type === 'event') {
+                await this.#repository.insertDefiEvent(payload)
+              } else if (payload.type === 'price') {
+                await this.#repository.upsertDefiPrice(payload)
+              } else if (payload.type === 'order') {
+                // await this.#repository.processOrderFill(payload)
+              }
+            } catch (e) {
+              this.#log.error(
+                e,
+                '[agent:%s] error writing event to db (type=%s, chain=%s, protocol=%s)',
+                this.id,
+                payload.type,
+                payload.networkId,
+                payload.protocol,
+              )
             }
           },
         }),
