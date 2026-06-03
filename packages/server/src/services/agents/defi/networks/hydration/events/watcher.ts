@@ -269,10 +269,11 @@ function mapLending(
   computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ): Observable<DefiEventPayload> {
   const assetId = event.asset.toString()
+  const actor = event.who.toLowerCase()
 
   return forkJoin({
     assets: resolveAssets([assetId], fetchAssetMetadata),
-    accounts: resolveAccounts([event.who.toLowerCase()], fetchAccounts),
+    accounts: resolveAccounts([actor], fetchAccounts),
   }).pipe(
     map(({ assets, accounts }) => {
       const assetMeta = assets.get(event.asset)
@@ -291,7 +292,7 @@ function mapLending(
         }),
         name: event.action as MoneyMarketActions,
         data: {
-          provider: accounts.get(event.who)!,
+          provider: accounts.get(actor)!,
           assets: [
             {
               amount: normalizedAmount,
@@ -316,10 +317,12 @@ function mapLiquidation(
   const debtId = event.debtAsset.toString()
   const colId = event.collateralAsset.toString()
   const name = 'liquidate' as const
+  const liquidator = event.who.toLowerCase()
+  const liquidated = event.counterparty.toLowerCase()
 
   return forkJoin({
     assets: resolveAssets([debtId, colId], fetchAssetMetadata),
-    accounts: resolveAccounts([event.who.toLowerCase(), event.counterparty.toLowerCase()], fetchAccounts),
+    accounts: resolveAccounts([liquidator, liquidated], fetchAccounts),
   }).pipe(
     map(({ assets, accounts }) => {
       const debt = assets.get(event.debtAsset)
@@ -340,8 +343,8 @@ function mapLiquidation(
         }),
         name,
         data: {
-          origin: accounts.get(event.who)!,
-          counterparty: accounts.get(event.counterparty)!,
+          origin: accounts.get(liquidator)!,
+          counterparty: accounts.get(liquidated)!,
           debt: {
             amount: normalizedDebtAmount,
             assetId: debtId,
