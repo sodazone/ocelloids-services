@@ -56,6 +56,8 @@ function resolveAccounts(
         const result = res[i]
         if (isAccountMetadata(result)) {
           map.set(addr, result.publicKey ?? addr)
+        } else {
+          map.set(addr, addr)
         }
       })
 
@@ -270,7 +272,7 @@ function mapLending(
 
   return forkJoin({
     assets: resolveAssets([assetId], fetchAssetMetadata),
-    accounts: resolveAccounts([event.who], fetchAccounts),
+    accounts: resolveAccounts([event.who.toLowerCase()], fetchAccounts),
   }).pipe(
     map(({ assets, accounts }) => {
       const assetMeta = assets.get(event.asset)
@@ -317,7 +319,7 @@ function mapLiquidation(
 
   return forkJoin({
     assets: resolveAssets([debtId, colId], fetchAssetMetadata),
-    accounts: resolveAccounts([event.who, event.counterparty], fetchAccounts),
+    accounts: resolveAccounts([event.who.toLowerCase(), event.counterparty.toLowerCase()], fetchAccounts),
   }).pipe(
     map(({ assets, accounts }) => {
       const debt = assets.get(event.debtAsset)
