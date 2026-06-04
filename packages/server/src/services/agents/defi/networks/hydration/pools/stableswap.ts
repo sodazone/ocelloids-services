@@ -173,17 +173,13 @@ export function createStableswapWatcher(
       ),
     )
 
-    const poolIds = pools.map(({key}) => key[0])
+    const poolIds = pools.map(({ key }) => key[0])
 
     const [tokenIssuances, poolPegs] = await Promise.all([
       firstValueFrom(
-        storageEntriesAtLatest$<[number], bigint>(
-          ingress,
-          CHAIN_ID,
-          'Tokens',
-          'TotalIssuance',
-          poolIds,
-        ).pipe(toArray()),
+        storageEntriesAtLatest$<[number], bigint>(ingress, CHAIN_ID, 'Tokens', 'TotalIssuance', poolIds).pipe(
+          toArray(),
+        ),
       ),
       firstValueFrom(
         storageEntriesAtLatest$<[number], PoolPegInfo>(

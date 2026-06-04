@@ -21,9 +21,7 @@ export function createXykWatcher(
 ) {
   async function loadPools(): Promise<XykPool[]> {
     const pairs = await firstValueFrom(
-      storageEntriesAtLatest$<[string], XykPoolValue>(ingress, CHAIN_ID, 'XYK', 'PoolAssets').pipe(
-        toArray(),
-      ),
+      storageEntriesAtLatest$<[string], XykPoolValue>(ingress, CHAIN_ID, 'XYK', 'PoolAssets').pipe(toArray()),
     )
 
     const xykPools: XykPool[] = []

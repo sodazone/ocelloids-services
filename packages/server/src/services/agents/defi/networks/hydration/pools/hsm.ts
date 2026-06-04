@@ -4,7 +4,6 @@ import { CustomDiscoveryFetcher } from '@/services/agents/steward/balances/types
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { storageEntriesAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { HexString } from '@/services/subscriptions/types.js'
 import ghoTokenAbi from '../abi/gho_token.json' with { type: 'json' }
 import { CHAIN_ID, EVM_CHAIN_ID, HOLLAR_EVM_ADDRESS, HOLLAR_ID, HSM_FACILITATOR_ADDRESS } from '../consts.js'
 import {
