@@ -14,11 +14,6 @@ type OmnipoolValue = {
   tradable: number
 }
 
-function parseAssetId(key: HexString): number {
-  const bytes = Buffer.from(key.slice(2), 'hex')
-  return bytes.readUInt32LE(0)
-}
-
 export function createOmnipoolWatcher(
   ingress: SubstrateIngressConsumer,
   fetchBalances: CustomDiscoveryFetcher,
@@ -28,18 +23,18 @@ export function createOmnipoolWatcher(
     const balances = await fetchBalances(OMNIPOOL_ADDRESS)
 
     const omniAssets = await firstValueFrom(
-      storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
+      storageEntriesAtLatest$<[number], OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
         toArray(),
       ),
     )
 
-    const assetMetadata = await fetchAssetMetadata(omniAssets.map(({ key }) => parseAssetId(key).toString()))
+    const assetMetadata = await fetchAssetMetadata(omniAssets.map(({ key }) => key[0].toString()))
 
     const tokens: OmniPoolToken[] = []
 
     for (const { key, value } of omniAssets) {
       try {
-        const assetId = parseAssetId(key)
+        const assetId = key[0]
 
         const { hub_reserve, cap, protocol_shares, shares } = value
 
@@ -78,7 +73,7 @@ export function createOmnipoolWatcher(
       const balances = await fetchBalances(OMNIPOOL_ADDRESS)
 
       const omniAssets = await firstValueFrom(
-        storageEntriesAtLatest$<HexString, OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
+        storageEntriesAtLatest$<[number], OmnipoolValue>(ingress, CHAIN_ID, 'Omnipool', 'Assets').pipe(
           toArray(),
         ),
       )
@@ -86,8 +81,7 @@ export function createOmnipoolWatcher(
 
       for (const { key, value } of omniAssets) {
         try {
-          const bytes = Buffer.from(key.slice(2), 'hex')
-          const assetId = bytes.readUInt32LE(0)
+          const assetId = key[0]
 
           const { hub_reserve, cap, protocol_shares, shares } = value
 

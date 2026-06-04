@@ -37,7 +37,7 @@ export function createHSMWatcher(
       fetchBalances(HSM_FACILITATOR_ADDRESS),
       fetchAssetMetadata([HOLLAR_ID.toString()]),
       firstValueFrom(
-        storageEntriesAtLatest$<HexString, HsmCollateralsValue>(ingress, CHAIN_ID, 'HSM', 'Collaterals').pipe(
+        storageEntriesAtLatest$<[number], HsmCollateralsValue>(ingress, CHAIN_ID, 'HSM', 'Collaterals').pipe(
           toArray(),
         ),
       ),
@@ -65,7 +65,7 @@ export function createHSMWatcher(
     const collateralTokens: HsmCollateralToken[] = []
 
     for (const { key, value } of collateralsResult) {
-      const collateralId = Buffer.from(key.slice(2), 'hex').readUInt32LE(0)
+      const collateralId = key[0]
       const { pool_id, max_buy_price_coefficient, max_in_holding, purchase_fee, buy_back_fee, buyback_rate } =
         value
       const stablePool = stablePools.find((p) => p.id === pool_id)

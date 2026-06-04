@@ -168,23 +168,16 @@ export function createStableswapWatcher(
 
   async function loadPools(block: Block): Promise<StableSwapPool[]> {
     const pools = await firstValueFrom(
-      storageEntriesAtLatest$<HexString, StablePoolValue>(ingress, CHAIN_ID, 'Stableswap', 'Pools').pipe(
+      storageEntriesAtLatest$<[number], StablePoolValue>(ingress, CHAIN_ID, 'Stableswap', 'Pools').pipe(
         toArray(),
       ),
     )
 
-    const keysToPoolIdsMap = new Map(
-      pools.map(({ key }) => {
-        const bytes = Buffer.from(key.slice(2), 'hex')
-        const poolId = bytes.readUInt32LE(0)
-        return [key, poolId]
-      }),
-    )
-    const poolIds = [...keysToPoolIdsMap.values()]
+    const poolIds = pools.map(({key}) => key[0])
 
     const [tokenIssuances, poolPegs] = await Promise.all([
       firstValueFrom(
-        storageEntriesAtLatest$<HexString, bigint>(
+        storageEntriesAtLatest$<[number], bigint>(
           ingress,
           CHAIN_ID,
           'Tokens',
@@ -193,7 +186,7 @@ export function createStableswapWatcher(
         ).pipe(toArray()),
       ),
       firstValueFrom(
-        storageEntriesAtLatest$<HexString, PoolPegInfo>(
+        storageEntriesAtLatest$<[number], PoolPegInfo>(
           ingress,
           CHAIN_ID,
           'Stableswap',
@@ -206,18 +199,14 @@ export function createStableswapWatcher(
     const stablePools: StableSwapPool[] = []
 
     for (const { key, value: poolDetails } of pools) {
-      const poolId = keysToPoolIdsMap.get(key)
-      if (poolId === undefined) {
-        console.error(`Pool ID not found for key ${key}`)
-        continue
-      }
+      const poolId = key[0]
       try {
-        const totalIssuance = tokenIssuances.find((iss) => iss.key === key)?.value
+        const totalIssuance = tokenIssuances.find((iss) => iss.key[0] === poolId)?.value
         if (totalIssuance === undefined) {
-          console.error(`Issuance not found for stableswap pool ${poolId}`)
+          console.error(`Issuance not found for stableswap pool ${poolId} on initalise`)
           continue
         }
-        const pegs = poolPegs.find((p) => p.key === key)?.value
+        const pegs = poolPegs.find((p) => p.key[0] === poolId)?.value
         const mapped = await mapPool({ poolId, poolDetails, totalIssuance, pegs, block })
 
         stablePools.push(mapped)
@@ -228,7 +217,7 @@ export function createStableswapWatcher(
     return stablePools
   }
 
-  async function updatePoolReserves(pools: StableSwapPool[], block: Block): Promise<StableSwapPool[]> {
+  async function updatePoolReserves(pools: StableSwapPool[], _block: Block): Promise<StableSwapPool[]> {
     const updatedPools: StableSwapPool[] = []
     for (const pool of pools) {
       try {
@@ -255,7 +244,7 @@ export function createStableswapWatcher(
         ])
 
         if (!totalIssuance) {
-          console.error(`Issuance not found for stableswap pool ${id}`)
+          console.error(`Issuance not found for stableswap pool ${id} on update`)
           continue
         }
 
