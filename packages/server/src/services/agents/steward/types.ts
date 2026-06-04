@@ -8,7 +8,6 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { StorageCodec, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { Scheduler } from '@/services/scheduling/scheduler.js'
 import { AnyJson, LevelDB, Logger, NetworkURN, OpenLevelDB } from '@/services/types.js'
-import { SubstrateAccountMetadata } from './accounts/types.js'
 
 const HEX_REGEX = /^0x[0-9a-fA-F]+$/
 const $HexString = z.string().regex(HEX_REGEX, 'publicKey must be a hex string starting with 0x')
@@ -231,6 +230,56 @@ export type AssetMetadata = AssetIds & {
   externalIds: AssetIds[]
   updated: number
   raw: Record<string, any>
+}
+
+/**
+ * Account identity data.
+ *
+ * @public
+ */
+export type AccountIdentity = {
+  chainId: NetworkURN
+  display: string
+  judgements: string[]
+  extra: Record<string, any>
+}
+
+/**
+ * Account category data.
+ *
+ * @public
+ */
+export type AccountCategory = {
+  chainId: NetworkURN
+  categoryCode: number
+  subCategoryCode?: number
+}
+
+/**
+ * Account tags.
+ *
+ * @public
+ */
+export type AccountTag = {
+  chainId: NetworkURN
+  tag: string
+}
+
+/**
+ * Account metadata.
+ *
+ * @public
+ */
+export type SubstrateAccountMetadata = {
+  publicKey: HexString
+  evm: {
+    address: HexString
+    chainId: NetworkURN
+  }[]
+  identities: AccountIdentity[]
+  categories: AccountCategory[]
+  tags: AccountTag[]
+  updatedAt: number
 }
 
 /**

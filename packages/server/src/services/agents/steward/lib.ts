@@ -1,10 +1,4 @@
-import type {
-  AccountCategory,
-  AccountIdentity,
-  AccountTag,
-  SubstrateAccountMetadata,
-  SubstrateAccountResult,
-} from './accounts/types.js'
+import type { SubstrateAccountResult } from './accounts/types.js'
 import type {
   AccountData,
   AssetData,
@@ -16,7 +10,15 @@ import type {
   StatusEvent,
   SyncedEvent,
 } from './balances/sse.js'
-import type { AssetId, AssetIds, AssetMetadata } from './types.js'
+import type {
+  AccountCategory,
+  AccountIdentity,
+  AccountTag,
+  AssetId,
+  AssetIds,
+  AssetMetadata,
+  SubstrateAccountMetadata,
+} from './types.js'
 
 /**
  * @public

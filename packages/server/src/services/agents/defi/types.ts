@@ -1,5 +1,6 @@
 import z from 'zod'
 import { $NetworkString } from '@/common/types.js'
+import { AssetMetadata, Empty, SubstrateAccountMetadata } from '../steward/types.js'
 
 /**
  * @public
@@ -359,4 +360,10 @@ export function isLiquidationEvent(
   payload: DefiSubscriptionPayload,
 ): payload is Extract<DefiEventPayload, { name: 'liquidate' }> {
   return payload.type === 'event' && payload.name === 'liquidate'
+}
+
+export type DefiMonitorDependencies = {
+  fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
+  fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
+  listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
 }

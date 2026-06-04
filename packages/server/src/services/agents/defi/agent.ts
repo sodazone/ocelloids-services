@@ -7,9 +7,14 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { resolveDataPath } from '@/services/persistence/util.js'
 import { Subscription } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { DataSteward } from '../steward/agent.js'
-import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '../steward/types.js'
+import {
+  AssetMetadata,
+  Empty,
+  isAssetMetadata,
+  StewardQueryArgs,
+  SubstrateAccountMetadata,
+} from '../steward/types.js'
 import { TickerAgent } from '../ticker/agent.js'
 import {
   Agent,

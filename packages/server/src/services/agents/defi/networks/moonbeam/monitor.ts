@@ -1,21 +1,15 @@
 import { mergeMap, Subject, share } from 'rxjs'
 import { networks } from '@/services/agents/common/networks.js'
-import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
-import { AssetMetadata, Empty } from '@/services/agents/steward/types.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { Logger } from '@/services/types.js'
-import { DefiPricePayload, DefiSubscriptionPayload } from '../../types.js'
+import { DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
 import { createMoonwellProcessor } from './moonwell/processor.js'
 import { createStellaswapProcessor } from './stellaswap/index.js'
 
 export function moonbeamDexMonitor(
   logger: Logger,
   ingress: EvmIngressConsumer,
-  deps?: {
-    fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
-    fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
-    listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
-  },
+  deps?: DefiMonitorDependencies,
 ) {
   const chainId = networks.moonbeam_evm
   const subject = new Subject<DefiSubscriptionPayload>()

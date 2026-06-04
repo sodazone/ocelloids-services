@@ -1,13 +1,11 @@
 import { firstValueFrom, Subject, Subscription, share } from 'rxjs'
 import { formatUnits } from 'viem'
-import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
-import { AssetMetadata, Empty } from '@/services/agents/steward/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
-import { DefiLiquidityAsset, DefiPricePayload, DefiSubscriptionPayload } from '../../types.js'
+import { DefiLiquidityAsset, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
 import { CHAIN_ID } from './consts.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
@@ -22,15 +20,7 @@ const PRICE_EMISSION_THRESHOLD = 0.0001
 export function hydrationDexMonitor(
   logger: Logger,
   ingress: IngressConsumers,
-  {
-    fetchAccounts,
-    fetchAssetMetadata: fetchAssetMeta,
-    listLatestPrices,
-  }: {
-    fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
-    fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
-    listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
-  },
+  { fetchAccounts, fetchAssetMetadata: fetchAssetMeta, listLatestPrices }: DefiMonitorDependencies,
 ) {
   const fetchAssetMetadata = (assets: string[]) => fetchAssetMeta(CHAIN_ID, assets)
 
