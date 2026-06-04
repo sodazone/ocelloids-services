@@ -1,35 +1,27 @@
 import { fromBufferToBase58 } from '@polkadot-api/substrate-bindings'
 import { fromHex } from 'polkadot-api/utils'
-import { filter } from 'rxjs'
 import { isEVMAddress } from '@/common/util.js'
 import { HexString, NetworkURN } from '@/lib.js'
 import { networks } from '@/services/agents/common/networks.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { bigintToPaddedHex } from '../../util.js'
 import {
   BalancesStreamMapper,
   CustomDiscoveryFetcher,
   RuntimeCallMapper,
   StorageKeyMapper,
 } from '../types.js'
-import { getFrontierAccountStoragesSlot } from '../util.js'
-import {
-  assetsBalances$,
-  foreignAssetsBalances$,
-  toAssetsStorageKey,
-  toForeignAssetsStorageKey,
-} from './assets.js'
+import { toAssetsStorageKey, toForeignAssetsStorageKey } from './assets.js'
 import { hydrationBalancesFetcher, hydrationCurrecies$, hydrationEVM$ } from './hydration.js'
-import { moonbeamBalances$, toErc20RuntimeQuery, toEVMStorageKey } from './moonbeam.js'
+import { toErc20RuntimeQuery } from './moonbeam.js'
 import { nativeBalances$, toNativeStorageKey } from './native.js'
-import { tokensBalances$, toTokenStorageKey } from './tokens.js'
+import { tokensBalances$ } from './tokens.js'
 
-const getDefaultBalancesStream: (chainId: NetworkURN) => BalancesStreamMapper = (chainId) => (ingress) => {
+const _getDefaultBalancesStream: (chainId: NetworkURN) => BalancesStreamMapper = (chainId) => (ingress) => {
   return [nativeBalances$(chainId, ingress)]
 }
 
 export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = {
-  [networks.polkadot]: getDefaultBalancesStream(networks.polkadot),
+  /*[networks.polkadot]: getDefaultBalancesStream(networks.polkadot),
   [networks.assetHub]: (ingress) => {
     const chainId = networks.assetHub
     return [
@@ -66,7 +58,7 @@ export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = 
     const chainId = networks.bifrost
     return [nativeBalances$(chainId, ingress), tokensBalances$(chainId, ingress)]
   },
-  [networks.centrifuge]: getDefaultBalancesStream(networks.centrifuge),
+  [networks.centrifuge]: getDefaultBalancesStream(networks.centrifuge),*/
   [networks.hydration]: (ingress) => {
     const chainId = networks.hydration
     return [
@@ -76,6 +68,7 @@ export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = 
       hydrationCurrecies$(chainId, ingress),
     ]
   },
+  /*
   [networks.interlay]: getDefaultBalancesStream(networks.interlay),
   [networks.hyperbridge]: getDefaultBalancesStream(networks.hyperbridge),
   [networks.kusama]: getDefaultBalancesStream(networks.kusama),
@@ -97,10 +90,10 @@ export const balanceEventsSubscriptions: Record<string, BalancesStreamMapper> = 
       assetsBalances$(chainId, ingress),
       foreignAssetsBalances$(chainId, ingress),
     ]
-  },
+  },*/
 }
 
-function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
+function _skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
   return ((assetId, account, apiCtx) => {
     if (isEVMAddress(account)) {
       return null
@@ -109,7 +102,7 @@ function skipEVMAccounts<T extends (...args: any[]) => any>(mapper: T): T {
   }) as T
 }
 
-const baseDefaultStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
+const _baseDefaultStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
   if (id === 'native') {
     const ss58Account = fromBufferToBase58(0)(fromHex(account))
     return toNativeStorageKey(ss58Account, apiCtx)
@@ -117,7 +110,7 @@ const baseDefaultStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) 
   return null
 }
 
-const assetHubStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
+const _assetHubStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => {
   const ss58Account = fromBufferToBase58(0)(fromHex(account))
   if (id === 'native') {
     return toNativeStorageKey(ss58Account, apiCtx)
@@ -132,14 +125,14 @@ const assetHubStorageKeyMapper: StorageKeyMapper = ({ id }, account, apiCtx) => 
 }
 
 export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
-  [networks.polkadot]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.assetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
-  [networks.bridgeHub]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.people]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.coretime]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.acala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.phala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.mythos]: ({ id }, account, apiCtx) => {
+  //[networks.polkadot]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.assetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
+  //[networks.bridgeHub]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.people]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.coretime]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.acala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.phala]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  /*[networks.mythos]: ({ id }, account, apiCtx) => {
     if (account.length > 42) {
       // Substrate addresses cannot be mapped to Mythos EVM address
       return null
@@ -190,17 +183,17 @@ export const balancesStorageMappers: Record<string, StorageKeyMapper | null> = {
       return toNativeStorageKey(ss58Account, apiCtx)
     }
     return toTokenStorageKey(id, ss58Account, apiCtx)
-  }),
-  [networks.centrifuge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+    }),*/
+  //[networks.centrifuge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
   [networks.hydration]: null, // uses custom fetcher
-  [networks.interlay]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.hyperbridge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.kusama]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.kusamaBridgeHub]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.kusamaCoretime]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.kusamaAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
-  [networks.paseo]: skipEVMAccounts(baseDefaultStorageKeyMapper),
-  [networks.paseoAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
+  //[networks.interlay]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.hyperbridge]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.kusama]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.kusamaBridgeHub]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.kusamaCoretime]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.kusamaAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
+  //[networks.paseo]: skipEVMAccounts(baseDefaultStorageKeyMapper),
+  //[networks.paseoAssetHub]: skipEVMAccounts(assetHubStorageKeyMapper),
 }
 
 export const balancesRuntimeCallMappers: Record<string, RuntimeCallMapper | null> = {
