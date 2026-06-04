@@ -24,12 +24,14 @@ import { Block, BlockWithLogs, SerializableLog } from './types.js'
 
 const MAX_SEEN_BLOCKS = 128
 const MAX_RPC_CONCURRENCY = 10
+
 // TODO: move to config
 const defaultConfirmations: Record<string, number> = {
   ethereum: 1,
   polygon: 1,
   arbitrum: 0,
   optimism: 0,
+  moonbeam: 0,
   'bnb smart chain': 25, // higher confirmations to avoid getBlockByNumber errors
 }
 
