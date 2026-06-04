@@ -3,7 +3,7 @@ import { moonbeamDexMonitor } from '@/services/agents/defi/networks/moonbeam/mon
 import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
 import { initRuntime } from './ctx.js'
 
-process.env.OC_SUBSTRATE_BACKFILL_FILE = './b.json'
+// process.env.OC_SUBSTRATE_BACKFILL_FILE = './b.json'
 
 const { services } = initRuntime()
 
