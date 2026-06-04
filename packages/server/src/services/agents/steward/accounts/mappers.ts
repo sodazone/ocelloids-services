@@ -23,8 +23,9 @@ import { NetworkURN } from '@/services/types.js'
 import { getStablePoolPublicKey } from '../../common/hydration.js'
 import { networks } from '../../common/networks.js'
 import { assetOverrides } from '../metadata/overrides.js'
+import { SubstrateAccountMetadata } from '../types.js'
 import { accountOverrides } from './overrides.js'
-import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
+import { SubstrateAccountUpdate } from './types.js'
 
 function decodeData(data: any): string | undefined {
   if (!data) {

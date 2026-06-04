@@ -1,5 +1,6 @@
+import { SubstrateAccountMetadata } from '../types.js'
 import { mergeAccountMetadata } from './mappers.js'
-import { SubstrateAccountMetadata, SubstrateAccountUpdate } from './types.js'
+import { SubstrateAccountUpdate } from './types.js'
 
 describe('mappers', () => {
   describe('mergeAccountMetadata', () => {

@@ -10,6 +10,7 @@ import {
   isAccountMetadata,
   isAssetMetadata,
   StewardQueryArgs,
+  SubstrateAccountMetadata,
 } from '@/services/agents/steward/types.js'
 import { TickerAgent } from '@/services/agents/ticker/agent.js'
 import { AggregatedPriceData, TickerQueryArgs } from '@/services/agents/ticker/types.js'
@@ -18,7 +19,6 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { isXcmLocation } from '@/services/networking/substrate/util.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { SubstrateAccountMetadata } from '../steward/accounts/types.js'
 import { QueryParams, QueryResult } from '../types.js'
 import { isSystemAccount, resolveEvmToSubstratePubKey } from './convert.js'
 import { transferStreamMappers } from './streams/index.js'
