@@ -142,6 +142,9 @@ export type MoneyMarketPayload = Partial<{
   }
 }>
 
+/**
+ * @public
+ */
 export type LiquidStakingPayload = Partial<{
   totalStaked: string
   stakingNetwork: string

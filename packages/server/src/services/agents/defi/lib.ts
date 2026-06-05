@@ -15,6 +15,7 @@ export type {
   DefiSubscriptionPayload,
   MoneyMarketActions,
   MoneyMarketPayload,
+  LiquidStakingPayload
 } from './types.js'
 
 /**
