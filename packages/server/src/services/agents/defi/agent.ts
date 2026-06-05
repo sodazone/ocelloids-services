@@ -16,6 +16,7 @@ import {
   SubstrateAccountMetadata,
 } from '../steward/types.js'
 import { TickerAgent } from '../ticker/agent.js'
+import { AggregatedPriceData, TickerQueryArgs } from '../ticker/types.js'
 import {
   Agent,
   AgentMetadata,
@@ -26,6 +27,7 @@ import {
   QueryResult,
   Subscribable,
 } from '../types.js'
+import { bifrostDefiMonitor } from './networks/bifrost/monitor.js'
 import { hydrationDexMonitor } from './networks/hydration/monitor.js'
 import { moonbeamDexMonitor } from './networks/moonbeam/monitor.js'
 import { createDefiDatabase } from './repositories/db.js'
@@ -122,9 +124,11 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
       fetchAccounts: this.#fetchAccounts.bind(this),
       fetchAssetMetadata: this.#fetchAssetMetadata.bind(this),
       listLatestPrices: this.#listLatestPrices.bind(this),
+      fetchTickerPrices: this.#fetchTickerPrices.bind(this),
     }
 
     this.#addMonitors(
+      bifrostDefiMonitor(this.#log, this.#ingress, deps),
       hydrationDexMonitor(this.#log, this.#ingress, deps),
       moonbeamDexMonitor(this.#log, this.#ingress.evm, deps),
     )
@@ -353,6 +357,20 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
         },
       },
     } as QueryParams<StewardQueryArgs>)) as QueryResult<SubstrateAccountMetadata | Empty>
+
+    return items
+  }
+
+  async #fetchTickerPrices(chainId: string, assets: string[]): Promise<AggregatedPriceData[]> {
+    const criteria = assets.map((asset) => ({
+      ticker: asset,
+    }))
+    const { items } = (await this.#dependencies.ticker.query({
+      args: {
+        op: 'prices.by_ticker',
+        criteria,
+      },
+    } as QueryParams<TickerQueryArgs>)) as QueryResult<AggregatedPriceData>
 
     return items
   }

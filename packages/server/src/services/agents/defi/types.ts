@@ -1,6 +1,7 @@
 import z from 'zod'
 import { $NetworkString } from '@/common/types.js'
 import { AssetMetadata, Empty, SubstrateAccountMetadata } from '../steward/types.js'
+import { AggregatedPriceData } from '../ticker/types.js'
 
 /**
  * @public
@@ -119,7 +120,8 @@ export type DefiLiquidityAsset = {
     reserves: string
   }
 
-  role?: 'liquid' | 'collateral' | 'debt'
+  role?: 'liquid' | 'collateral' | 'debt' | 'lst' | 'staked'
+  holdingAccount?: string
 }
 
 /**
@@ -140,10 +142,17 @@ export type MoneyMarketPayload = Partial<{
   }
 }>
 
+export type LiquidStakingPayload = Partial<{
+  totalStaked: string
+  stakingNetwork: string
+  exchangeRate: number
+  backingRatio: number
+}>
+
 /**
  * @public
  */
-export type DefiLiquidityCategory = 'exchange' | 'money-market' | 'stability'
+export type DefiLiquidityCategory = 'exchange' | 'money-market' | 'stability' | 'liquid-staking'
 
 /**
  * @public
@@ -161,6 +170,7 @@ export type DefiLiquidityPayload = {
   assets: DefiLiquidityAsset[]
 
   lending?: MoneyMarketPayload
+  liquidStaking?: LiquidStakingPayload
 }
 
 /**
@@ -230,6 +240,13 @@ export type DefiEventPayload = {
         counterparty: string
         debt: DefiEventAsset
         collateral: DefiEventAsset
+      }
+    }
+  | {
+      name: 'lst_mint' | 'lst_redeem'
+      data: {
+        provider: string
+        assets: DefiEventAsset[]
       }
     }
 )
@@ -366,4 +383,5 @@ export type DefiMonitorDependencies = {
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
   fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
   listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
+  fetchTickerPrices: (chainId: string, assets: string[]) => Promise<AggregatedPriceData[]>
 }
