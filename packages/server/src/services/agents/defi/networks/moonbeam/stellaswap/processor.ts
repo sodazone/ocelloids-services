@@ -13,6 +13,7 @@ import { algebraPools, tokens } from './definitions.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
+const PROTOCOL = 'stellaswap-v4'
 const PRICE_EMISSION_THRESHOLD = 0.0001
 
 export function createStellaswapProcessor({
@@ -90,7 +91,7 @@ export function createStellaswapProcessor({
         subject.next({
           type: 'liquidity',
           category: 'exchange',
-          protocol: 'stellaswap-v4',
+          protocol: PROTOCOL,
           marketId: p.pool.address.toLowerCase(),
           networkId: chainId,
           suppliedUSD: Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1,
@@ -135,13 +136,13 @@ export function createStellaswapProcessor({
           decimals: tokenMeta.decimals,
           networkId: chainId,
           priceUSD: price.toString(),
-          protocol: 'stellaswap',
+          protocol: PROTOCOL,
           symbol: assetSymbol,
           updatedAt: Date.now(),
         })
       }
     } catch (err) {
-      console.error('[stellaswap] liquidity update failed', err)
+      console.error('[defi:stellaswap] liquidity update failed', err)
     }
   }
 
@@ -164,7 +165,7 @@ export function createStellaswapProcessor({
             type: 'event' as const,
             id: ulid(),
             marketId: log.address,
-            protocol: 'stellaswap',
+            protocol: PROTOCOL,
             networkId: chainId,
             blockNumber: log.blockNumber,
             blockHash: log.blockHash,
