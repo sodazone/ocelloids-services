@@ -13,7 +13,7 @@ export function moonbeamDexMonitor(
 ) {
   const chainId = networks.moonbeam_evm
   const subject = new Subject<DefiSubscriptionPayload>()
-  const ctx = { logger, chainId, ingress, subject }
+  const ctx = { logger, chainId, assetChainId: networks.moonbeam, ingress, subject }
   const processors = [createMoonwellProcessor(ctx), createStellaswapProcessor(ctx)]
 
   async function start() {

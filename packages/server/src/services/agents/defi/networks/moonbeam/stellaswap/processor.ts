@@ -2,6 +2,7 @@ import { filter, map, Observable, Subject, Subscription, share } from 'rxjs'
 import { ulid } from 'ulidx'
 import { Abi, formatUnits } from 'viem'
 import { NetworkURN } from '@/lib.js'
+import { toAssetId } from '@/services/agents/common/assets.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
@@ -13,16 +14,19 @@ import { algebraPools, tokens } from './definitions.js'
 import { computeUSDPrices } from './pricing.js'
 import { BurnEventArgs, MintEventArgs, PriceEdge, SwapEventArgs } from './types.js'
 
+const PROTOCOL = 'stellaswap-v4'
 const PRICE_EMISSION_THRESHOLD = 0.0001
 
 export function createStellaswapProcessor({
   logger,
   chainId,
+  assetChainId,
   ingress,
   subject,
 }: {
   logger: Logger
   chainId: NetworkURN
+  assetChainId: NetworkURN
   ingress: EvmIngressConsumer
   subject: Subject<DefiSubscriptionPayload>
 }) {
@@ -90,20 +94,20 @@ export function createStellaswapProcessor({
         subject.next({
           type: 'liquidity',
           category: 'exchange',
-          protocol: 'stellaswap-v4',
+          protocol: PROTOCOL,
           marketId: p.pool.address.toLowerCase(),
           networkId: chainId,
           suppliedUSD: Number(p.reserve0) * priceUSD0 + Number(p.reserve1) * priceUSD1,
           assets: [
             {
-              assetId: tokens[p.pool.token0].address.toLowerCase(),
+              assetId: toAssetId(assetChainId, tokens[p.pool.token0].address.toLowerCase()),
               symbol: p.pool.token0,
               decimals: tokens[p.pool.token0].decimals,
               priceUSD: priceUSD0,
               balances: { total: p.reserve0, reserves: p.reserve0 },
             },
             {
-              assetId: tokens[p.pool.token1].address.toLowerCase(),
+              assetId: toAssetId(assetChainId, tokens[p.pool.token1].address.toLowerCase()),
               symbol: p.pool.token1,
               decimals: tokens[p.pool.token1].decimals,
               priceUSD: priceUSD1,
@@ -131,17 +135,17 @@ export function createStellaswapProcessor({
         }
         subject.next({
           type: 'price',
-          assetId: tokenMeta.address.toLowerCase(),
+          assetId: toAssetId(assetChainId, tokenMeta.address.toLowerCase()),
           decimals: tokenMeta.decimals,
           networkId: chainId,
           priceUSD: price.toString(),
-          protocol: 'stellaswap',
+          protocol: PROTOCOL,
           symbol: assetSymbol,
           updatedAt: Date.now(),
         })
       }
     } catch (err) {
-      console.error('[stellaswap] liquidity update failed', err)
+      console.error('[defi:stellaswap] liquidity update failed', err)
     }
   }
 
@@ -164,7 +168,7 @@ export function createStellaswapProcessor({
             type: 'event' as const,
             id: ulid(),
             marketId: log.address,
-            protocol: 'stellaswap',
+            protocol: PROTOCOL,
             networkId: chainId,
             blockNumber: log.blockNumber,
             blockHash: log.blockHash,
@@ -192,13 +196,13 @@ export function createStellaswapProcessor({
               data: {
                 origin: args.sender,
                 in: {
-                  assetId: (isA0In ? token0 : token1).address.toLowerCase(),
+                  assetId: toAssetId(assetChainId, (isA0In ? token0 : token1).address.toLowerCase()),
                   symbol: isA0In ? pool.token0 : pool.token1,
                   amount: input.amount,
                   amountUSD: input.price ? Number(input.amount) * input.price : undefined,
                 },
                 out: {
-                  assetId: (isA0In ? token1 : token0).address.toLowerCase(),
+                  assetId: toAssetId(assetChainId, (isA0In ? token1 : token0).address.toLowerCase()),
                   symbol: isA0In ? pool.token1 : pool.token0,
                   amount: output.amount,
                   amountUSD: output.price ? Number(output.amount) * output.price : undefined,
@@ -219,13 +223,13 @@ export function createStellaswapProcessor({
               provider: args.owner,
               assets: [
                 {
-                  assetId: token0.address.toLowerCase(),
+                  assetId: toAssetId(assetChainId, token0.address.toLowerCase()),
                   symbol: pool.token0,
                   amount: normalized0,
                   amountUSD: price0 ? price0 * Number(normalized0) : undefined,
                 },
                 {
-                  assetId: token1.address.toLowerCase(),
+                  assetId: toAssetId(assetChainId, token1.address.toLowerCase()),
                   symbol: pool.token1,
                   amount: normalized1,
                   amountUSD: price1 ? price1 * Number(normalized1) : undefined,

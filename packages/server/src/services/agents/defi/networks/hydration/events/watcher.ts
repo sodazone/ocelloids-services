@@ -1,6 +1,7 @@
 import { EMPTY, filter, forkJoin, from, map, mergeMap, Observable, of } from 'rxjs'
 import { ulid } from 'ulidx'
 import { formatUnits } from 'viem'
+import { toAssetId } from '@/services/agents/common/assets.js'
 import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
 import { AssetId, AssetMetadata, Empty, isAccountMetadata } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
@@ -107,13 +108,13 @@ function toSwapEventPayload(
       origin: who,
       in: {
         amount: normalizedAmountIn,
-        assetId: assetIn.toString(),
+        assetId: toAssetId(CHAIN_ID, assetIn),
         symbol: assetInMeta.symbol ?? '??',
         amountUSD: computeUsdValue(assetIn, Number(normalizedAmountIn)),
       },
       out: {
         amount: normalizedAmountOut,
-        assetId: assetOut.toString(),
+        assetId: toAssetId(CHAIN_ID, assetOut),
         symbol: assetOutMeta.symbol ?? '??',
         amountUSD: computeUsdValue(assetOut, Number(normalizedAmountOut)),
       },
@@ -245,8 +246,8 @@ function mapDca(
         {
           ...baseOrderDetails,
           creation: {
-            assetIn: event.assetIn.toString(),
-            assetOut: event.assetOut.toString(),
+            assetIn: toAssetId(CHAIN_ID, event.assetIn),
+            assetOut: toAssetId(CHAIN_ID, event.assetOut),
             symbolIn: assetInMeta.symbol ?? '??',
             symbolOut: assetOutMeta.symbol ?? '??',
             createdAtBlock: blockNumber,
@@ -296,7 +297,7 @@ function mapLending(
           assets: [
             {
               amount: normalizedAmount,
-              assetId,
+              assetId: toAssetId(CHAIN_ID, assetId),
               symbol: assetMeta.symbol ?? '??',
               amountUSD: computeUsdValue(event.asset, Number(normalizedAmount)),
             },
@@ -347,13 +348,13 @@ function mapLiquidation(
           counterparty: accounts.get(liquidated)!,
           debt: {
             amount: normalizedDebtAmount,
-            assetId: debtId,
+            assetId: toAssetId(CHAIN_ID, debtId),
             symbol: debt.symbol ?? '??',
             amountUSD: computeUsdValue(event.debtAsset, Number(normalizedDebtAmount)),
           },
           collateral: {
             amount: normalizedCollateralAmount,
-            assetId: colId,
+            assetId: toAssetId(CHAIN_ID, colId),
             symbol: collateral.symbol ?? '??',
             amountUSD: computeUsdValue(event.collateralAsset, Number(normalizedCollateralAmount)),
           },
