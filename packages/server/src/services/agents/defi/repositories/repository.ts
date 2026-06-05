@@ -45,6 +45,7 @@ export class DefiRepository {
     return await this.#db.transaction().execute(async (trx) => {
       const lending = payload.lending
       const isLending = payload.category === 'money-market'
+      const isLiquidStaking = payload.category === 'liquid-staking'
 
       const isPausedVal = this.#asBoolVal(lending?.isPaused)
       const canBorrowVal = this.#asBoolVal(lending?.canBorrow)
@@ -61,6 +62,7 @@ export class DefiRepository {
         borrow_cap: lending?.borrowCap ?? null,
         supply_cap: lending?.supplyCap ?? null,
         token_deficit_usd: lending?.health?.tokenDeficitUSD ?? null,
+        staking_network: payload.liquidStaking?.stakingNetwork ?? null,
       })
 
       if (isLending) {
@@ -74,6 +76,12 @@ export class DefiRepository {
             borrow_cap: lending?.borrowCap ?? null,
             supply_cap: lending?.supplyCap ?? null,
             token_deficit_usd: lending?.health?.tokenDeficitUSD ?? null,
+          }),
+        )
+      } else if (isLiquidStaking) {
+        query = query.onConflict((oc) =>
+          oc.columns(['network', 'protocol', 'market_id']).doUpdateSet({
+            staking_network: payload.liquidStaking?.stakingNetwork ?? null,
           }),
         )
       } else {

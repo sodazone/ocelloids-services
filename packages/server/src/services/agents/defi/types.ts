@@ -260,8 +260,8 @@ export type DefiEventAction =
   | 'mint'
   | 'burn'
   | 'swap'
-  | 'swap_intent'
-  | 'swap_fill'
+  | 'lst_mint'
+  | 'lst_redeem'
 
 /**
  * @public

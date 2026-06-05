@@ -23,6 +23,9 @@ export interface DefiPoolTable {
   is_paused: ColumnType<number | boolean | null>
   can_borrow: ColumnType<number | boolean | null>
   token_deficit_usd: ColumnType<number | null>
+
+  // liquid staking
+  staking_network: ColumnType<string | null>
 }
 
 export interface DefiPoolAssetTable {
