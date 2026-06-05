@@ -2,6 +2,7 @@ import { Observable, Subject, Subscription, share } from 'rxjs'
 import { ulid } from 'ulidx'
 import { Abi, formatUnits } from 'viem'
 import { NetworkURN } from '@/lib.js'
+import { toAssetId } from '@/services/agents/common/assets.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { filterLogs } from '@/services/networking/evm/rx/extract.js'
 import { BlockWithLogs } from '@/services/networking/evm/types.js'
@@ -21,11 +22,13 @@ import { defs } from './definitions.js'
 export function createMoonwellProcessor({
   logger,
   chainId,
+  assetChainId,
   ingress,
   subject,
 }: {
   logger: Logger
   chainId: NetworkURN
+  assetChainId: NetworkURN
   ingress: EvmIngressConsumer
   subject: Subject<DefiSubscriptionPayload>
 }) {
@@ -125,13 +128,13 @@ export function createMoonwellProcessor({
                   origin: args.liquidator.toLowerCase(),
                   counterparty: args.borrower.toLowerCase(),
                   debt: {
-                    assetId: underlyingToken.address,
+                    assetId: toAssetId(assetChainId, underlyingToken.address),
                     symbol: underlyingToken.symbol,
                     amount: amountDebt,
                     amountUSD: underlyingPrice ? underlyingPrice * Number(amountDebt) : undefined,
                   },
                   collateral: {
-                    assetId: collateralToken.address,
+                    assetId: toAssetId(assetChainId, collateralToken.address),
                     symbol: collateralToken.symbol,
                     amount: amountCollateral,
                     amountUSD: priceCollateral ? priceCollateral * Number(amountCollateral) : undefined,
@@ -178,7 +181,7 @@ export function createMoonwellProcessor({
             const normalizedAmount = formatUnits(underlyingAmount, underlyingToken.decimals)
             const assets: DefiEventAsset[] = [
               {
-                assetId: underlyingToken.address,
+                assetId: toAssetId(assetChainId, underlyingToken.address),
                 symbol: underlyingToken.symbol,
                 amount: normalizedAmount,
                 amountUSD: underlyingPrice ? underlyingPrice * Number(normalizedAmount) : undefined,

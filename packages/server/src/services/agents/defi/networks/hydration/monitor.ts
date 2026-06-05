@@ -1,5 +1,6 @@
 import { firstValueFrom, Subject, Subscription, share } from 'rxjs'
 import { formatUnits } from 'viem'
+import { toAssetId } from '@/services/agents/common/assets.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Block } from '@/services/networking/substrate/types.js'
@@ -101,7 +102,7 @@ export function hydrationDexMonitor(
           const meta = metaResult.length > 0 ? metaResult[0] : null
           subject.next({
             type: 'price',
-            assetId: asset.toString(),
+            assetId: toAssetId(CHAIN_ID, asset),
             networkId: CHAIN_ID,
             protocol: toProtocol('router'),
             priceUSD: spot.toString(),
@@ -142,7 +143,7 @@ export function hydrationDexMonitor(
       },
       assets: [
         {
-          assetId: underlying.id.toString(),
+          assetId: toAssetId(CHAIN_ID, underlying.id),
           symbol: underlying.symbol ?? '??',
           decimals: underlying.decimals,
           priceUSD: assetPrice,
@@ -167,7 +168,7 @@ export function hydrationDexMonitor(
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
       suppliedUSD += assetReservesUSD
       liquidityAssets.push({
-        assetId: asset.id.toString(),
+        assetId: toAssetId(CHAIN_ID, asset.id),
         symbol: asset.symbol ?? '??',
         decimals: asset.decimals,
         priceUSD: assetPrice,
@@ -202,7 +203,7 @@ export function hydrationDexMonitor(
       if (asset.isCollateral) {
         suppliedUSD += assetReservesUSD
         liquidityAssets.push({
-          assetId: asset.id.toString(),
+          assetId: toAssetId(CHAIN_ID, asset.id),
           symbol: asset.symbol ?? '??',
           decimals: asset.decimals,
           priceUSD: assetPrice,
@@ -215,7 +216,7 @@ export function hydrationDexMonitor(
         })
       } else {
         liquidityAssets.push({
-          assetId: asset.id.toString(),
+          assetId: toAssetId(CHAIN_ID, asset.id),
           symbol: asset.symbol ?? '??',
           decimals: asset.decimals,
           priceUSD: assetPrice,
