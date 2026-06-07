@@ -67,6 +67,7 @@ export type DefiEventAssetRole =
   | 'withdrawn'
   | 'borrowed'
   | 'repaid'
+  | 'minted'
   | 'lqd_debt'
   | 'lqd_coll'
   | 'asset'

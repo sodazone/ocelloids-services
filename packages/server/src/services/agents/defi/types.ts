@@ -223,14 +223,7 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: 'mint' | 'burn'
-      data: {
-        provider: string
-        assets: DefiEventAsset[]
-      }
-    }
-  | {
-      name: MoneyMarketActions
+      name: MoneyMarketActions | 'mint' | 'burn' | 'lst_redeem'
       data: {
         provider: string
         assets: DefiEventAsset[]
@@ -246,10 +239,11 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: 'lst_mint' | 'lst_redeem'
+      name: 'lst_mint'
       data: {
         provider: string
-        assets: DefiEventAsset[]
+        supplied: DefiEventAsset
+        minted: DefiEventAsset
       }
     }
 )
@@ -380,6 +374,12 @@ export function isLiquidationEvent(
   payload: DefiSubscriptionPayload,
 ): payload is Extract<DefiEventPayload, { name: 'liquidate' }> {
   return payload.type === 'event' && payload.name === 'liquidate'
+}
+
+export function isLstMintEvent(
+  payload: DefiSubscriptionPayload,
+): payload is Extract<DefiEventPayload, { name: 'lst_mint' }> {
+  return payload.type === 'event' && payload.name === 'lst_mint'
 }
 
 export type DefiMonitorDependencies = {

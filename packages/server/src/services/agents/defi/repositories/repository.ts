@@ -14,6 +14,7 @@ import {
   DefiOrderPayload,
   DefiPricePayload,
   isLiquidationEvent,
+  isLstMintEvent,
   isSwapEvent,
   MoneyMarketPayload,
 } from '../types.js'
@@ -170,6 +171,24 @@ export class DefiRepository {
           amount: collateral.amount,
           amount_usd: collateral.amountUSD,
           role: 'lqd_coll',
+        })
+      } else if (isLstMintEvent(payload)) {
+        actorAddress = payload.data.provider
+        const supplied = payload.data.supplied
+        const minted = payload.data.minted
+        assetRowsToInsert.push({
+          asset_id: supplied.assetId,
+          symbol: supplied.symbol,
+          amount: supplied.amount,
+          amount_usd: supplied.amountUSD,
+          role: 'supplied',
+        })
+        assetRowsToInsert.push({
+          asset_id: minted.assetId,
+          symbol: minted.symbol,
+          amount: minted.amount,
+          amount_usd: minted.amountUSD,
+          role: 'minted',
         })
       } else {
         actorAddress = payload.data.provider
@@ -540,6 +559,7 @@ export class DefiRepository {
         'e.tx_hash as txHash',
         'e.event_name as eventName',
         'e.actor_address as actorAddress',
+        'e.counterparty_address as counterpartyAddress',
         (eb) =>
           eb
             .fn(aggregateFn, [
@@ -593,6 +613,19 @@ export class DefiRepository {
             origin: evt.actorAddress,
             in: rawAssets.find((a) => a.role === 'swap_in'),
             out: rawAssets.find((a) => a.role === 'swap_out'),
+          }
+        } else if (eventName === 'liquidate') {
+          dataBlock = {
+            origin: evt.actorAddress,
+            counterpartey: evt.counterpartyAddress,
+            debt: rawAssets.find((a) => a.role === 'lqd_debt'),
+            collateral: rawAssets.find((a) => a.role === 'lqd_coll'),
+          }
+        } else if (eventName === 'lst_mint') {
+          dataBlock = {
+            provider: evt.actorAddress,
+            supplied: rawAssets.find((a) => a.role === 'supplied'),
+            minted: rawAssets.find((a) => a.role === 'minted'),
           }
         } else {
           dataBlock = {

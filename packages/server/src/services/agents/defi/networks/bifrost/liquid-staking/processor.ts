@@ -1,4 +1,15 @@
-import { filter, firstValueFrom, Observable, Subject, Subscription, share, toArray } from 'rxjs'
+import {
+  filter,
+  firstValueFrom,
+  map,
+  mergeMap,
+  Observable,
+  Subject,
+  Subscription,
+  share,
+  toArray,
+} from 'rxjs'
+import { ulid } from 'ulidx'
 import { formatUnits } from 'viem'
 import { asPublicKey } from '@/common/util.js'
 import { toAssetId } from '@/services/agents/common/assets.js'
@@ -6,14 +17,36 @@ import { toMelbourne } from '@/services/agents/common/melbourne.js'
 import { AssetMetadata } from '@/services/agents/steward/types.js'
 import { AggregatedPriceData } from '@/services/agents/ticker/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
-import { Block, storageEntriesAtLatest$ } from '@/services/networking/substrate/index.js'
+import {
+  Block,
+  BlockEvent,
+  Event,
+  EventRecordWithIndex,
+  getTimestampFromBlock,
+  storageEntriesAtLatest$,
+} from '@/services/networking/substrate/index.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../../rxjs/trigger.js'
-import { DefiLiquidityAsset, DefiLiquidityPayload, DefiSubscriptionPayload } from '../../../types.js'
+import {
+  DefiEventPayload,
+  DefiLiquidityAsset,
+  DefiLiquidityPayload,
+  DefiSubscriptionPayload,
+} from '../../../types.js'
 import { CHAIN_ID, SLP_V2_PROTOCOL_NAME } from '../consts.js'
-import { LstMarketBase, StakingDelegator, StakingProtocol, TokenId } from './types.js'
+import {
+  LstMarketBase,
+  StakingDelegator,
+  StakingProtocol,
+  TokenId,
+  VtokenMintedEvent,
+  VtokenRedeemedEvent,
+} from './types.js'
 
 const PRECISION = 10 ** 12
+const VTOKEN_MINT_MODULE = 'vtokenminting'
+const VTOKEN_MINT_EVENT = 'minted'
+const VTOKEN_REDEEM_EVENT = 'redeemsuccess'
 
 export function createLiquidStakingProcessor({
   logger,
@@ -31,6 +64,7 @@ export function createLiquidStakingProcessor({
   const substrateIngress = ingress.substrate
   const lstMarkets: Map<string, LstMarketBase> = new Map()
   const assetMetaMap: Map<string, AssetMetadata> = new Map()
+  const tokenPriceMap: Map<string, number> = new Map()
 
   const subs: Subscription[] = []
   let inFlight = 0
@@ -77,19 +111,27 @@ export function createLiquidStakingProcessor({
       for (const { key, value } of delegators) {
         const [protocol] = key
 
-        if (protocol.type !== 'GeneralXCMStaking') {
-          continue
-        }
-
         const account = typeof value.value === 'string' ? value.value : value.value.asHex()
 
-        const [lst, paraId] = protocol.value
-        const underlyingId = toMelbourne(lst).toLowerCase()
+        let underlyingId: string
+        let stakingNetwork: string
 
-        const marketKey = `${protocol.type.toLowerCase()}.${paraId}:${underlyingId}`
+        if (protocol.type === 'EthereumStaking') {
+          underlyingId = 'token2:15'
+          stakingNetwork = 'urn:ocn:ethereum:1'
+        } else if (protocol.type === 'GeneralXCMStaking') {
+          const [lst, paraId] = protocol.value
+          underlyingId = toMelbourne(lst).toLowerCase()
+          stakingNetwork = `urn:ocn:polkadot:${paraId}`
+        } else {
+          const [lst, networkId] = protocol.value
+          underlyingId = toMelbourne(lst).toLowerCase()
+          stakingNetwork = `urn:ocn:ethereum:${networkId}`
+        }
+
         const delegator = asPublicKey(account)
 
-        const existingMarket = lstMarkets.get(marketKey)
+        const existingMarket = lstMarkets.get(underlyingId)
 
         if (existingMarket) {
           existingMarket.delegators.add(delegator)
@@ -106,10 +148,10 @@ export function createLiquidStakingProcessor({
 
         const vtokenMeta = assetMetaMap.get(vtoken.melbourned)
 
-        lstMarkets.set(marketKey, {
+        lstMarkets.set(underlyingId, {
           type: protocol.type.toLowerCase(),
           underlying: {
-            id: lst,
+            id: underlyingId,
             sourceId:
               underlyingMeta.sourceId?.chainId && underlyingMeta.sourceId?.id
                 ? toAssetId(underlyingMeta.sourceId.chainId, underlyingMeta.sourceId.id)
@@ -118,18 +160,18 @@ export function createLiquidStakingProcessor({
             decimals: underlyingMeta.decimals ?? 0,
           },
           lst: {
-            id: vtoken.id,
+            id: vtoken.melbourned,
             symbol: vtokenMeta?.symbol,
             decimals: vtokenMeta?.decimals ?? 0,
           },
           delegators: new Set([delegator]),
-          stakingNetwork: `urn:ocn:polkadot:${paraId}`,
+          stakingNetwork,
         })
       }
 
-      logger.info('[defi:bifrost] LST markets initialised.')
+      logger.info('[defi:bifrost-slp] slp-v2 markets initialised.')
     } catch (e) {
-      logger.error(e, '[defi:bifrost] Error getting markets data.')
+      logger.error(e, '[defi:bifrost-slp] Error getting markets data.')
     }
   }
 
@@ -175,16 +217,16 @@ export function createLiquidStakingProcessor({
 
       for (const market of lstMarkets.values()) {
         const { stakingNetwork, underlying, lst } = market
-        const stakingTokenId = toMelbourne(underlying.id).toLowerCase()
-        const vtokenId = toMelbourne(lst.id).toLowerCase()
+        const stakingTokenId = underlying.id
+        const vtokenId = lst.id
         const stakedCount = stakingCounterMap.get(vtokenId)
         const vtokenIssuance = vtokenIssuanceMap.get(vtokenId)
         if (!stakedCount) {
-          logger.warn('[defi:bifrost] No staked count for vtoken %s', vtokenId)
+          logger.warn('[defi:bifrost-slp] No staked count for vtoken %s', vtokenId)
           continue
         }
         if (!vtokenIssuance) {
-          logger.warn('[defi:bifrost] No issuance for vtoken %s', vtokenId)
+          logger.warn('[defi:bifrost-slp] No issuance for vtoken %s', vtokenId)
           continue
         }
         const prices = await fetchPrices([underlying.symbol, lst.symbol].filter((a) => a !== undefined))
@@ -195,12 +237,18 @@ export function createLiquidStakingProcessor({
 
         if (!stakedTokenPriceData) {
           logger.warn(
-            '[defi:bifrost] No price found for staked token %s (symbol=%s)',
+            '[defi:bifrost-slp] No price found for staked token %s (symbol=%s)',
             stakingTokenId,
             underlying.symbol,
           )
           continue
         }
+
+        tokenPriceMap.set(stakingTokenId, stakedTokenPriceData.medianPrice)
+        if (vTokenPriceData) {
+          tokenPriceMap.set(vtokenId, vTokenPriceData.medianPrice)
+        }
+
         const totalStaked = formatUnits(stakedCount, underlying.decimals)
         const stPrice = stakedTokenPriceData.medianPrice
         const suppliedUSD = Number(totalStaked) * stPrice
@@ -251,19 +299,129 @@ export function createLiquidStakingProcessor({
         subject.next(lstLiquidityEvent)
       }
     } catch (e) {
-      logger.error(e, '[defi:bifrost] Error processing block %s (#%s)', block.hash, block.number)
+      logger.error(e, '[defi:bifrost-slp] Error processing block %s (#%s)', block.hash, block.number)
     } finally {
       inFlight--
     }
   }
 
+  function watchEvents() {
+    return (source$: Observable<Block>): Observable<DefiEventPayload> =>
+      source$.pipe(
+        mergeMap(({ events, extrinsics, hash, number, specVersion }) => {
+          const timestamp = getTimestampFromBlock(extrinsics)
+          const eventsWithIndex: EventRecordWithIndex<Event>[] = events.map((e, i) => ({ ...e, index: i }))
+          return eventsWithIndex.map(({ event, phase, index }) => {
+            const isApplyExtrinsic = phase.type === 'ApplyExtrinsic'
+            const extrinsic = isApplyExtrinsic ? extrinsics[phase.value] : undefined
+            return {
+              ...event,
+              extrinsic,
+              blockNumber: number,
+              blockHash: hash,
+              blockPosition: index,
+              specVersion,
+              timestamp,
+            } as BlockEvent
+          })
+        }),
+        filter(
+          (e) =>
+            e.module.toLowerCase() === VTOKEN_MINT_MODULE &&
+            [VTOKEN_MINT_EVENT, VTOKEN_REDEEM_EVENT].includes(e.name.toLowerCase()),
+        ),
+        map((e) => {
+          if (e.name.toLowerCase() === VTOKEN_REDEEM_EVENT) {
+            const { currency_amount, currency_id, redeemer } = e.value as VtokenRedeemedEvent
+            const stakingTokenId = toMelbourne(currency_id).toLowerCase()
+            const market = lstMarkets.get(stakingTokenId)
+            if (!market) {
+              return null
+            }
+            const redeemedAmount = formatUnits(currency_amount, market.underlying.decimals)
+            const price = tokenPriceMap.get(stakingTokenId)
+            const amountUSD = price ? price * Number(redeemedAmount) : undefined
+
+            const payload: DefiEventPayload = {
+              id: ulid(),
+              type: 'event',
+              name: 'lst_redeem',
+              networkId: CHAIN_ID,
+              protocol: SLP_V2_PROTOCOL_NAME,
+              marketId: market.lst.id,
+              blockHash: e.blockHash,
+              blockNumber: e.blockNumber.toString(),
+              txHash: e.extrinsic?.hash ?? null,
+              data: {
+                provider: asPublicKey(redeemer),
+                assets: [
+                  {
+                    amount: redeemedAmount,
+                    assetId: toAssetId(CHAIN_ID, stakingTokenId),
+                    symbol: market.underlying.symbol ?? '??',
+                    amountUSD,
+                  },
+                ],
+              },
+            }
+            return payload
+          }
+          if (e.name.toLowerCase() === VTOKEN_MINT_EVENT) {
+            const { currency_amount, currency_id, minter, v_currency_amount } = e.value as VtokenMintedEvent
+            const stakingTokenId = toMelbourne(currency_id).toLowerCase()
+            const market = lstMarkets.get(stakingTokenId)
+            if (!market) {
+              return null
+            }
+            const suppliedAmount = formatUnits(currency_amount, market.underlying.decimals)
+            const supplyPrice = tokenPriceMap.get(stakingTokenId)
+            const suppliedUSD = supplyPrice ? supplyPrice * Number(suppliedAmount) : undefined
+
+            const mintedAmount = formatUnits(v_currency_amount, market.lst.decimals)
+            const mintPrice = tokenPriceMap.get(market.lst.id)
+            const mintedUSD = mintPrice ? mintPrice * Number(mintedAmount) : undefined
+
+            const payload: DefiEventPayload = {
+              id: ulid(),
+              type: 'event',
+              name: 'lst_mint',
+              networkId: CHAIN_ID,
+              protocol: SLP_V2_PROTOCOL_NAME,
+              marketId: market.lst.id,
+              blockHash: e.blockHash,
+              blockNumber: e.blockNumber.toString(),
+              txHash: e.extrinsic?.hash ?? null,
+              data: {
+                provider: asPublicKey(minter),
+                supplied: {
+                  amount: suppliedAmount,
+                  assetId: toAssetId(CHAIN_ID, stakingTokenId),
+                  symbol: market.underlying.symbol ?? '??',
+                  amountUSD: suppliedUSD,
+                },
+                minted: {
+                  amount: mintedAmount,
+                  assetId: toAssetId(CHAIN_ID, market.lst.id),
+                  symbol: market.lst.symbol ?? '??',
+                  amountUSD: mintedUSD,
+                },
+              },
+            }
+            return payload
+          }
+          return null
+        }),
+        filter((p) => p !== null),
+      )
+  }
+
   async function start(block$: Observable<Block>) {
     await init()
-    const events$ = block$.pipe(
-      // watchEvents(logger, fetchAssetMetadata, fetchAccounts, computeUsdValue),
-      filter(({ events }) => events.length > 100),
-      share(),
-    )
+    const events$ = block$.pipe(watchEvents(), share())
+
+    // Events
+    subs.push(events$.subscribe((payload) => subject.next(payload)))
+
     // Liquidity
     subs.push(
       block$
@@ -275,12 +433,13 @@ export function createLiquidStakingProcessor({
         )
         .subscribe((block) => onBlock(block)),
     )
-    logger.info('[defi:bifrost] Processor started.')
+    logger.info('[defi:bifrost-slp] Processor started.')
   }
 
   function stop() {
     subs.forEach((s) => s.unsubscribe())
     subs.length = 0
+    logger.info('[defi:bifrost-slp] Processor stopped.')
   }
 
   return {
