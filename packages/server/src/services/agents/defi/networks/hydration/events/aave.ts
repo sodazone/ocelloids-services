@@ -1,11 +1,11 @@
 import { decodeEventLog, erc20Abi, Log, zeroAddress } from 'viem'
 import { hexToAssetId } from '@/services/agents/common/hydration.js'
 import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
-import { BlockEvmEvent } from '@/services/networking/substrate/types.js'
+import { BlockEvmEvent, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { MoneyMarketActions } from '../../../types.js'
 import { ASSET_ID_MAP } from '../consts.js'
-import { EventRecordWithIndex, HydrationLendingEvent, HydrationLiquidationEvent } from './types.js'
+import { HydrationLendingEvent, HydrationLiquidationEvent } from './types.js'
 
 type AaveSupplyEventArgs = {
   reserve: HexString

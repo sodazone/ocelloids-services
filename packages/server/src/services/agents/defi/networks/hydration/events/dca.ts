@@ -1,10 +1,9 @@
 import { Enum } from 'polkadot-api'
 import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
-import { BlockEvent } from '@/services/networking/substrate/types.js'
+import { BlockEvent, EventRecordWithIndex, Event } from '@/services/networking/substrate/types.js'
 import {
   BroadcastSwapped,
-  EventRecordWithIndex,
   FillerType,
   FillerTypeName,
   HydrationDcaCompletedEvent,
@@ -60,7 +59,7 @@ type DcaScheduledEvent = {
 
 export function dcaExecutedHandler(
   event: BlockEvent,
-  siblings: EventRecordWithIndex[],
+  siblings: EventRecordWithIndex<Event>[],
 ): HydrationDcaExecutedEvent {
   const { blockHash, blockNumber, blockPosition, module, name, extrinsic, value, timestamp } = event
   const { id, amount_in, amount_out, who } = value as DcaExecutedEvent
@@ -122,7 +121,7 @@ export function dcaExecutedHandler(
 
 export function dcaScheduledHandler(
   event: BlockEvent,
-  _siblings: EventRecordWithIndex[],
+  _siblings: EventRecordWithIndex<Event>[],
 ): HydrationDcaScheduledEvent {
   const { blockHash, blockNumber, blockPosition, module, name, extrinsic, value, timestamp } = event
   const { id, who, total_amount, order } = value as DcaScheduledEvent
@@ -163,7 +162,7 @@ export function dcaScheduledHandler(
 
 export function dcaCompletedHandler(
   event: BlockEvent,
-  _siblings: EventRecordWithIndex[],
+  _siblings: EventRecordWithIndex<Event>[],
 ): HydrationDcaCompletedEvent {
   const { blockHash, blockNumber, blockPosition, module, name, extrinsic, value, timestamp } = event
   const { id, who } = value as DcaCompletedEvent

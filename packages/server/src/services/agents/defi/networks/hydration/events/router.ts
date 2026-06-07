@@ -1,10 +1,9 @@
 import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
-import { BlockEvent } from '@/services/networking/substrate/types.js'
+import { BlockEvent, EventRecordWithIndex, Event } from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
 import {
   BroadcastSwapped,
-  EventRecordWithIndex,
   FillerTypeName,
   HydrationSwapEvent,
   SwapRoute,
@@ -20,7 +19,7 @@ type RouterExecutedEvent = {
 
 export function routerExecutedHandler(
   event: BlockEvent,
-  siblings: EventRecordWithIndex[],
+  siblings: EventRecordWithIndex<Event>[],
 ): HydrationSwapEvent {
   const { blockHash, blockNumber, blockPosition, module, name, extrinsic, value, timestamp } = event
 
