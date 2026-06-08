@@ -4,7 +4,6 @@ import { CustomDiscoveryFetcher } from '@/services/agents/steward/balances/types
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { storageEntriesAtLatest$ } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { HexString } from '@/services/subscriptions/types.js'
 import ghoTokenAbi from '../abi/gho_token.json' with { type: 'json' }
 import { CHAIN_ID, EVM_CHAIN_ID, HOLLAR_EVM_ADDRESS, HOLLAR_ID, HSM_FACILITATOR_ADDRESS } from '../consts.js'
 import {
@@ -37,7 +36,7 @@ export function createHSMWatcher(
       fetchBalances(HSM_FACILITATOR_ADDRESS),
       fetchAssetMetadata([HOLLAR_ID.toString()]),
       firstValueFrom(
-        storageEntriesAtLatest$<HexString, HsmCollateralsValue>(ingress, CHAIN_ID, 'HSM', 'Collaterals').pipe(
+        storageEntriesAtLatest$<[number], HsmCollateralsValue>(ingress, CHAIN_ID, 'HSM', 'Collaterals').pipe(
           toArray(),
         ),
       ),
@@ -65,7 +64,7 @@ export function createHSMWatcher(
     const collateralTokens: HsmCollateralToken[] = []
 
     for (const { key, value } of collateralsResult) {
-      const collateralId = Buffer.from(key.slice(2), 'hex').readUInt32LE(0)
+      const collateralId = key[0]
       const { pool_id, max_buy_price_coefficient, max_in_holding, purchase_fee, buy_back_fee, buyback_rate } =
         value
       const stablePool = stablePools.find((p) => p.id === pool_id)

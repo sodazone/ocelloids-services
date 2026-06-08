@@ -5,7 +5,7 @@ import { toAssetId } from '@/services/agents/common/assets.js'
 import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
 import { AssetId, AssetMetadata, Empty, isAccountMetadata } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
-import { Block, BlockEvent } from '@/services/networking/substrate/types.js'
+import { Block, BlockEvent, Event, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { DefiEventPayload, DefiOrderPayload, MoneyMarketActions } from '../../../types.js'
 import { CHAIN_ID } from '../consts.js'
@@ -15,7 +15,6 @@ import { evmLogHandler } from './evm.js'
 import { routerExecutedHandler } from './router.js'
 import {
   EventHandler,
-  EventRecordWithIndex,
   HydrationDcaEvent,
   HydrationDcaExecutedEvent,
   HydrationLendingEvent,
@@ -406,7 +405,7 @@ export function watchEvents(
     source$.pipe(
       mergeMap(({ events, extrinsics, hash, number, specVersion }) => {
         const timestamp = getTimestampFromBlock(extrinsics)
-        const eventsWithIndex: EventRecordWithIndex[] = events.map((e, i) => ({ ...e, index: i }))
+        const eventsWithIndex: EventRecordWithIndex<Event>[] = events.map((e, i) => ({ ...e, index: i }))
         return eventsWithIndex.map(({ event, phase, index }) => {
           const isApplyExtrinsic = phase.type === 'ApplyExtrinsic'
           const extrinsic = isApplyExtrinsic ? extrinsics[phase.value] : undefined
@@ -425,7 +424,7 @@ export function watchEvents(
             },
             siblings,
             isApplyExtrinsic,
-          ] as [BlockEvent, EventRecordWithIndex[], boolean]
+          ] as [BlockEvent, EventRecordWithIndex<Event>[], boolean]
         })
       }),
       map(([event, siblings, isExtrinsicEvent]) => {

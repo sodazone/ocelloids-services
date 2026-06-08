@@ -21,21 +21,19 @@ export function createXykWatcher(
 ) {
   async function loadPools(): Promise<XykPool[]> {
     const pairs = await firstValueFrom(
-      storageEntriesAtLatest$<HexString, XykPoolValue>(ingress, CHAIN_ID, 'XYK', 'PoolAssets').pipe(
-        toArray(),
-      ),
+      storageEntriesAtLatest$<[string], XykPoolValue>(ingress, CHAIN_ID, 'XYK', 'PoolAssets').pipe(toArray()),
     )
 
     const xykPools: XykPool[] = []
 
     for (const {
-      key,
+      rawKey,
       value: [assetA, assetB],
     } of pairs) {
       if (!isWhitelisted(assetA) || !isWhitelisted(assetB)) {
         continue
       }
-      const balances = await fetchBalances(key)
+      const balances = await fetchBalances(rawKey)
       const reservesA = balances.find((b) => b.assetId === assetA)
       const reservesB = balances.find((b) => b.assetId === assetB)
 
@@ -49,7 +47,7 @@ export function createXykWatcher(
 
       xykPools.push({
         type: 'xyk',
-        address: key,
+        address: rawKey,
         tokens: [
           {
             id: assetA,
@@ -64,7 +62,7 @@ export function createXykWatcher(
             symbol: metadataB?.symbol,
           },
         ],
-        isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(key),
+        isLowLiquidity: LOW_LIQUIDITY_POOLS.includes(rawKey),
       })
     }
 

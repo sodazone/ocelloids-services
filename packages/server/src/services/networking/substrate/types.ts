@@ -56,6 +56,8 @@ export type EventRecord<T = Event> = Serializable<
   }
 >
 
+export type EventRecordWithIndex<T = Event> = EventRecord<T> & { index: number }
+
 export type Call = {
   module: string
   method: string

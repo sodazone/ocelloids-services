@@ -1,6 +1,7 @@
 import z from 'zod'
 import { $NetworkString } from '@/common/types.js'
 import { AssetMetadata, Empty, SubstrateAccountMetadata } from '../steward/types.js'
+import { AggregatedPriceData } from '../ticker/types.js'
 
 /**
  * @public
@@ -119,7 +120,8 @@ export type DefiLiquidityAsset = {
     reserves: string
   }
 
-  role?: 'liquid' | 'collateral' | 'debt'
+  role?: 'liquid' | 'collateral' | 'debt' | 'lst' | 'staked'
+  holdingAccount?: string
 }
 
 /**
@@ -143,7 +145,17 @@ export type MoneyMarketPayload = Partial<{
 /**
  * @public
  */
-export type DefiLiquidityCategory = 'exchange' | 'money-market' | 'stability'
+export type LiquidStakingPayload = Partial<{
+  totalStaked: string
+  stakingNetwork: string
+  exchangeRate: number
+  backingRatio: number
+}>
+
+/**
+ * @public
+ */
+export type DefiLiquidityCategory = 'exchange' | 'money-market' | 'stability' | 'liquid-staking'
 
 /**
  * @public
@@ -161,6 +173,7 @@ export type DefiLiquidityPayload = {
   assets: DefiLiquidityAsset[]
 
   lending?: MoneyMarketPayload
+  liquidStaking?: LiquidStakingPayload
 }
 
 /**
@@ -210,14 +223,7 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: 'mint' | 'burn'
-      data: {
-        provider: string
-        assets: DefiEventAsset[]
-      }
-    }
-  | {
-      name: MoneyMarketActions
+      name: MoneyMarketActions | 'mint' | 'burn' | 'lst_redeem'
       data: {
         provider: string
         assets: DefiEventAsset[]
@@ -232,6 +238,14 @@ export type DefiEventPayload = {
         collateral: DefiEventAsset
       }
     }
+  | {
+      name: 'lst_mint'
+      data: {
+        provider: string
+        supplied: DefiEventAsset
+        minted: DefiEventAsset
+      }
+    }
 )
 
 /**
@@ -243,8 +257,8 @@ export type DefiEventAction =
   | 'mint'
   | 'burn'
   | 'swap'
-  | 'swap_intent'
-  | 'swap_fill'
+  | 'lst_mint'
+  | 'lst_redeem'
 
 /**
  * @public
@@ -362,8 +376,15 @@ export function isLiquidationEvent(
   return payload.type === 'event' && payload.name === 'liquidate'
 }
 
+export function isLstMintEvent(
+  payload: DefiSubscriptionPayload,
+): payload is Extract<DefiEventPayload, { name: 'lst_mint' }> {
+  return payload.type === 'event' && payload.name === 'lst_mint'
+}
+
 export type DefiMonitorDependencies = {
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
   fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
   listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
+  fetchTickerPrices: (chainId: string, assets: string[]) => Promise<AggregatedPriceData[]>
 }

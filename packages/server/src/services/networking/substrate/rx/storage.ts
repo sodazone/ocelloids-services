@@ -8,6 +8,7 @@ const STORAGE_PAGE_LEN = 50
 
 type DecodedStorageEntry<TKey = unknown, TValue = unknown> = {
   key: TKey
+  rawKey: HexString
   value: TValue
 }
 
@@ -68,7 +69,8 @@ export function storageEntriesAtLatest$<TK = unknown, TV = unknown>(
                   }
 
                   return of({
-                    key: itemKeyFromStorageKey(storageKey, prefix, hashers) as TK,
+                    key: codec.keys.dec(storageKey) as TK,
+                    rawKey: itemKeyFromStorageKey(storageKey, prefix, hashers),
                     value: codec.value.dec(change[1]) as TV,
                   })
                 }),
