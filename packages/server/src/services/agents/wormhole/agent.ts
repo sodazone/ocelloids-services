@@ -228,7 +228,7 @@ export class WormholeAgent implements Agent {
 
     const sentAt = Number(journey.sent_at)
     const from = new Date(sentAt - OPERATION_LOOKUP_WINDOW_MS).toISOString()
-    const to = new Date(sentAt + OPERATION_LOOKUP_WINDOW_MS).toISOString()
+    const to = new Date(sentAt + OPERATION_LOOKUP_WINDOW_MS * 3).toISOString()
     const searchOp = {
       address,
       sourceChain,
