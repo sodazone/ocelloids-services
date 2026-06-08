@@ -141,18 +141,17 @@ export class WormholeAgent implements Agent {
       sentBefore: Date.now() - PENDING_RECHECK_WINDOW_MIN,
       sentAfter: Date.now() - PENDING_RECHECK_WINDOW_MAX,
     })
+    const whPendings = pendings.filter((journey) => {
+      const stop = JSON.parse(journey.stops).find(
+        (s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type),
+      )
+      if (['completed', 'confirmed'].includes(stop?.to?.status)) {
+        return false
+      }
+      return true
+    })
 
-    this.#wormholePendingCache.add(
-      pendings.filter((journey) => {
-        const stop = JSON.parse(journey.stops).find(
-          (s: any) => s.type === 'wormhole' || isWormholeProtocol(s.type),
-        )
-        if (['completed', 'confirmed'].includes(stop?.to?.status)) {
-          return false
-        }
-        return true
-      }),
-    )
+    this.#wormholePendingCache.add(whPendings)
     const due = this.#wormholePendingCache.getDue()
 
     if (due.length === 0) {
