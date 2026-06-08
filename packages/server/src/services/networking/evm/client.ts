@@ -31,7 +31,7 @@ const defaultConfirmations: Record<string, number> = {
   polygon: 1,
   arbitrum: 0,
   optimism: 0,
-  moonbeam: 0,
+  moonbeam: 5,
   'bnb smart chain': 25, // higher confirmations to avoid getBlockByNumber errors
 }
 
