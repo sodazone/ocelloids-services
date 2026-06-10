@@ -45,7 +45,11 @@ export function hydrationDexMonitor(
     }
     for (const { assetId, priceUSD } of latestPrices) {
       try {
-        const numericId = Number(assetId)
+        const parts = assetId.split('|')
+        const numericId = Number(parts[1])
+        if (Number.isNaN(numericId)) {
+          continue
+        }
         allTokens.add(numericId)
         prices.set(numericId, Number(priceUSD))
       } catch (e) {
@@ -66,7 +70,6 @@ export function hydrationDexMonitor(
         }
       }
     }
-
     const graph = buildGraph(allPools)
     for (const token of allTokens) {
       if (!cachedPaths.has(token)) {
