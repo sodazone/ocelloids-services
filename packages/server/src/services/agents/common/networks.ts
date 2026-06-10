@@ -18,6 +18,7 @@ export const networks: Record<string, NetworkURN> = setNetworks({
   centrifuge: 'urn:ocn:polkadot:2031',
   interlay: 'urn:ocn:polkadot:2032',
   hydration: 'urn:ocn:polkadot:2034',
+  hydration_evm: 'urn:ocn:ethereum:222222',
   phala: 'urn:ocn:polkadot:2035',
   manta: 'urn:ocn:polkadot:2104',
   pendulum: 'urn:ocn:polkadot:2094',

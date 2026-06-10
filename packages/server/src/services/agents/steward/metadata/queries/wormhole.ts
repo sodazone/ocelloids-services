@@ -18,7 +18,7 @@ const WormholeIds = {
   APTOS_ID: 22,
 }
 
-const WormholeChainIds: Record<NetworkURN, number> = {
+export const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
   'urn:ocn:ethereum:56': WormholeIds.BSC_ID,
@@ -37,7 +37,7 @@ const WormholeChainUrns: Record<number, keyof typeof WormholeChainIds> = Object.
   Object.entries(WormholeChainIds).map(([urn, id]) => [id, urn]),
 ) as any
 
-function chainIdToUrn(chainId: number): NetworkURN {
+export function chainIdToUrn(chainId: number): NetworkURN {
   const urn = WormholeChainUrns[chainId]
   return urn === undefined ? `urn:ocn:unknown:${chainId}` : urn
 }
