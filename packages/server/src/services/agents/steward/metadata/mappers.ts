@@ -318,7 +318,7 @@ export const mappers: Record<string, AssetMapper> = {
   [networks.interlay]: interlayMapper,
   [networks.manta]: BYPASS_MAPPER,
   [networks.polimec]: BYPASS_MAPPER,
-  [networks.hyperbridge]: hyperbridgeMapper,
+  // [networks.hyperbridge]: hyperbridgeMapper,
   [networks.kusama]: BYPASS_MAPPER,
   [networks.kusamaBridgeHub]: BYPASS_MAPPER,
   [networks.kusamaCoretime]: BYPASS_MAPPER,
