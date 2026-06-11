@@ -45,7 +45,10 @@ export function calculateSpot(poolsManager: PoolRegistryManager, path: Path) {
       }
     }
 
-    if (stepPrice === null) {
+    if (stepPrice === null || stepPrice === 0) {
+      console.warn(
+        `Unable to calculate spot price in pool ${poolAddress} (${poolType}) from ${tokenIn} to ${tokenOut}`,
+      )
       return null
     }
 
