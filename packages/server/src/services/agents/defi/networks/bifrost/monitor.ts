@@ -1,4 +1,4 @@
-import { Subject } from 'rxjs'
+import { filter, Subject } from 'rxjs'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Logger } from '@/services/types.js'
@@ -35,7 +35,7 @@ export function bifrostDefiMonitor(logger: Logger, ingress: IngressConsumers, de
 
   async function start() {
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
-    const block$ = shared$.blocks(CHAIN_ID)
+    const block$ = shared$.blocks(CHAIN_ID).pipe(filter((b) => b.ingestionMode !== 'backfill'))
     for (const processor of processors) {
       await processor.start(block$)
     }

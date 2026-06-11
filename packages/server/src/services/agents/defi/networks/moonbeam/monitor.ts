@@ -1,4 +1,4 @@
-import { mergeMap, Subject, share } from 'rxjs'
+import { filter, mergeMap, Subject, share } from 'rxjs'
 import { networks } from '@/services/agents/common/networks.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
 import { Logger } from '@/services/types.js'
@@ -18,6 +18,7 @@ export function moonbeamDexMonitor(
 
   async function start() {
     const blockWithLogs$ = ingress.finalizedBlocks(chainId).pipe(
+      filter((b) => b.ingestionMode !== 'backfill'),
       mergeMap((block) =>
         ingress.getLogs(chainId, block.number).then((logs) => ({
           ...block,

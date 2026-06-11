@@ -1,4 +1,4 @@
-import { firstValueFrom, Subject, Subscription, share } from 'rxjs'
+import { filter, firstValueFrom, Subject, Subscription, share } from 'rxjs'
 import { formatUnits } from 'viem'
 import { toAssetId } from '@/services/agents/common/assets.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
@@ -276,7 +276,7 @@ export function hydrationDexMonitor(
     await loadData()
 
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
-    const blocks$ = shared$.blocks(CHAIN_ID)
+    const blocks$ = shared$.blocks(CHAIN_ID).pipe(filter((b) => b.ingestionMode !== 'backfill'))
     const events$ = blocks$.pipe(
       watchEvents(logger, fetchAssetMetadata, fetchAccounts, computeUsdValue),
       share(),
