@@ -114,7 +114,7 @@ export function hydrationDexMonitor(
             symbol: meta?.symbol ?? '??',
           })
         } else {
-          logger.warn('[dex:hydration] No spot price calculated for asset %s', asset)
+          logger.warn('[dex:hydration] No spot price calculated for asset %s (path=%j)', asset, path)
         }
       } catch (e) {
         logger.error(e, '[dex:hydration] Error updating price for asset %s', asset)
