@@ -1,5 +1,10 @@
 import { Abi, decodeEventLog, Log, toEventSelector } from 'viem'
-import { BlockEvent, BlockEvmEvent, EventRecordWithIndex, Event } from '@/services/networking/substrate/types.js'
+import {
+  BlockEvent,
+  BlockEvmEvent,
+  Event,
+  EventRecordWithIndex,
+} from '@/services/networking/substrate/types.js'
 import aavePoolAbi from '../abi/aave_pool.json' with { type: 'json' }
 import {
   aaveBorrowHandler,

@@ -1,13 +1,8 @@
 import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
-import { BlockEvent, EventRecordWithIndex, Event } from '@/services/networking/substrate/types.js'
+import { BlockEvent, Event, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
-import {
-  BroadcastSwapped,
-  FillerTypeName,
-  HydrationSwapEvent,
-  SwapRoute,
-} from './types.js'
+import { BroadcastSwapped, FillerTypeName, HydrationSwapEvent, SwapRoute } from './types.js'
 
 type RouterExecutedEvent = {
   asset_in: number

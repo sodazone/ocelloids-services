@@ -1,7 +1,7 @@
 import { Enum } from 'polkadot-api'
 import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
-import { BlockEvent, EventRecordWithIndex, Event } from '@/services/networking/substrate/types.js'
+import { BlockEvent, Event, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
 import {
   BroadcastSwapped,
   FillerType,
