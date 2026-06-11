@@ -91,6 +91,10 @@ export interface SwapRoute {
   protocol: FillerTypeName | 'router'
 }
 
+export interface HydrationSwapped3Event extends SwapRoute, BaseHydrationDefiEvent {
+  type: 'swapped3'
+}
+
 export interface HydrationSwapEvent extends SwapRoute, BaseHydrationDefiEvent {
   type: 'swap'
   orderId: string
@@ -151,6 +155,7 @@ export type HydrationDcaEvent =
   | HydrationDcaCompletedEvent
 
 export type HydrationDefiEvent =
+  | HydrationSwapped3Event
   | HydrationSwapEvent
   | HydrationLendingEvent
   | HydrationLiquidationEvent

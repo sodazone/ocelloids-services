@@ -10,9 +10,8 @@ import { Logger } from '@/services/types.js'
 import { DefiEventPayload, DefiOrderPayload, MoneyMarketActions } from '../../../types.js'
 import { CHAIN_ID } from '../consts.js'
 import { toProtocol } from '../utils.js'
-import { dcaCompletedHandler, dcaExecutedHandler, dcaScheduledHandler } from './dca.js'
 import { evmLogHandler } from './evm.js'
-import { routerExecutedHandler } from './router.js'
+import { swapped3Handler } from './router.js'
 import {
   EventHandler,
   HydrationDcaEvent,
@@ -20,6 +19,7 @@ import {
   HydrationLendingEvent,
   HydrationLiquidationEvent,
   HydrationSwapEvent,
+  HydrationSwapped3Event,
   SwapRoute,
 } from './types.js'
 
@@ -29,15 +29,16 @@ const eventPayloadConsts: Pick<DefiEventPayload, 'type' | 'networkId'> = {
 }
 
 const handlers: Record<string, EventHandler> = {
-  'extrinsic.router.executed': routerExecutedHandler,
-  'extrinsic.evm.log': evmLogHandler,
-  'intrinsic.dca.tradeexecuted': dcaExecutedHandler,
-  'extrinsic.dca.scheduled': dcaScheduledHandler,
-  'intrinsic.dca.completed': dcaCompletedHandler,
+  // 'router.executed': routerExecutedHandler,
+  'evm.log': evmLogHandler,
+  // 'dca.tradeexecuted': dcaExecutedHandler,
+  // 'dca.scheduled': dcaScheduledHandler,
+  // 'dca.completed': dcaCompletedHandler,
+  'broadcast.swapped3': swapped3Handler,
 }
 
-function toHandlerKey(event: BlockEvent, isExtrinsicEvent: boolean) {
-  return `${isExtrinsicEvent ? 'extrinsic' : 'intrinsic'}.${event.module.toLowerCase()}.${event.name.toLowerCase()}`
+function toHandlerKey(event: BlockEvent) {
+  return `${event.module.toLowerCase()}.${event.name.toLowerCase()}`
 }
 
 function resolveAssets(ids: string[], fetchAssetMetadata: (ids: string[]) => Promise<AssetMetadata[]>) {
@@ -93,6 +94,9 @@ function toSwapEventPayload(
   }
   const normalizedAmountIn = formatUnits(amountIn, assetInMeta.decimals ?? 0)
   const normalizedAmountOut = formatUnits(amountOut, assetOutMeta.decimals ?? 0)
+  const outUSD = computeUsdValue(assetOut, Number(normalizedAmountOut))
+  // If input is H2O, use outUSD since we don't compute price of H2O
+  const inUSD = assetIn === 1 ? outUSD : computeUsdValue(assetIn, Number(normalizedAmountIn))
 
   return {
     ...basePayload({
@@ -109,13 +113,13 @@ function toSwapEventPayload(
         amount: normalizedAmountIn,
         assetId: toAssetId(CHAIN_ID, assetIn),
         symbol: assetInMeta.symbol ?? '??',
-        amountUSD: computeUsdValue(assetIn, Number(normalizedAmountIn)),
+        amountUSD: inUSD,
       },
       out: {
         amount: normalizedAmountOut,
         assetId: toAssetId(CHAIN_ID, assetOut),
         symbol: assetOutMeta.symbol ?? '??',
-        amountUSD: computeUsdValue(assetOut, Number(normalizedAmountOut)),
+        amountUSD: outUSD,
       },
     },
   }
@@ -364,6 +368,29 @@ function mapLiquidation(
   )
 }
 
+function mapSwapped3(
+  event: HydrationSwapped3Event,
+  fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
+  computeUsdValue: (assetId: number, amount: number) => number | undefined,
+) {
+  return resolveAssets(
+    [...new Set([event.assetIn.toString(), event.assetOut.toString()])],
+    fetchAssetMetadata,
+  ).pipe(
+    map((assets) => {
+      const ctx = {
+        who: event.who,
+        blockNumber: event.blockNumber.toString(),
+        blockHash: event.blockHash,
+        txHash: event.extrinsic?.txHash ?? 'intrinsic',
+      }
+
+      return toSwapEventPayload(event, ctx, assets, computeUsdValue)
+    }),
+    filter((e) => e !== null),
+  )
+}
+
 function mapSwaps(
   event: HydrationSwapEvent,
   fetchAssetMetadata: (assets: string[]) => Promise<AssetMetadata[]>,
@@ -410,8 +437,8 @@ export function watchEvents(
           const isApplyExtrinsic = phase.type === 'ApplyExtrinsic'
           const extrinsic = isApplyExtrinsic ? extrinsics[phase.value] : undefined
           const siblings = isApplyExtrinsic
-            ? events.filter((e) => e.phase.type === phase.type && e.phase.value === phase.value)
-            : events.filter((e) => e.phase.type === phase.type)
+            ? eventsWithIndex.filter((e) => e.phase.type === phase.type && e.phase.value === phase.value)
+            : eventsWithIndex.filter((e) => e.phase.type === phase.type)
           return [
             {
               ...event,
@@ -427,8 +454,8 @@ export function watchEvents(
           ] as [BlockEvent, EventRecordWithIndex<Event>[], boolean]
         })
       }),
-      map(([event, siblings, isExtrinsicEvent]) => {
-        const key = toHandlerKey(event, isExtrinsicEvent)
+      map(([event, siblings]) => {
+        const key = toHandlerKey(event)
         const handler = handlers[key]
         if (!handler) {
           return null
@@ -443,6 +470,8 @@ export function watchEvents(
       filter((defiEvent) => defiEvent !== null),
       mergeMap((event) => {
         switch (event.type) {
+          case 'swapped3':
+            return mapSwapped3(event, fetchAssetMetadata, computeUsdValue)
           case 'swap':
             return mapSwaps(event, fetchAssetMetadata, computeUsdValue)
           case 'lending':
