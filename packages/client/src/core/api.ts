@@ -25,7 +25,7 @@ import {
   StreamableApi,
   SubscribableApi,
 } from './types'
-import { isGreaterThan, isGreaterThanOrEqual, isLessThanOrEqual, isSubscriptionInputs } from './utils'
+import { isGreaterThan, isGreaterThanOrEqual, isLessThanOrEqual, isSubscriptionInputs, sleep } from './utils'
 
 /**
  * Exposes the Ocelloids Agent API.
@@ -274,6 +274,11 @@ export class OcelloidsAgentApi<T, P = AnyJson>
             if (firstLiveId === null) {
               await replayContext.onPersist(item.id)
             }
+          }
+
+          if (cursor) {
+            // Basic dumb throttling, consider maybe token bucket rate limiter
+            await sleep(500)
           }
         } while (cursor)
       } catch (err) {

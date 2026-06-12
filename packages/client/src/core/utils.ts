@@ -40,3 +40,7 @@ export function isLessThanOrEqual(a: string | number, b: string | number): boole
   }
   return a.localeCompare(b) <= 0
 }
+
+export function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
