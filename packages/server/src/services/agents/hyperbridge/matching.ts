@@ -16,8 +16,8 @@ import {
   IsmpPostRequestWithContext,
   isIsmpPostRequestHandledWithContext,
 } from './types.js'
+import { HOUR } from '../common/time.js'
 
-const HOUR = 60 * 60_000
 const DEFAULT_TIMEOUT = 24 * HOUR
 
 export const prefixes = {

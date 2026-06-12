@@ -38,10 +38,11 @@ import {
   XcmTimeout,
   XcmWaypointContext,
 } from '../types/index.js'
+import { HOUR } from '../../common/time.js'
 
 const MAX_MATCH_RETRIES = 5
-const DEFAULT_TIMEOUT = 60 * 60_000
-const BRIDGE_TIMEOUT = 12 * 60 * 60_000
+const DEFAULT_TIMEOUT = HOUR
+const BRIDGE_TIMEOUT = 24 * HOUR
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 
