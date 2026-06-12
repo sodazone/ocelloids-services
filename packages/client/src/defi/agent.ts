@@ -100,6 +100,7 @@ export class DefiAgentApi
         },
         pagination: {
           cursor: String(from),
+          limit: 50,
         },
       }
     }
