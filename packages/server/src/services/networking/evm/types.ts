@@ -42,4 +42,6 @@ export type DecodedTxWithLogs = DecodedTx & WithLogs
 export type DecodedTxWithReceipt = DecodedTx & WithReceipt
 export type DecodedTxWithLogsAndReceipt = DecodedTx & WithLogs & WithReceipt
 
+export type DecodedLogWithTxReceipt = DecodedLogWithTimestamp & WithReceipt
+
 export type DecodeContractParams = { abi: Abi; addresses: HexString[] }
