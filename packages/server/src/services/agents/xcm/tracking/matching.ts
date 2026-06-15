@@ -10,6 +10,7 @@ import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getConsensus, getRelayId } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { jsonEncoded, Logger, NetworkURN, SubLevel } from '@/services/types.js'
+import { HOUR } from '../../common/time.js'
 import { TelemetryXcmEventEmitter } from '../telemetry/events.js'
 import {
   BridgeName,
@@ -38,7 +39,6 @@ import {
   XcmTimeout,
   XcmWaypointContext,
 } from '../types/index.js'
-import { HOUR } from '../../common/time.js'
 
 const MAX_MATCH_RETRIES = 5
 const DEFAULT_TIMEOUT = HOUR
