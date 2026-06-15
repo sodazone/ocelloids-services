@@ -90,16 +90,15 @@ export function hydrationDexMonitor(
       try {
         const spot = asset === DEFAULT_QUOTE_TOKEN ? 1 : calculateSpot(poolsManager, path)
         if (spot) {
-          const prevPrice = prices.get(asset)
+          prices.set(asset, spot)
 
+          const prevPrice = prices.get(asset)
           if (prevPrice !== undefined) {
             const diff = Math.abs(spot - prevPrice) / prevPrice
             if (diff < PRICE_EMISSION_THRESHOLD) {
               continue
             }
           }
-
-          prices.set(asset, spot)
 
           const metaResult = await fetchAssetMetadata([asset.toString()])
           const meta = metaResult.length > 0 ? metaResult[0] : null
