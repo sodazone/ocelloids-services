@@ -20,8 +20,9 @@ const CHAIN_CONFIG: Record<string, ChainConfig> = {
   base: { type: 'evm', blockTime: 2, rpc: 'https://base-public.nodies.app' },
   arb: { type: 'evm', blockTime: 0.25, rpc: 'https://arbitrum-one-public.nodies.app' },
   bsc: { type: 'evm', blockTime: 0.45, rpc: 'https://public-bsc-mainnet.fastnode.io' },
-  dot: { type: 'substrate', blockTime: 6, rpc: 'wss://rpc.ibp.network/polkadot' },
-  nexus: { type: 'substrate', blockTime: 6, rpc: 'wss://nexus.ibp.network' },
+  moon: { type: 'evm', blockTime: 6, rpc: 'https://rpc.api.moonbeam.network' },
+  dot: { type: 'substrate', blockTime: 6, rpc: 'wss://polkadot-rpc.n.dwellir.com' },
+  // nexus: { type: 'substrate', blockTime: 6, rpc: 'wss://nexus.ibp.network' },
 }
 
 function isIsoDateString(value: string): boolean {
