@@ -92,8 +92,8 @@ export function toBasejumpStops(
     timestamp: waypoint.timestamp,
     status: waypoint.outcome,
     tx: {
-      hash: waypoint.txHash,
-      hashSecondary: waypoint.txHashSecondary,
+      txHash: waypoint.txHash,
+      txHashSecondary: waypoint.txHashSecondary,
     },
   }
 
