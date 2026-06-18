@@ -21,7 +21,7 @@ describe('basejump destination operators', () => {
             const id = msg.type === 'queued' ? msg.id : null
             expect(msg.chainId).toBe('urn:ocn:polkadot:2034')
             expect(msg.outcome).toBe('Success')
-            expect(id).toBe(1)
+            expect(id).toBe('1')
             expect(msg.asset).toBeDefined()
             expect(msg.recipient).toBeDefined()
             expect(msg.amount).toBeDefined()
