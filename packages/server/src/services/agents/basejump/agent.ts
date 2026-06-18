@@ -186,7 +186,6 @@ export class BasejumpAgent implements Agent {
   }
 
   async #onMessage(message: BasejumpMessagePayloadWithMetadata) {
-    console.log('BASEJUMP', message)
     try {
       const correlationId = toUniqueCorrelationId(message)
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)

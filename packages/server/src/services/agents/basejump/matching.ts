@@ -56,7 +56,6 @@ export class BasejumpMatchingEngine {
   }
 
   async onOutboundMessage(msg: BasejumpInitiated) {
-    console.log('outbound ------------', msg)
     await this.#mutex.runExclusive(async () => {
       const key = toMatchingKey(msg.to, msg.asset, msg.amount)
       const vaaId = msg.vaaId
