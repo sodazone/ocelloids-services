@@ -34,10 +34,12 @@ export class WormholeWorkerPool {
       }
     })
     this.worker.on('error', (err) => {
+      console.error('Wormhole worker errored', err)
       this.rejectAll(err as Error)
     })
     this.worker.on('exit', (code) => {
       if (code !== 0) {
+        console.error(`Wormhole worker exited with code ${code}`)
         this.rejectAll(new Error(`Worker exited with code ${code}`))
       }
     })
