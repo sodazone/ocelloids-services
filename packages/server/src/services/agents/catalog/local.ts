@@ -20,6 +20,7 @@ import { EgressMessageListener, Subscription } from '@/services/subscriptions/ty
 import { egressMetrics } from '@/services/telemetry/metrics/publisher.js'
 import { PullCollector } from '@/services/telemetry/types.js'
 import { AgentCatalogOptions, DatabaseOptions } from '@/types.js'
+import { BasejumpAgent } from '../basejump/agent.js'
 import { ChainSpy } from '../chainspy/agent.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
 import { DefiAgent } from '../defi/agent.js'
@@ -81,6 +82,12 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
     new DefiAgent(ctx, {
       steward: activations['steward'] as DataSteward,
       ticker: activations['ticker'] as TickerAgent,
+    }),
+  basejump: (ctx, activations) =>
+    new BasejumpAgent(ctx, {
+      steward: activations['steward'] as DataSteward,
+      ticker: activations['ticker'] as TickerAgent,
+      crosschain: activations['crosschain'] as CrosschainExplorer,
     }),
   ...(DIRTY_TOGGLES['chainspy'] && {
     chainspy: (ctx) => new ChainSpy(ctx),
