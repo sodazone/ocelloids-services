@@ -99,7 +99,7 @@ async function estimateSubstrateBlockAtTime(client: SubstrateApi, targetTs: numb
 
   const rough = latestHeight + Math.round((targetTs - latestTs) / avgBlockTimeSec)
 
-  const RANGE = 1000
+  const RANGE = 10000
 
   return binarySearchClosest(
     Math.max(0, rough - RANGE),
@@ -116,7 +116,7 @@ async function estimateEvmBlockAtTime(client: PublicClient, targetTs: number, av
 
   const rough = latestHeight + Math.round((targetTs - latestTs) / avgBlockTimeSec)
 
-  const RANGE = 1000
+  const RANGE = avgBlockTimeSec > 2 ? 10000 : 50000
 
   return binarySearchClosest(
     Math.max(0, rough - RANGE),
