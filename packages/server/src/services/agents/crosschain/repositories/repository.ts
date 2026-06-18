@@ -222,6 +222,17 @@ export function mergeStops(inStops: any[] = [], outStops: any[] = []) {
   return asJSON(merged)
 }
 
+function mergeJourneyType(inType: string, outType: string): string {
+  const priority: Record<string, number> = {
+    query: 1,
+    transact: 2,
+    transfer: 3,
+    swap: 4,
+  }
+
+  return (priority[inType] ?? 0) > (priority[outType] ?? 0) ? inType : outType
+}
+
 export class CrosschainRepository {
   readonly #db: Kysely<CrosschainDatabase>
   readonly #dialect: SQLDialect
@@ -632,6 +643,7 @@ export class CrosschainRepository {
     inJourneyId: number,
     outJourneyId: number,
     tripId?: string,
+    overrides?: JourneyUpdate,
   ): Promise<{ updated: { id: number; correlationId: string }; deleted: Journey | null }> {
     return this.#db.transaction().execute(async (trx) => {
       const inJourney = await trx
@@ -651,16 +663,17 @@ export class CrosschainRepository {
         JSON.parse(outJourney.stops ?? '[]') as any[],
       )
 
+      const updatedTo = overrides?.to ?? outJourney.to
       const update: JourneyUpdate = {
         trip_id: tripId ?? inJourney.trip_id ?? outJourney.trip_id,
         destination_protocol: outJourney.destination_protocol,
         destination: outJourney.destination,
-        to: outJourney.to,
-        to_formatted: outJourney.to_formatted,
-        to_prefix: outJourney.to?.slice(0, 42).toLowerCase(),
-        recv_at: outJourney.recv_at,
-        status: outJourney.status,
-        type: outJourney.type,
+        to: updatedTo,
+        to_formatted: overrides?.to_formatted ?? outJourney.to_formatted,
+        to_prefix: updatedTo.slice(0, 42).toLowerCase(),
+        recv_at: overrides?.recv_at ?? outJourney.recv_at,
+        status: overrides?.status ?? outJourney.status,
+        type: mergeJourneyType(inJourney.type, outJourney.type),
         destination_tx_primary: outJourney.destination_tx_primary,
         destination_tx_secondary: outJourney.destination_tx_secondary,
         stops: mergedStops,
