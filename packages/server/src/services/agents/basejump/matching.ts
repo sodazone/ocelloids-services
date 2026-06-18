@@ -228,22 +228,26 @@ export class BasejumpMatchingEngine {
       if (inboundMsg.type === 'executed') {
         const received = new BasejumpExecuted(originMsg, inboundMsg)
         this.#log.info(
-          '[%s] EXECUTED source=%s dest=%s key=%s',
+          '[%s] EXECUTED source=%s dest=%s key=%s (block=%s #%s)',
           this.#id,
           received.origin.chainId,
           received.destination.chainId,
           key,
+          inboundMsg.blockHash,
+          inboundMsg.blockNumber,
         )
         this.#matchedReceiver(received)
       } else {
         const pending = new BasejumpPending(originMsg, inboundMsg)
         this.#log.info(
-          '[%s] %s source=%s dest=%s key=%s',
+          '[%s] %s source=%s dest=%s key=%s (block=%s #%s)',
           this.#id,
           pending.type.toUpperCase(),
           pending.origin.chainId,
           pending.destination.chainId,
           key,
+          inboundMsg.blockHash,
+          inboundMsg.blockNumber,
         )
         this.#matchedReceiver(pending)
       }

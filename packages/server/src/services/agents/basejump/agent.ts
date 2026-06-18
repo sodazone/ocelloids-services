@@ -335,11 +335,12 @@ export class BasejumpAgent implements Agent {
   }
 
   async #tryMergeJourney(existingJourney: FullJourney): Promise<boolean> {
-    if (!existingJourney.trip_id) {
+    const tripId = existingJourney.trip_id ?? this.#getTripId(existingJourney.correlation_id)?.tripId
+    if (!tripId) {
       return false
     }
 
-    const trips = await this.#repository.getJourneyByTripId(existingJourney.trip_id)
+    const trips = await this.#repository.getJourneyByTripId(tripId)
 
     const xcmLeg = trips.find((trip) => trip.origin_protocol === 'xcm' && trip.destination_protocol === 'xcm')
 
@@ -348,13 +349,13 @@ export class BasejumpAgent implements Agent {
     }
 
     if (existingJourney.origin === xcmLeg.origin) {
-      await this.#mergeJourneys(xcmLeg.id, existingJourney.id, existingJourney.trip_id)
+      await this.#mergeJourneys(xcmLeg.id, existingJourney.id, tripId)
 
       return true
     }
 
     if (existingJourney.destination === xcmLeg.destination) {
-      await this.#mergeJourneys(existingJourney.id, xcmLeg.id, existingJourney.trip_id, {
+      await this.#mergeJourneys(existingJourney.id, xcmLeg.id, tripId, {
         to: existingJourney.to,
         to_formatted: existingJourney.to_formatted,
         status: existingJourney.status === 'waiting' ? existingJourney.status : undefined,
