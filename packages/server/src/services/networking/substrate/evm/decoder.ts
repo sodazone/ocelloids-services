@@ -15,9 +15,9 @@ import {
 import { HexString } from '@/lib.js'
 import { Event, Extrinsic } from '../types.js'
 
-type FrontierTransactionTypes = Legacy | EIP1559 | EIP2930 | EIP7702
+type FrontierTransaction = Legacy | EIP1559 | EIP2930 | EIP7702
 export type FrontierExtrinsic = {
-  transaction: FrontierTransactionTypes
+  transaction: FrontierTransaction
 }
 
 type BigNumStringArray = string[]
@@ -156,7 +156,7 @@ function u256(parts: string[]): bigint {
 }
 
 function extractTxAndSig(
-  tx: FrontierTransactionTypes,
+  tx: FrontierTransaction,
 ): [
   (
     | TransactionSerializable
@@ -408,4 +408,8 @@ export async function getFromAddress(xt: FrontierExtrinsic) {
 
 export function isEIP7702(obj: any): obj is EIP7702 {
   return 'type' in obj && obj.type === 'EIP7702'
+}
+
+export function getCallDestination(transaction: FrontierTransaction): HexString {
+  return isEIP7702(transaction) ? transaction.value.destination.value : transaction.value.action.value
 }

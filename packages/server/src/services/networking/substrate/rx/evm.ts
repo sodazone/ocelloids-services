@@ -5,6 +5,7 @@ import {
   decodeEvmEventLog,
   decodeEvmFunctionData,
   FrontierExtrinsic,
+  getCallDestination,
   getFromAddress,
   isEIP7702,
   isEVMLog,
@@ -72,9 +73,7 @@ export function extractEvmTransactions(params: DecodeContractParams[]) {
 
           const executed = events.find((ev) => ev.module === 'Ethereum' && ev.name === 'Executed')?.value
 
-          const to = isEIP7702(transaction)
-            ? transaction.value.destination.value
-            : transaction.value.action.value
+          const to = getCallDestination(transaction)
           const from = await getFromAddress(fxt)
           const value = BigInt(transaction.value.value[0])
           const input = isEIP7702(transaction) ? transaction.value.data : transaction.value.input
