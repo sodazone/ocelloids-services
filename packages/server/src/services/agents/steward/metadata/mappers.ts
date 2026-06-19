@@ -52,7 +52,7 @@ const moonbeamMapper: AssetMapper = (context: SubstrateApiContext) => {
   return mappings
 }
 
-const hyperbridgeMapper: AssetMapper = (context: SubstrateApiContext) => {
+const _hyperbridgeMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('Assets', 'Asset')
   const keyPrefix = codec.keys.enc() as HexString
   const codecs: WithRequired<StorageCodecs, 'assets' | 'metadata' | 'locations'> = {
