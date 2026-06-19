@@ -10,6 +10,7 @@ import { AgentRuntimeContext } from '@/services/agents/types.js'
 import { getConsensus, getRelayId } from '@/services/config.js'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { jsonEncoded, Logger, NetworkURN, SubLevel } from '@/services/types.js'
+import { HOUR } from '../../common/time.js'
 import { TelemetryXcmEventEmitter } from '../telemetry/events.js'
 import {
   BridgeName,
@@ -40,8 +41,8 @@ import {
 } from '../types/index.js'
 
 const MAX_MATCH_RETRIES = 5
-const DEFAULT_TIMEOUT = 60 * 60_000
-const BRIDGE_TIMEOUT = 12 * 60 * 60_000
+const DEFAULT_TIMEOUT = HOUR
+const BRIDGE_TIMEOUT = 24 * HOUR
 
 export type XcmMatchedReceiver = (payload: XcmMessagePayload) => Promise<void> | void
 

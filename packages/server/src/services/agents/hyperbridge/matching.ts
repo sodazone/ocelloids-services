@@ -3,6 +3,7 @@ import { Mutex } from 'async-mutex'
 import { safeDestr } from 'destr'
 import { Janitor, JanitorTask } from '@/services/scheduling/janitor.js'
 import { jsonEncoded, Logger, SubLevel } from '@/services/types.js'
+import { HOUR } from '../common/time.js'
 import { AgentRuntimeContext } from '../types.js'
 import { TelemetryHyperbridgeEventEmitter } from './telemetry/events.js'
 import {
@@ -17,7 +18,6 @@ import {
   isIsmpPostRequestHandledWithContext,
 } from './types.js'
 
-const HOUR = 60 * 60_000
 const DEFAULT_TIMEOUT = 24 * HOUR
 
 export const prefixes = {

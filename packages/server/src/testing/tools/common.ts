@@ -3,7 +3,7 @@ export const substrateNetworks: Record<string, string> = {
   assethub: 'wss://polkadot-asset-hub-rpc.polkadot.io',
   bridgehub: 'wss://polkadot-bridge-hub-rpc.polkadot.io',
   hydra: 'wss://rpc.hydradx.cloud',
-  moonbeam: 'wss://moonbeam.ibp.network',
+  moonbeam: 'wss://wss.api.moonbeam.network',
   astar: 'wss://rpc.astar.network',
   bifrost: 'wss://bifrost-polkadot.ibp.network',
   interlay: 'wss://api.interlay.io/parachain',
@@ -20,5 +20,8 @@ export const evmNetworks: Record<string, { url: string; networkId: string }> = {
   ethereum: { url: 'https://eth.llamarpc.com', networkId: 'urn:ocn:ethereum:1' },
   polygon: { url: 'https://polygon-rpc.com/', networkId: 'urn:ocn:ethereum:137' },
   bsc: { url: 'https://binance.llamarpc.com', networkId: 'urn:ocn:ethereum:56' },
+  base: { url: 'https://base-rpc.publicnode.com', networkId: 'urn:ocn:ethereum:8453' },
+  moonbeam_evm: { url: 'https://moonbeam-rpc.publicnode.com', networkId: 'urn:ocn:ethereum:1284' },
+  hydration_evm: { url: 'https://hydration.ibp.network', networkId: 'urn:ocn:ethereum:222222' },
   arbitrum: { url: 'https://arbitrum-one-public.nodies.app', networkId: 'urn:ocn:ethereum:42161' },
 }

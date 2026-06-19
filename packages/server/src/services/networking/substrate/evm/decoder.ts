@@ -9,19 +9,32 @@ import {
   TransactionSerializable,
   TransactionSerializableEIP1559,
   TransactionSerializableEIP2930,
+  TransactionSerializableEIP7702,
 } from 'viem'
 
 import { HexString } from '@/lib.js'
 import { Event, Extrinsic } from '../types.js'
 
+type FrontierTransaction = Legacy | EIP1559 | EIP2930 | EIP7702
 export type FrontierExtrinsic = {
-  transaction: Legacy | EIP1559 | EIP2930
+  transaction: FrontierTransaction
 }
 
 type BigNumStringArray = string[]
 type AccessList = {
   address: HexString
   storage_keys: HexString[]
+}
+
+type FrontierAuthorization = {
+  chain_id: string
+  address: HexString
+  nonce: BigNumStringArray
+  signature: {
+    odd_y_parity: boolean
+    r: HexString
+    s: HexString
+  }
 }
 
 type FrontierEIP1559Value = {
@@ -51,6 +64,32 @@ type FrontierEIP2930Value = {
   value: BigNumStringArray
   input: HexString
   access_list: AccessList[]
+}
+
+type FrontierEIP7702Value = {
+  chain_id: string
+  nonce: BigNumStringArray
+  max_priority_fee_per_gas: BigNumStringArray
+  max_fee_per_gas: BigNumStringArray
+  gas_limit: BigNumStringArray
+  destination: {
+    type: string
+    value: HexString
+  }
+  value: BigNumStringArray
+  data: HexString
+  access_list: AccessList[]
+  authorization_list: FrontierAuthorization[]
+  signature: {
+    odd_y_parity: boolean
+    r: HexString
+    s: HexString
+  }
+}
+
+type EIP7702 = {
+  type: 'EIP7702'
+  value: FrontierEIP7702Value
 }
 
 type Legacy = {
@@ -107,21 +146,44 @@ type EIP2930 = {
       })
 }
 
+function u256(parts: string[]): bigint {
+  return (
+    BigInt(parts[0] ?? 0) +
+    (BigInt(parts[1] ?? 0) << 64n) +
+    (BigInt(parts[2] ?? 0) << 128n) +
+    (BigInt(parts[3] ?? 0) << 192n)
+  )
+}
+
 function extractTxAndSig(
-  tx: Legacy | EIP1559 | EIP2930,
-): [TransactionSerializable | TransactionSerializableEIP2930 | TransactionSerializableEIP1559, Signature] {
+  tx: FrontierTransaction,
+): [
+  (
+    | TransactionSerializable
+    | TransactionSerializableEIP2930
+    | TransactionSerializableEIP1559
+    | TransactionSerializableEIP7702
+  ),
+  Signature,
+] {
   switch (tx.type) {
     case 'Legacy': {
       const v = tx.value
+
+      const nonce = u256(v.nonce)
+      const value = u256(v.value)
+      const gas = u256(v.gas_limit)
+      const gasPrice = u256(v.gas_price)
+
       return [
         {
-          nonce: Number(v.nonce[0]),
-          value: BigInt(v.value[0]),
+          nonce: Number(nonce),
+          value,
           type: 'legacy',
           data: v.input,
           to: v.action.value,
-          gas: BigInt(v.gas_limit[0]),
-          gasPrice: BigInt(v.gas_price[0]),
+          gas,
+          gasPrice,
         } as TransactionSerializable,
         {
           r: v.signature.r,
@@ -130,8 +192,10 @@ function extractTxAndSig(
         },
       ]
     }
+
     case 'EIP1559': {
       const v = tx.value
+
       const sig =
         'signature' in v
           ? {
@@ -144,27 +208,31 @@ function extractTxAndSig(
               s: v.s!,
               yParity: v.odd_y_parity ? 1 : 0,
             }
+
       return [
         {
           chainId: Number(v.chain_id),
-          nonce: Number(v.nonce[0]),
-          value: BigInt(v.value[0]),
+          nonce: Number(u256(v.nonce)),
+          value: u256(v.value),
           type: 'eip1559',
           data: v.input,
           to: v.action.value,
-          gas: BigInt(v.gas_limit[0]),
-          maxFeePerGas: BigInt(v.max_fee_per_gas[0]),
-          maxPriorityFeePerGas: BigInt(v.max_priority_fee_per_gas[0]),
+          gas: u256(v.gas_limit),
+          maxFeePerGas: u256(v.max_fee_per_gas),
+          maxPriorityFeePerGas: u256(v.max_priority_fee_per_gas),
           accessList: v.access_list?.map(({ address, storage_keys }) => ({
             address,
             storageKeys: storage_keys,
           })),
         } as TransactionSerializableEIP1559,
+
         sig,
       ]
     }
+
     case 'EIP2930': {
       const v = tx.value
+
       const sig =
         'signature' in v
           ? {
@@ -177,13 +245,14 @@ function extractTxAndSig(
               s: v.s!,
               yParity: v.odd_y_parity ? 1 : 0,
             }
+
       return [
         {
           chainId: Number(v.chain_id),
-          nonce: Number(v.nonce[0]),
-          gas: BigInt(v.gas_limit[0]),
-          gasPrice: BigInt(v.gas_price[0]),
-          value: BigInt(v.value[0]),
+          nonce: Number(u256(v.nonce)),
+          gas: u256(v.gas_limit),
+          gasPrice: u256(v.gas_price),
+          value: u256(v.value),
           accessList: v.access_list?.map(({ address, storage_keys }) => ({
             address,
             storageKeys: storage_keys,
@@ -192,11 +261,51 @@ function extractTxAndSig(
           data: v.input,
           to: v.action.value,
         } as TransactionSerializableEIP2930,
+
         sig,
       ]
     }
+
+    case 'EIP7702': {
+      const v = tx.value
+
+      const sig = {
+        r: v.signature.r,
+        s: v.signature.s,
+        yParity: v.signature.odd_y_parity ? 1 : 0,
+      }
+
+      return [
+        {
+          type: 'eip7702',
+          chainId: Number(v.chain_id),
+          nonce: Number(u256(v.nonce)),
+          gas: u256(v.gas_limit),
+          maxFeePerGas: u256(v.max_fee_per_gas),
+          maxPriorityFeePerGas: u256(v.max_priority_fee_per_gas),
+          value: u256(v.value),
+          data: v.data,
+          to: v.destination.type === 'Call' ? v.destination.value : undefined,
+          accessList: v.access_list?.map(({ address, storage_keys }) => ({
+            address,
+            storageKeys: storage_keys,
+          })),
+          authorizationList: v.authorization_list.map((auth) => ({
+            chainId: Number(auth.chain_id),
+            address: auth.address,
+            nonce: Number(u256(auth.nonce)),
+            yParity: auth.signature.odd_y_parity ? 1 : 0,
+            r: auth.signature.r,
+            s: auth.signature.s,
+          })),
+        } as TransactionSerializableEIP7702,
+
+        sig,
+      ]
+    }
+
     default:
-      throw new Error('Unkwnon transaction type')
+      throw new Error('Unknown transaction type')
   }
 }
 
@@ -280,7 +389,8 @@ export async function getFromAddress(xt: FrontierExtrinsic) {
       return from
     }
     case 'EIP1559':
-    case 'EIP2930': {
+    case 'EIP2930':
+    case 'EIP7702': {
       const [tx, signature] = extractTxAndSig(envelope)
       const stx = serializeTransaction(tx)
       const hash = keccak256(stx)
@@ -294,4 +404,12 @@ export async function getFromAddress(xt: FrontierExtrinsic) {
     default:
       throw new Error('Unknown transaction type')
   }
+}
+
+export function isEIP7702(obj: any): obj is EIP7702 {
+  return 'type' in obj && obj.type === 'EIP7702'
+}
+
+export function getCallDestination(transaction: FrontierTransaction): HexString {
+  return isEIP7702(transaction) ? transaction.value.destination.value : transaction.value.action.value
 }

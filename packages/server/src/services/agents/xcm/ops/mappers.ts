@@ -1,4 +1,8 @@
-import { FrontierExtrinsic, isFrontierExtrinsic } from '@/services/networking/substrate/evm/decoder.js'
+import {
+  FrontierExtrinsic,
+  getCallDestination,
+  isFrontierExtrinsic,
+} from '@/services/networking/substrate/evm/decoder.js'
 import { BlockEvent, Event } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 import { AssetSwap, ConnectionId } from '../types/index.js'
@@ -62,7 +66,7 @@ export const crossProtocolCorrelationMapping: {
         const extrinsic = event.extrinsic
         if (extrinsic && extrinsic.evmTxHash && isFrontierExtrinsic(extrinsic)) {
           const { transaction } = extrinsic.args as FrontierExtrinsic
-          if (transaction.value.action.value === GMP_PRECOMPILE) {
+          if (getCallDestination(transaction) === GMP_PRECOMPILE) {
             return true
           }
         }

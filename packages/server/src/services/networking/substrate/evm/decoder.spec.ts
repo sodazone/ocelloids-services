@@ -7,6 +7,7 @@ import {
   FrontierExtrinsic,
   getFromAddress,
   getTxHash,
+  isEIP7702,
   isEVMLog,
   isFrontierExtrinsic,
 } from './decoder.js'
@@ -48,7 +49,10 @@ describe('evm decoder', () => {
     const abi = moonbeamAbis().prices
     const block = moonbeamBlocks()[0]
     const xt = block.extrinsics.filter(isFrontierExtrinsic)[0].args as FrontierExtrinsic
-    const decoded = decodeEvmFunctionData({ data: xt.transaction.value.input, abi })
+    const decoded = decodeEvmFunctionData({
+      data: isEIP7702(xt.transaction) ? xt.transaction.value.data : xt.transaction.value.input,
+      abi,
+    })
     expect(decoded).toBeDefined()
     expect(decoded?.functionName).toBe('setPricesWithBits')
     expect(decoded?.args).toStrictEqual([14604785875833318142852275006850560180394230613076272n, 1730373270n])
@@ -57,6 +61,11 @@ describe('evm decoder', () => {
     const block = moonbeamBlocks()[3]
     const xt = block.extrinsics.filter(isFrontierExtrinsic)[1].args as FrontierExtrinsic
     expect(await getFromAddress(xt)).toBe('0x771d8910C37cbabCC39ad3aD053d48367E15d8EC')
+  })
+  it('decode EIP7702 transaction', async () => {
+    const block = moonbeamBlocks()[4]
+    const xt = block.extrinsics.filter(isFrontierExtrinsic)[4].args as FrontierExtrinsic
+    expect(await getFromAddress(xt)).toBe('0x97341Dc93368B96bCbAbe8604e2fbA079f805555')
   })
   it('get address from legacy tx without chain id', async () => {
     expect(

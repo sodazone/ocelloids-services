@@ -20,8 +20,9 @@ const CHAIN_CONFIG: Record<string, ChainConfig> = {
   base: { type: 'evm', blockTime: 2, rpc: 'https://base-public.nodies.app' },
   arb: { type: 'evm', blockTime: 0.25, rpc: 'https://arbitrum-one-public.nodies.app' },
   bsc: { type: 'evm', blockTime: 0.45, rpc: 'https://public-bsc-mainnet.fastnode.io' },
-  dot: { type: 'substrate', blockTime: 6, rpc: 'wss://rpc.ibp.network/polkadot' },
-  nexus: { type: 'substrate', blockTime: 6, rpc: 'wss://nexus.ibp.network' },
+  moon: { type: 'evm', blockTime: 6, rpc: 'https://rpc.api.moonbeam.network' },
+  dot: { type: 'substrate', blockTime: 6, rpc: 'wss://polkadot-rpc.n.dwellir.com' },
+  // nexus: { type: 'substrate', blockTime: 6, rpc: 'wss://nexus.ibp.network' },
 }
 
 function isIsoDateString(value: string): boolean {
@@ -98,7 +99,7 @@ async function estimateSubstrateBlockAtTime(client: SubstrateApi, targetTs: numb
 
   const rough = latestHeight + Math.round((targetTs - latestTs) / avgBlockTimeSec)
 
-  const RANGE = 1000
+  const RANGE = 10000
 
   return binarySearchClosest(
     Math.max(0, rough - RANGE),
@@ -115,7 +116,7 @@ async function estimateEvmBlockAtTime(client: PublicClient, targetTs: number, av
 
   const rough = latestHeight + Math.round((targetTs - latestTs) / avgBlockTimeSec)
 
-  const RANGE = 1000
+  const RANGE = avgBlockTimeSec > 2 ? 10000 : 50000
 
   return binarySearchClosest(
     Math.max(0, rough - RANGE),

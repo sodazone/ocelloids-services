@@ -476,11 +476,13 @@ export class XcmExplorer {
     const merge = async (
       firstLegId: number,
       secondLegId: number,
+      overrides?: JourneyUpdate,
     ): Promise<{ updatedIds: { id: number; correlationId: string }; replaces: Journey | null }> => {
       const { updated, deleted } = await this.#repository.mergeJourneys(
         firstLegId,
         secondLegId,
         existingTrip.trip_id,
+        overrides,
       )
       this.#log.info(
         '[xcm:explorer] Journey merge updated=%s,%s deleted=%s,%s',
@@ -510,7 +512,14 @@ export class XcmExplorer {
         setCache = true
         result = await merge(journey.id, existingTrip.id)
       } else if (destination_protocol === 'xcm' || existingTrip.destination === journey.destination) {
-        result = await merge(existingTrip.id, journey.id)
+        const overrides =
+          journey.to.startsWith('urn:ocn:') && existingTrip.to.startsWith('0x')
+            ? {
+                to: existingTrip.to,
+                to_formatted: existingTrip.to_formatted,
+              }
+            : undefined
+        result = await merge(existingTrip.id, journey.id, overrides)
       }
 
       const targetId = result?.updatedIds.id ?? null
