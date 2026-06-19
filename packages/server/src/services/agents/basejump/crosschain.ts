@@ -212,7 +212,7 @@ export function toBasejumpStops(
     }
 
     case 'basejump.fulfilled': {
-      stops[1].to = context
+      stops[1].to = { ...(stops[1].to ?? {}), fulfilled: context }
       break
     }
   }

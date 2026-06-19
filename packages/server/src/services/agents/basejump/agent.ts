@@ -307,7 +307,7 @@ export class BasejumpAgent implements Agent {
     if (!trip) {
       return false
     }
-    if (trip.status === 'received' || trip.status === 'failed') {
+    if (trip.status === 'failed') {
       return true
     }
 
