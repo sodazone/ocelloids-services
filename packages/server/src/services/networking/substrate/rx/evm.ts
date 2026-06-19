@@ -6,6 +6,7 @@ import {
   decodeEvmFunctionData,
   FrontierExtrinsic,
   getFromAddress,
+  isEIP7702,
   isEVMLog,
   isFrontierExtrinsic,
 } from '../evm/index.js'
@@ -47,48 +48,56 @@ export function extractEvmTransactions(params: DecodeContractParams[]) {
     return source.pipe(
       filter((xt) => isFrontierExtrinsic(xt)),
       mergeMap(async (xt) => {
-        const fxt = xt.args as FrontierExtrinsic
-        const { events } = xt
-        const { transaction } = fxt
+        try {
+          const fxt = xt.args as FrontierExtrinsic
+          const { events } = xt
+          const { transaction } = fxt
 
-        const logs =
-          params.length > 0
-            ? events
-                .filter(isEVMLog)
-                .map(
-                  ({
-                    value: {
-                      log: { address, topics, data },
+          const logs =
+            params.length > 0
+              ? events
+                  .filter(isEVMLog)
+                  .map(
+                    ({
+                      value: {
+                        log: { address, topics, data },
+                      },
+                    }) => {
+                      const abi = findAbi(params, address)
+                      return abi ? decodeEvmEventLog({ data, topics, abi }) : null
                     },
-                  }) => {
-                    const abi = findAbi(params, address)
-                    return abi ? decodeEvmEventLog({ data, topics, abi }) : null
-                  },
-                )
-                .filter(Boolean)
-            : undefined
+                  )
+                  .filter(Boolean)
+              : undefined
 
-        const executed = events.find((ev) => ev.module === 'Ethereum' && ev.name === 'Executed')?.value
+          const executed = events.find((ev) => ev.module === 'Ethereum' && ev.name === 'Executed')?.value
 
-        const to = transaction.value.action.value
-        const from = await getFromAddress(fxt)
-        const value = BigInt(transaction.value.value[0])
-        const input = transaction.value.input
+          const to = isEIP7702(transaction)
+            ? transaction.value.destination.value
+            : transaction.value.action.value
+          const from = await getFromAddress(fxt)
+          const value = BigInt(transaction.value.value[0])
+          const input = isEIP7702(transaction) ? transaction.value.data : transaction.value.input
 
-        const abi = findAbi(params, to)
-        const decoded = abi ? decodeEvmFunctionData({ data: input, abi }) : undefined
+          const abi = findAbi(params, to)
+          const decoded = abi ? decodeEvmFunctionData({ data: input, abi }) : undefined
 
-        return {
-          ...xt,
-          executed,
-          logs,
-          to,
-          from,
-          value,
-          input,
-          decoded,
-        } as BlockEvmTransaction
+          return {
+            ...xt,
+            executed,
+            logs,
+            to,
+            from,
+            value,
+            input,
+            decoded,
+          } as BlockEvmTransaction
+        } catch (e) {
+          console.error(e, `Error extracting EVM transaction in block ${xt.blockHash} (#${xt.blockNumber})`)
+          return null
+        }
       }),
+      filter((tx) => tx !== null),
     )
   }
 }
