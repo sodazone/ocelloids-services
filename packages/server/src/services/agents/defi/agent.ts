@@ -27,6 +27,7 @@ import {
   QueryResult,
   Subscribable,
 } from '../types.js'
+import { assethubDexMonitor } from './networks/assethub/monitor.js'
 import { bifrostDefiMonitor } from './networks/bifrost/monitor.js'
 import { hydrationDexMonitor } from './networks/hydration/monitor.js'
 import { moonbeamDexMonitor } from './networks/moonbeam/monitor.js'
@@ -131,6 +132,7 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
       bifrostDefiMonitor(this.#log, this.#ingress, deps),
       hydrationDexMonitor(this.#log, this.#ingress, deps),
       moonbeamDexMonitor(this.#log, this.#ingress.evm, deps),
+      assethubDexMonitor(this.#log, this.#ingress, deps),
     )
 
     for (const monitor of this.#monitors) {
