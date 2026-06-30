@@ -124,6 +124,7 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
     const deps = {
       fetchAccounts: this.#fetchAccounts.bind(this),
       fetchAssetMetadata: this.#fetchAssetMetadata.bind(this),
+      fetchAssetMetadataByLocation: this.#fetchAssetMetadataByLocation.bind(this),
       listLatestPrices: this.#listLatestPrices.bind(this),
       fetchTickerPrices: this.#fetchTickerPrices.bind(this),
     }
@@ -348,6 +349,19 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
     } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
 
     return items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
+  }
+
+  async #fetchAssetMetadataByLocation(
+    anchor: string,
+    locations: string[],
+  ): Promise<(AssetMetadata | Empty)[]> {
+    const { items } = (await this.#dependencies.steward.query({
+      args: {
+        op: 'assets.by_location',
+        criteria: [{ xcmLocationAnchor: anchor, locations }],
+      },
+    } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
+    return items
   }
 
   async #fetchAccounts(accounts: string[]): Promise<(SubstrateAccountMetadata | Empty)[]> {
