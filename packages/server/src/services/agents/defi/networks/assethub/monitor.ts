@@ -9,7 +9,14 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
 import { DefiLiquidityPayload, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
-import { CHAIN_ID, chunk, MAX_BATCH_SIZE, PROTOCOL, WHITELISTED_LOCAL_ASSETS } from './common.js'
+import {
+  CHAIN_ID,
+  chunk,
+  MAX_BATCH_SIZE,
+  PRICE_EMISSION_THRESHOLD,
+  PROTOCOL,
+  WHITELISTED_LOCAL_ASSETS,
+} from './common.js'
 import { watchEvents } from './events.js'
 import { calculatePoolPrices } from './prices.js'
 import { createReservesWatcher } from './reserves.js'
@@ -70,6 +77,7 @@ export function assethubDexMonitor(
   const ingress = _ingress.substrate
   const poolMap = new Map<string, AssetConversionPool>()
   const tokenMetadataMap = new Map<string, AssetMetadata>()
+  const priceMap = new Map<string, number>()
 
   const { mapReserves } = createReservesWatcher(logger, ingress)
 
@@ -173,10 +181,26 @@ export function assethubDexMonitor(
     logger.info('[defi:assethub] %s pools loaded.', poolMap.size)
   }
 
+  function getPrice(token: BaseAssetMetadata) {
+    return priceMap.get(toAssetId(token.chainId, token.id))
+  }
+
   function onBlock(poolReservesMap: Map<string, AssetConversionPoolReserves>) {
-    const { prices, getPrice } = calculatePoolPrices(poolReservesMap)
+    const prices = calculatePoolPrices(poolReservesMap)
 
     for (const [assetId, { price, decimals, symbol }] of prices) {
+      const prev = prices.get(assetId)
+
+      priceMap.set(assetId, price)
+
+      if (prev !== undefined) {
+        const prevPrice = prev.price
+        const diff = Math.abs(price - prevPrice) / prevPrice
+        if (diff < PRICE_EMISSION_THRESHOLD) {
+          continue
+        }
+      }
+
       subject.next({
         type: 'price',
         assetId,
@@ -195,8 +219,8 @@ export function assethubDexMonitor(
       const baseTokenDecimals = baseToken.decimals ?? 0
       const quoteTokenDecimals = quoteToken.decimals ?? 0
 
-      const baseTokenPrice = getPrice(baseToken)?.price ?? 0
-      const quoteTokenPrice = getPrice(quoteToken)?.price ?? 0
+      const baseTokenPrice = getPrice(baseToken) ?? 0
+      const quoteTokenPrice = getPrice(quoteToken) ?? 0
 
       const baseReserves = formatUnits(baseToken.reserves, baseTokenDecimals)
       const quoteReserves = formatUnits(quoteToken.reserves, quoteTokenDecimals)

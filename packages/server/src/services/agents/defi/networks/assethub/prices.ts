@@ -1,28 +1,21 @@
 import { toAssetId } from '@/services/agents/common/assets.js'
 import { CHAIN_ID, DOT_DECIMALS, USDT_DECIMALS } from './common.js'
-import { AssetConversionPoolReserves, PoolTokenPrice, TokenReserves } from './types.js'
+import { AssetConversionPoolReserves, PoolTokenPrice } from './types.js'
 
 function toDecimal(amount: bigint, decimals: number): number {
   return Number(amount) / 10 ** decimals
 }
 
-export function calculatePoolPrices(poolReservesMap: Map<string, AssetConversionPoolReserves>): {
-  prices: Map<string, PoolTokenPrice>
-  getPrice: (token: TokenReserves) => PoolTokenPrice | null
-} {
+export function calculatePoolPrices(
+  poolReservesMap: Map<string, AssetConversionPoolReserves>,
+): Map<string, PoolTokenPrice> {
   const prices = new Map<string, PoolTokenPrice>()
-  const getPrice = (token: TokenReserves) => {
-    const entry = prices
-      .entries()
-      .find(([assetId, _priceData]) => assetId === toAssetId(token.chainId, token.id))
-    return entry ? entry[1] : null
-  }
 
   const usdtPoolEntry = poolReservesMap
     .entries()
     .find(([_, pool]) => pool.quoteToken.chainId === CHAIN_ID && pool.quoteToken.id === 1984)
   if (!usdtPoolEntry) {
-    return { prices, getPrice }
+    return prices
   }
   const [_, usdtPool] = usdtPoolEntry
 
@@ -65,8 +58,5 @@ export function calculatePoolPrices(poolReservesMap: Map<string, AssetConversion
     })
   }
 
-  return {
-    prices,
-    getPrice,
-  }
+  return prices
 }
