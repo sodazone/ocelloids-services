@@ -1,24 +1,24 @@
-import { firstValueFrom, Subject, Subscription, toArray } from 'rxjs'
+import { filter, firstValueFrom, Subject, Subscription, share, switchMap, toArray } from 'rxjs'
+import { formatUnits } from 'viem'
 import { asJSON } from '@/common/util.js'
-import { networks } from '@/services/agents/common/networks.js'
+import { toAssetId } from '@/services/agents/common/assets.js'
 import { AssetMetadata, isAssetMetadata } from '@/services/agents/steward/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
-import { storageEntriesAtLatest$, XcmLocation } from '@/services/networking/substrate/index.js'
+import { Block, storageEntriesAtLatest$, XcmLocation } from '@/services/networking/substrate/index.js'
+import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Logger } from '@/services/types.js'
-import { DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
-import { AssetConversionPool, BaseAssetMetadata, PoolAssetsAssetValue } from './types.js'
-
-const CHAIN_ID = networks.assetHub
-const MAX_BATCH_SIZE = 50
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = []
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size))
-  }
-  console.log('chunks', chunks)
-  return chunks
-}
+import { smartTrigger } from '../../rxjs/trigger.js'
+import { DefiLiquidityPayload, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
+import { CHAIN_ID, chunk, MAX_BATCH_SIZE, PROTOCOL, WHITELISTED_LOCAL_ASSETS } from './common.js'
+import { watchEvents } from './events.js'
+import { calculatePoolPrices } from './prices.js'
+import { createReservesWatcher } from './reserves.js'
+import {
+  AssetConversionPool,
+  AssetConversionPoolReserves,
+  BaseAssetMetadata,
+  PoolAssetsAssetValue,
+} from './types.js'
 
 function resolveToken(
   location: XcmLocation,
@@ -35,8 +35,10 @@ function resolveToken(
     const metadata = metadataMap.get(String(assetId))
 
     return {
+      type: 'local',
       chainId: CHAIN_ID,
       id: assetId,
+      location,
       decimals: metadata?.decimals,
       symbol: metadata?.symbol,
     }
@@ -49,8 +51,10 @@ function resolveToken(
   }
 
   return {
-    chainId: CHAIN_ID,
+    type: 'foreign',
+    chainId: metadata.chainId,
     id: metadata.id,
+    location,
     decimals: metadata.decimals,
     symbol: metadata.symbol,
   }
@@ -66,6 +70,8 @@ export function assethubDexMonitor(
   const ingress = _ingress.substrate
   const poolMap = new Map<string, AssetConversionPool>()
   const tokenMetadataMap = new Map<string, AssetMetadata>()
+
+  const { mapReserves } = createReservesWatcher(logger, ingress)
 
   async function loadTokenMetadata(poolTokenLocations: [XcmLocation, XcmLocation][]) {
     try {
@@ -115,8 +121,7 @@ export function assethubDexMonitor(
     }
   }
 
-  async function start() {
-    logger.info('[defi:assethub] starting monitor...')
+  async function loadPools() {
     const [poolEntries, poolInfoEntries] = await Promise.all([
       firstValueFrom(
         storageEntriesAtLatest$<[[XcmLocation, XcmLocation]], number>(
@@ -149,6 +154,10 @@ export function assethubDexMonitor(
       const poolInfo = poolInfoMap.get(poolTokenId)
 
       if (!baseToken || !quoteToken || !poolInfo) {
+        logger.warn('[defi:assethub] no quote token  found for location=%s', asJSON(quoteLocation))
+        continue
+      }
+      if (quoteToken.type === 'local' && !WHITELISTED_LOCAL_ASSETS.includes(quoteToken.id as number)) {
         continue
       }
 
@@ -160,6 +169,95 @@ export function assethubDexMonitor(
         quoteToken,
       })
     }
+
+    logger.info('[defi:assethub] %s pools loaded.', poolMap.size)
+  }
+
+  function onBlock(poolReservesMap: Map<string, AssetConversionPoolReserves>) {
+    const { prices, getPrice } = calculatePoolPrices(poolReservesMap)
+
+    for (const [assetId, { price, decimals, symbol }] of prices) {
+      subject.next({
+        type: 'price',
+        assetId,
+        networkId: CHAIN_ID,
+        protocol: PROTOCOL,
+        priceUSD: price.toString(),
+        updatedAt: Date.now(),
+        decimals,
+        symbol: symbol ?? '??',
+      })
+    }
+
+    for (const pool of poolReservesMap.values()) {
+      const { baseToken, quoteToken } = pool
+
+      const baseTokenDecimals = baseToken.decimals ?? 0
+      const quoteTokenDecimals = quoteToken.decimals ?? 0
+
+      const baseTokenPrice = getPrice(baseToken)?.price ?? 0
+      const quoteTokenPrice = getPrice(quoteToken)?.price ?? 0
+
+      const baseReserves = formatUnits(baseToken.reserves, baseTokenDecimals)
+      const quoteReserves = formatUnits(quoteToken.reserves, quoteTokenDecimals)
+
+      const suppliedUSD = Number(baseReserves) * baseTokenPrice + Number(quoteReserves) * quoteTokenPrice
+
+      const payload: DefiLiquidityPayload = {
+        type: 'liquidity',
+        networkId: CHAIN_ID,
+        category: 'exchange',
+        marketId: pool.owner,
+        protocol: PROTOCOL,
+        suppliedUSD,
+        assets: [
+          {
+            assetId: toAssetId(baseToken.chainId, pool.baseToken.id),
+            decimals: baseTokenDecimals,
+            symbol: pool.baseToken.symbol ?? '??',
+            balances: {
+              reserves: baseReserves,
+            },
+            priceUSD: baseTokenPrice,
+          },
+          {
+            assetId: toAssetId(pool.quoteToken.chainId, pool.quoteToken.id),
+            decimals: quoteTokenDecimals,
+            symbol: pool.quoteToken.symbol ?? '??',
+            balances: {
+              reserves: quoteReserves,
+            },
+            priceUSD: quoteTokenPrice,
+          },
+        ],
+      }
+
+      subject.next(payload)
+    }
+  }
+
+  async function start() {
+    logger.info('[defi:assethub] starting monitor...')
+    const shared$ = SubstrateSharedStreams.instance(ingress)
+    const block$ = shared$.blocks(CHAIN_ID).pipe(filter((b) => b.ingestionMode !== 'backfill'))
+    const events$ = block$.pipe(watchEvents(), share())
+    const apiCtx$ = ingress.getContext(CHAIN_ID)
+
+    await loadPools()
+
+    const liquidity$ = apiCtx$.pipe(
+      switchMap((apiCtx) =>
+        block$.pipe(
+          smartTrigger<Block>({
+            events$,
+            maxStaleBlocks: 150,
+          }),
+          mapReserves(apiCtx, poolMap),
+        ),
+      ),
+    )
+    // Liquidity
+    subs.push(liquidity$.subscribe(onBlock))
     logger.info('[defi:assethub] monitor started.')
   }
 
