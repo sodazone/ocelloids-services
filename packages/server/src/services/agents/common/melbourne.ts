@@ -1,8 +1,13 @@
+import { Binary } from 'polkadot-api'
 import { AssetId } from '../steward/types.js'
 
 export function toMelbourne(o: unknown, s = ':'): string {
   if (o == null) {
     return ''
+  }
+
+  if (o instanceof Binary) {
+    return o.asHex()
   }
 
   if (typeof o === 'object') {
