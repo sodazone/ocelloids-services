@@ -12,12 +12,13 @@ export function calculatePoolPrices(
   const prices = new Map<string, PoolTokenPrice>()
 
   const usdtPoolEntry = poolReservesMap
-    .entries()
-    .find(([_, pool]) => pool.quoteToken.chainId === CHAIN_ID && pool.quoteToken.id === 1984)
+    .values()
+    .find((pool) => pool.quoteToken.chainId === CHAIN_ID && pool.quoteToken.id === '1984')
+
   if (!usdtPoolEntry) {
     return prices
   }
-  const [_, usdtPool] = usdtPoolEntry
+  const usdtPool = usdtPoolEntry
 
   const dotDecimals = usdtPool.baseToken.decimals ?? DOT_DECIMALS
   const usdtDecimals = usdtPool.quoteToken.decimals ?? USDT_DECIMALS
@@ -38,7 +39,7 @@ export function calculatePoolPrices(
     symbol: usdtPool.quoteToken.symbol,
   })
 
-  for (const [_, pool] of poolReservesMap) {
+  for (const pool of poolReservesMap.values()) {
     const { baseToken, quoteToken } = pool
 
     if (!quoteToken.decimals) {

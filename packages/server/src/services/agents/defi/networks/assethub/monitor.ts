@@ -1,8 +1,8 @@
 import { filter, firstValueFrom, Subject, Subscription, share, switchMap, toArray } from 'rxjs'
 import { formatUnits } from 'viem'
-import { asJSON } from '@/common/util.js'
 import { toAssetId } from '@/services/agents/common/assets.js'
-import { AssetMetadata, isAssetMetadata } from '@/services/agents/steward/types.js'
+import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
+import { AssetMetadata } from '@/services/agents/steward/types.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { Block, storageEntriesAtLatest$, XcmLocation } from '@/services/networking/substrate/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
@@ -10,62 +10,27 @@ import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
 import { DefiLiquidityPayload, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
 import {
+  BASE_TOKEN_LOCATION,
   CHAIN_ID,
   chunk,
+  getLocalAssetId,
+  isLocalAsset,
+  locationToIdString,
   MAX_BATCH_SIZE,
   PRICE_EMISSION_THRESHOLD,
   PROTOCOL,
   WHITELISTED_LOCAL_ASSETS,
 } from './common.js'
-import { watchEvents } from './events.js'
+import { createEventWatcher } from './events.js'
 import { calculatePoolPrices } from './prices.js'
 import { createReservesWatcher } from './reserves.js'
 import {
   AssetConversionPool,
   AssetConversionPoolReserves,
+  AssetIdentifier,
   BaseAssetMetadata,
   PoolAssetsAssetValue,
 } from './types.js'
-
-function resolveToken(
-  location: XcmLocation,
-  metadataMap: Map<string, AssetMetadata>,
-): BaseAssetMetadata | null {
-  if (location.parents === 0 && location.interior.type === 'X2') {
-    const assetIdJunction = location.interior.value.find((j) => j.type === 'GeneralIndex')
-
-    if (!assetIdJunction) {
-      return null
-    }
-
-    const assetId = Number(assetIdJunction.value)
-    const metadata = metadataMap.get(String(assetId))
-
-    return {
-      type: 'local',
-      chainId: CHAIN_ID,
-      id: assetId,
-      location,
-      decimals: metadata?.decimals,
-      symbol: metadata?.symbol,
-    }
-  }
-
-  const metadata = metadataMap.get(asJSON(location))
-
-  if (!metadata) {
-    return null
-  }
-
-  return {
-    type: 'foreign',
-    chainId: metadata.chainId,
-    id: metadata.id,
-    location,
-    decimals: metadata.decimals,
-    symbol: metadata.symbol,
-  }
-}
 
 export function assethubDexMonitor(
   logger: Logger,
@@ -79,51 +44,113 @@ export function assethubDexMonitor(
   const tokenMetadataMap = new Map<string, AssetMetadata>()
   const priceMap = new Map<string, number>()
 
+  const getPrice = (token: AssetIdentifier) => {
+    return priceMap.get(toAssetId(token.chainId, token.id))
+  }
+
+  const getPool = (quoteToken: XcmLocation) => {
+    return poolMap.get(locationToIdString(quoteToken))
+  }
+
+  const getMetadata = (location: XcmLocation) => {
+    if (isLocalAsset(location)) {
+      const id = getLocalAssetId(location)
+      return tokenMetadataMap.get(String(id))
+    }
+    const locationString = locationToIdString(location)
+    return tokenMetadataMap.get(locationString)
+  }
+
   const { mapReserves } = createReservesWatcher(logger, ingress)
+  const { watchEvents } = createEventWatcher({
+    logger,
+    getPrice,
+    getPool,
+    getMetadata,
+  })
+
+  async function loadPriceData() {
+    const latestPrices = await deps.listLatestPrices(CHAIN_ID)
+    if (latestPrices.length === 0) {
+      logger.info('[defi:assethub] No prices data in db.')
+      return
+    }
+    for (const { assetId, priceUSD } of latestPrices) {
+      priceMap.set(assetId, Number(priceUSD))
+    }
+    logger.info('[defi:assethub] Latest prices loaded.')
+  }
+
+  function resolveToken(location: XcmLocation): BaseAssetMetadata | null {
+    if (isLocalAsset(location)) {
+      const assetId = getLocalAssetId(location)
+
+      if (assetId === undefined) {
+        return null
+      }
+
+      const metadata = tokenMetadataMap.get(String(assetId))
+
+      return {
+        type: 'local',
+        chainId: CHAIN_ID,
+        id: String(assetId),
+        location,
+        decimals: metadata?.decimals,
+        symbol: metadata?.symbol,
+      }
+    }
+
+    const locationId = locationToIdString(location)
+    const metadata = tokenMetadataMap.get(locationId)
+
+    if (!metadata) {
+      return null
+    }
+
+    return {
+      type: 'foreign',
+      chainId: metadata.chainId,
+      id: normalizeAssetId(metadata.id),
+      location,
+      decimals: metadata.decimals,
+      symbol: metadata.symbol,
+    }
+  }
 
   async function loadTokenMetadata(poolTokenLocations: [XcmLocation, XcmLocation][]) {
     try {
-      const numericAssetIds = new Set<string>()
-      const locationIds = new Set<string>()
+      const assetIds = new Set<string>()
 
-      for (const [baseLocation, quoteLocation] of poolTokenLocations) {
-        for (const location of [baseLocation, quoteLocation]) {
-          if (location.parents === 0 && location.interior.type === 'X2') {
-            const assetIdJunction = location.interior.value.find((j) => j.type === 'GeneralIndex')
+      for (const [_baseLocation, quoteLocation] of poolTokenLocations) {
+        if (!assetIds.has('native')) {
+          assetIds.add('native')
+        }
 
-            if (assetIdJunction) {
-              numericAssetIds.add(String(assetIdJunction.value))
-              continue
-            }
+        if (isLocalAsset(quoteLocation)) {
+          const assetId = getLocalAssetId(quoteLocation)
+
+          if (assetId) {
+            assetIds.add(String(assetId))
           }
-
-          locationIds.add(asJSON(location))
+        } else {
+          assetIds.add(locationToIdString(quoteLocation))
         }
       }
 
-      const locationIdsList = [...locationIds]
-      const numericAssetIdsList = [...numericAssetIds]
+      const assetIdsList = [...assetIds]
 
       const numericMetadata = await Promise.all(
-        chunk(numericAssetIdsList, MAX_BATCH_SIZE).map((batch) => deps.fetchAssetMetadata(CHAIN_ID, batch)),
-      ).then((results) => results.flat())
-
-      const locationMetadata = await Promise.all(
-        chunk(locationIdsList, MAX_BATCH_SIZE).map((batch) =>
-          deps.fetchAssetMetadataByLocation(CHAIN_ID, batch),
-        ),
+        chunk(assetIdsList, MAX_BATCH_SIZE).map((batch) => deps.fetchAssetMetadata(CHAIN_ID, batch)),
       ).then((results) => results.flat())
 
       for (const metadata of numericMetadata) {
-        tokenMetadataMap.set(String(metadata.id), metadata)
-      }
-
-      locationIdsList.forEach((location, i) => {
-        const metadata = locationMetadata[i]
-        if (isAssetMetadata(metadata)) {
-          tokenMetadataMap.set(location, metadata)
+        if (metadata.chainId === CHAIN_ID && metadata.id === 'native') {
+          tokenMetadataMap.set(normalizeAssetId(BASE_TOKEN_LOCATION), metadata)
+          continue
         }
-      })
+        tokenMetadataMap.set(normalizeAssetId(metadata.id), metadata)
+      }
     } catch (error) {
       logger.error(error, '[defi:assethub] Error loading asset metadata')
     }
@@ -156,20 +183,20 @@ export function assethubDexMonitor(
     for (const { key, value: poolTokenId } of poolEntries) {
       const [baseLocation, quoteLocation] = key[0]
 
-      const baseToken = resolveToken(baseLocation, tokenMetadataMap)
-      const quoteToken = resolveToken(quoteLocation, tokenMetadataMap)
+      const baseToken = resolveToken(baseLocation)
+      const quoteToken = resolveToken(quoteLocation)
 
       const poolInfo = poolInfoMap.get(poolTokenId)
 
       if (!baseToken || !quoteToken || !poolInfo) {
-        logger.warn('[defi:assethub] no quote token  found for location=%s', asJSON(quoteLocation))
-        continue
-      }
-      if (quoteToken.type === 'local' && !WHITELISTED_LOCAL_ASSETS.includes(quoteToken.id as number)) {
         continue
       }
 
-      poolMap.set(String(poolTokenId), {
+      if (quoteToken.type === 'local' && !WHITELISTED_LOCAL_ASSETS.includes(quoteToken.id)) {
+        continue
+      }
+
+      poolMap.set(locationToIdString(quoteLocation), {
         chainId: CHAIN_ID,
         poolTokenId,
         owner: poolInfo.owner,
@@ -181,20 +208,15 @@ export function assethubDexMonitor(
     logger.info('[defi:assethub] %s pools loaded.', poolMap.size)
   }
 
-  function getPrice(token: BaseAssetMetadata) {
-    return priceMap.get(toAssetId(token.chainId, token.id))
-  }
-
   function onBlock(poolReservesMap: Map<string, AssetConversionPoolReserves>) {
     const prices = calculatePoolPrices(poolReservesMap)
 
     for (const [assetId, { price, decimals, symbol }] of prices) {
-      const prev = prices.get(assetId)
+      const prevPrice = priceMap.get(assetId)
 
       priceMap.set(assetId, price)
 
-      if (prev !== undefined) {
-        const prevPrice = prev.price
+      if (prevPrice !== undefined) {
         const diff = Math.abs(price - prevPrice) / prevPrice
         if (diff < PRICE_EMISSION_THRESHOLD) {
           continue
@@ -262,12 +284,14 @@ export function assethubDexMonitor(
 
   async function start() {
     logger.info('[defi:assethub] starting monitor...')
+
+    await loadPriceData()
+    await loadPools()
+
     const shared$ = SubstrateSharedStreams.instance(ingress)
     const block$ = shared$.blocks(CHAIN_ID).pipe(filter((b) => b.ingestionMode !== 'backfill'))
     const events$ = block$.pipe(watchEvents(), share())
     const apiCtx$ = ingress.getContext(CHAIN_ID)
-
-    await loadPools()
 
     const liquidity$ = apiCtx$.pipe(
       switchMap((apiCtx) =>
@@ -280,8 +304,13 @@ export function assethubDexMonitor(
         ),
       ),
     )
+
+    // Events
+    subs.push(events$.subscribe((payload) => subject.next(payload)))
+
     // Liquidity
     subs.push(liquidity$.subscribe(onBlock))
+
     logger.info('[defi:assethub] monitor started.')
   }
 

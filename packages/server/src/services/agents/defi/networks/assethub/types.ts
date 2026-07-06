@@ -1,5 +1,4 @@
 import { Enum } from 'polkadot-api'
-import { AssetId } from '@/services/agents/steward/types.js'
 import { XcmLocation } from '@/services/networking/substrate/types.js'
 import { NetworkURN } from '@/services/types.js'
 
@@ -22,10 +21,11 @@ export type PoolAssetsAssetValue = {
   }>
 }
 
-export type BaseAssetMetadata = {
+// duplicate with Ticker types
+export type AssetIdentifier = { chainId: NetworkURN; id: string }
+
+export type BaseAssetMetadata = AssetIdentifier & {
   type: 'local' | 'foreign'
-  chainId: NetworkURN
-  id: AssetId
   location: XcmLocation
   decimals?: number
   symbol?: string
