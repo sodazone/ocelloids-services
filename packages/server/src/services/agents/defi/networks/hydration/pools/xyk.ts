@@ -7,7 +7,7 @@ import { CHAIN_ID } from '../consts.js'
 import { AssetMetadataFetcher, XykPool } from '../types.js'
 
 type XykPoolValue = number[]
-const WHITELIST_ASSETS = [5, 10, 15, 22, 25, 30, 34, 36, 252525, 1000081, 1000085]
+const WHITELIST_ASSETS = [5, 10, 15, 16, 22, 25, 30, 34, 36, 252525, 1000081, 1000085]
 const LOW_LIQUIDITY_POOLS: HexString[] = []
 
 function isWhitelisted(assetId: number) {
