@@ -385,6 +385,7 @@ export function isLstMintEvent(
 export type DefiMonitorDependencies = {
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>
   fetchAssetMetadata: (network: string, assets: string[]) => Promise<AssetMetadata[]>
+  fetchAssetMetadataByLocation: (anchor: string, locations: string[]) => Promise<(AssetMetadata | Empty)[]>
   listLatestPrices: (network: string) => Promise<DefiPricePayload[]>
   fetchTickerPrices: (chainId: string, assets: string[]) => Promise<AggregatedPriceData[]>
 }
