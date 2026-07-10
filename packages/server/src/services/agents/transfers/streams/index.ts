@@ -34,19 +34,34 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
     return nativeTransfers$(blockEvents$)
   },
   [networks.acala]: (blockEvents$) => {
-    return currenciesTransfers$(blockEvents$).pipe(
-      map((tf) => {
-        if (
-          typeof tf.asset === 'object' &&
-          ((tf.asset.type === 'Token' && tf.asset.value !== 'LDOT') || tf.asset.type === 'LiquidCrowdloan')
-        ) {
-          return {
-            ...tf,
-            asset: `NativeAssetId:${tf.asset}`,
+    function wrapToNativeAssetId(token: Record<string, any>) {
+      return {
+        type: 'NativeAssetId',
+        value: {
+          type: token.type,
+          value: {
+            type: token.value?.type,
+          },
+        },
+      }
+    }
+
+    return merge(
+      nativeTransfers$(blockEvents$),
+      currenciesTransfers$(blockEvents$).pipe(
+        map((tf) => {
+          if (
+            typeof tf.asset === 'object' &&
+            ((tf.asset.type === 'Token' && tf.asset.value !== 'LDOT') || tf.asset.type === 'LiquidCrowdloan')
+          ) {
+            return {
+              ...tf,
+              asset: wrapToNativeAssetId(tf.asset),
+            }
           }
-        }
-        return tf
-      }),
+          return tf
+        }),
+      ),
     )
   },
   [networks.moonbeam]: (blockEvents$) => {
