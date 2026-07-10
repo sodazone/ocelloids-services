@@ -1,4 +1,4 @@
-import { map, merge, Observable } from 'rxjs'
+import { filter, map, merge, Observable } from 'rxjs'
 import { networks } from '@/services/agents/common/networks.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
 import { Transfer } from '../types.js'
@@ -50,6 +50,10 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
       nativeTransfers$(blockEvents$),
       currenciesTransfers$(blockEvents$).pipe(
         map((tf) => {
+          if (typeof tf.asset === 'object' && tf.asset.type === 'Token' && tf.asset.value === 'ACA') {
+            return null
+          }
+
           if (
             typeof tf.asset === 'object' &&
             ((tf.asset.type === 'Token' && tf.asset.value !== 'LDOT') || tf.asset.type === 'LiquidCrowdloan')
@@ -59,8 +63,10 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
               asset: wrapToNativeAssetId(tf.asset),
             }
           }
+
           return tf
         }),
+        filter((tf) => tf !== null),
       ),
     )
   },
