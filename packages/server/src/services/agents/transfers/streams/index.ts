@@ -37,12 +37,7 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
     function wrapToNativeAssetId(token: Record<string, any>) {
       return {
         type: 'NativeAssetId',
-        value: {
-          type: token.type,
-          value: {
-            type: token.value?.type,
-          },
-        },
+        value: structuredClone(token),
       }
     }
 
