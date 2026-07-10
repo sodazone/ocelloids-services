@@ -7,7 +7,7 @@ import {
   Twox128,
   Twox256,
 } from '@polkadot-api/substrate-bindings'
-import { map, mergeMap, Observable } from 'rxjs'
+import { map, mergeMap, Observable, of } from 'rxjs'
 import { HexString, NetworkURN } from '@/lib.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { Hashers } from '@/services/networking/substrate/types.js'
@@ -27,6 +27,52 @@ type MapMultiLocationOptions = {
   chainId: string
   options: MapOptions
   onMultiLocationData?: (json: Record<string, any>) => Record<string, any>
+}
+
+export const mapAcalaAssetsAndLocations = (opts: {
+  chainId: string
+  codecs: WithRequired<StorageCodecs, 'assets' | 'locations'>
+  options?: MapOptions
+}) => {
+  const locationCodec = opts.codecs.locations
+
+  return (keyArgs: string, ingress: SubstrateIngressConsumer) => {
+    return (source: Observable<HexString>): Observable<AssetMetadata> => {
+      return source.pipe(
+        mapAssetsRegistryMetadata(opts)(keyArgs),
+        mergeMap((asset: AssetMetadata) => {
+          const assetId = asset.id
+          if (
+            typeof assetId === 'object' &&
+            'type' in assetId &&
+            assetId.type === 'ForeignAssetId' &&
+            'value' in assetId &&
+            typeof assetId.value === 'number'
+          ) {
+            const key = locationCodec.keys.enc(assetId.value) as HexString
+            return ingress.getStorage(asset.chainId as NetworkURN, key).pipe(
+              map((buffer) => {
+                if (buffer === null || buffer.length === 0) {
+                  return asset
+                }
+                const maybeLoc = locationCodec.value.dec(buffer)
+                if (maybeLoc) {
+                  return {
+                    ...asset,
+                    multiLocation: maybeLoc,
+                  } as AssetMetadata
+                } else {
+                  return asset
+                }
+              }),
+            )
+          }
+
+          return of(asset)
+        }),
+      )
+    }
+  }
 }
 
 export const mapAssetsRegistryMetadata = ({

@@ -10,6 +10,7 @@ import { AssetMapper, AssetMetadata, StorageCodecs, WithRequired } from '../type
 import { mapAssetsLocationsAndErc20Metadata } from './moonbeam.js'
 import {
   hashItemPartialKey,
+  mapAcalaAssetsAndLocations,
   mapAssetsPalletAndLocations,
   mapAssetsPalletAssets,
   mapAssetsRegistryAndLocations,
@@ -198,8 +199,9 @@ const interlayMapper: AssetMapper = (context: SubstrateApiContext) => {
 const acalaMapper: AssetMapper = (context: SubstrateApiContext) => {
   const codec = context.storageCodec('AssetRegistry', 'AssetMetadatas')
   const keyPrefix = codec.keys.enc() as HexString
-  const codecs: WithRequired<StorageCodecs, 'assets'> = {
+  const codecs: WithRequired<StorageCodecs, 'assets' | 'locations'> = {
     assets: codec,
+    locations: context.storageCodec('AssetRegistry', 'ForeignAssetLocations'),
   }
   const mappings = [
     {
@@ -219,7 +221,7 @@ const acalaMapper: AssetMapper = (context: SubstrateApiContext) => {
           }
         }
       },
-      mapEntry: mapAssetsRegistryMetadata({
+      mapEntry: mapAcalaAssetsAndLocations({
         chainId: networks.acala,
         codecs,
         options: {
