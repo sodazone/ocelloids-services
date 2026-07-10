@@ -45,13 +45,14 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
       nativeTransfers$(blockEvents$),
       currenciesTransfers$(blockEvents$).pipe(
         map((tf) => {
-          if (typeof tf.asset === 'object' && tf.asset.type === 'Token' && tf.asset.value === 'ACA') {
+          // Avoid duplicate with native transfers
+          if (typeof tf.asset === 'object' && tf.asset.type === 'Token' && tf.asset.value.type === 'ACA') {
             return null
           }
 
           if (
             typeof tf.asset === 'object' &&
-            ((tf.asset.type === 'Token' && tf.asset.value !== 'LDOT') || tf.asset.type === 'LiquidCrowdloan')
+            (tf.asset.type === 'Token' || tf.asset.type === 'LiquidCrowdloan')
           ) {
             return {
               ...tf,
