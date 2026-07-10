@@ -64,6 +64,16 @@ export const transferStreamMappers: Record<string, TransferStreamMapper> = {
             }
           }
 
+          if (typeof tf.asset === 'object' && tf.asset.type === 'ForeignAsset') {
+            return {
+              ...tf,
+              asset: {
+                ...tf.asset,
+                type: 'ForeignAssetId',
+              },
+            }
+          }
+
           return tf
         }),
         filter((tf) => tf !== null),
