@@ -204,6 +204,11 @@ export type MoneyMarketActions = 'borrow' | 'repay' | 'withdraw' | 'supply'
 /**
  * @public
  */
+export type AssetFlowActions = MoneyMarketActions | 'mint' | 'burn' | 'lst_redeem'
+
+/**
+ * @public
+ */
 export type DefiEventPayload = {
   type: 'event'
   id: string
@@ -223,13 +228,6 @@ export type DefiEventPayload = {
       }
     }
   | {
-      name: MoneyMarketActions | 'mint' | 'burn' | 'lst_redeem'
-      data: {
-        provider: string
-        assets: DefiEventAsset[]
-      }
-    }
-  | {
       name: 'liquidate'
       data: {
         origin: string
@@ -246,19 +244,23 @@ export type DefiEventPayload = {
         minted: DefiEventAsset
       }
     }
+  | {
+      name: AssetFlowActions
+      data: {
+        provider: string
+        assets: DefiEventAsset[]
+      }
+    }
 )
+
+export type DefiEventByName<T extends DefiEventPayload['name']> = Extract<DefiEventPayload, { name: T }>
+
+export type DefiEventData<T extends DefiEventPayload['name']> = DefiEventByName<T>['data']
 
 /**
  * @public
  */
-export type DefiEventAction =
-  | MoneyMarketActions
-  | 'liquidate'
-  | 'mint'
-  | 'burn'
-  | 'swap'
-  | 'lst_mint'
-  | 'lst_redeem'
+export type DefiEventAction = AssetFlowActions | 'liquidate' | 'swap' | 'lst_mint'
 
 /**
  * @public

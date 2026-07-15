@@ -38,6 +38,17 @@ export function initRuntime() {
             ],
           },
         },
+        {
+          id: 'urn:ocn:ethereum:222222',
+          provider: {
+            type: 'rpc',
+            url: [
+              'https://rpc.hydradx.cloud',
+              'https://hydration-rpc.n.dwellir.com',
+              'https://rpc.helikon.io/hydradx',
+            ],
+          },
+        },
       ],
     },
     bitcoin: { networks: [] },
