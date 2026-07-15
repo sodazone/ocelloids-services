@@ -6,11 +6,20 @@ import { CAP_ADMIN, CAP_READ, CAP_WRITE } from '../auth/index.js'
 import { AccountsRepository } from './repository.js'
 
 const DEFAULT_EXPIRATION_SECONDS = 7_889_400 // 3 months
-const INVITE_SCOPE = [CAP_READ, CAP_WRITE, 'invite'].join(' ')
+const DEFAULT_INVITE_SCOPE = `${CAP_READ} invite`
+
+const inviteScopes = {
+  r: DEFAULT_INVITE_SCOPE,
+  w: `${CAP_READ} ${CAP_WRITE} invite`,
+} as const
+
+const scopeKeys = Object.keys(inviteScopes) as (keyof typeof inviteScopes)[]
+type InviteScope = (typeof scopeKeys)[number]
 
 interface InvitationQueryString {
   subject: string
   expiresIn?: number
+  scope?: InviteScope
 }
 
 type ScopeFlags = {
@@ -273,6 +282,10 @@ export async function AccountsApi(api: FastifyInstance) {
           properties: {
             subject: { type: 'string' },
             expiresIn: { type: 'number' },
+            scope: {
+              type: 'string',
+              enum: scopeKeys,
+            },
           },
           required: ['subject'],
         },
@@ -281,7 +294,7 @@ export async function AccountsApi(api: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { subject, expiresIn } = request.query
+      const { subject, expiresIn, scope } = request.query
 
       try {
         const account = await accountsRepository.createAccount({
@@ -289,10 +302,12 @@ export async function AccountsApi(api: FastifyInstance) {
           status: 'enabled',
         })
 
+        const resolvedScope = scope ? inviteScopes[scope] : DEFAULT_INVITE_SCOPE
+
         const unsignedToken = await createUnsignedToken(accountsRepository, {
           accountId: account.id,
           subject,
-          scope: INVITE_SCOPE,
+          scope: resolvedScope,
           expiresIn,
         })
 
