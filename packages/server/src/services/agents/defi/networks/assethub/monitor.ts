@@ -32,6 +32,8 @@ import {
   PoolAssetsAssetValue,
 } from './types.js'
 
+const MAX_PRICE_UPDATE_INTERVAL = 30 * 60_000
+
 export function assethubDexMonitor(
   logger: Logger,
   _ingress: IngressConsumers,
@@ -42,10 +44,10 @@ export function assethubDexMonitor(
   const ingress = _ingress.substrate
   const poolMap = new Map<string, AssetConversionPool>()
   const tokenMetadataMap = new Map<string, AssetMetadata>()
-  const priceMap = new Map<string, number>()
+  const priceMap = new Map<string, { price: number; updatedAt: number }>()
 
   const getPrice = (token: AssetIdentifier) => {
-    return priceMap.get(toAssetId(token.chainId, token.id))
+    return priceMap.get(toAssetId(token.chainId, token.id))?.price
   }
 
   const getPool = (quoteToken: XcmLocation) => {
@@ -76,7 +78,7 @@ export function assethubDexMonitor(
       return
     }
     for (const { assetId, priceUSD } of latestPrices) {
-      priceMap.set(assetId, Number(priceUSD))
+      priceMap.set(assetId, { price: Number(priceUSD), updatedAt: Date.now() })
     }
     logger.info('[defi:assethub] Latest prices loaded.')
   }
@@ -212,24 +214,25 @@ export function assethubDexMonitor(
     const prices = calculatePoolPrices(poolReservesMap)
 
     for (const [assetId, { price, decimals, symbol }] of prices) {
-      const prevPrice = priceMap.get(assetId)
+      const prev = priceMap.get(assetId)
+      const now = Date.now()
 
-      priceMap.set(assetId, price)
-
-      if (prevPrice !== undefined) {
-        const diff = Math.abs(price - prevPrice) / prevPrice
-        if (diff < PRICE_EMISSION_THRESHOLD) {
+      if (prev !== undefined) {
+        const diff = Math.abs(price - prev.price) / prev.price
+        const elapsedMs = now - prev.updatedAt
+        if (diff < PRICE_EMISSION_THRESHOLD && elapsedMs < MAX_PRICE_UPDATE_INTERVAL) {
           continue
         }
       }
 
+      priceMap.set(assetId, { price, updatedAt: now })
       subject.next({
         type: 'price',
         assetId,
         networkId: CHAIN_ID,
         protocol: PROTOCOL,
         priceUSD: price.toString(),
-        updatedAt: Date.now(),
+        updatedAt: now,
         decimals,
         symbol: symbol ?? '??',
       })

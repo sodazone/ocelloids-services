@@ -245,12 +245,15 @@ export class DefiRepository {
         protocol: payload.protocol,
       })
       .onConflict((oc: any) =>
-        oc.columns(['network', 'protocol', 'asset_id']).doUpdateSet({
-          price_usd: (eb: any) => eb.ref('excluded.price_usd'),
-          symbol: (eb: any) => eb.ref('excluded.symbol'),
-          decimals: (eb: any) => eb.ref('excluded.decimals'),
-          updated_at: (eb: any) => eb.ref('excluded.updated_at'),
-        }),
+        oc
+          .columns(['network', 'protocol', 'asset_id'])
+          .doUpdateSet({
+            price_usd: (eb: any) => eb.ref('excluded.price_usd'),
+            symbol: (eb: any) => eb.ref('excluded.symbol'),
+            decimals: (eb: any) => eb.ref('excluded.decimals'),
+            updated_at: (eb: any) => eb.ref('excluded.updated_at'),
+          })
+          .where((eb: any) => eb.ref('excluded.updated_at').gt(eb.ref('defi_price.updated_at'))),
       )
       .execute()
   }

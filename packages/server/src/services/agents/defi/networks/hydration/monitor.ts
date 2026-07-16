@@ -17,6 +17,7 @@ import { bigintToUsd, toProtocol } from './utils.js'
 
 const DEFAULT_QUOTE_TOKEN = 10
 const PRICE_EMISSION_THRESHOLD = 0.0001
+const MAX_PRICE_UPDATE_INTERVAL = 30 * 60_000
 
 export function hydrationDexMonitor(
   logger: Logger,
@@ -31,7 +32,7 @@ export function hydrationDexMonitor(
 
   const allTokens = new Set<number>()
   const cachedPaths: Map<number, Path> = new Map()
-  const prices: Map<number, number> = new Map()
+  const prices: Map<number, { price: number; updatedAt: number }> = new Map()
 
   const subs: Subscription[] = []
   let inFlight = 0
@@ -51,7 +52,7 @@ export function hydrationDexMonitor(
           continue
         }
         allTokens.add(numericId)
-        prices.set(numericId, Number(priceUSD))
+        prices.set(numericId, { price: Number(priceUSD), updatedAt: Date.now() })
       } catch (e) {
         logger.warn(e, `Error loading data for asset: ${assetId}`)
       }
@@ -90,16 +91,18 @@ export function hydrationDexMonitor(
       try {
         const spot = asset === DEFAULT_QUOTE_TOKEN ? 1 : calculateSpot(poolsManager, path)
         if (spot) {
-          const prevPrice = prices.get(asset)
+          const prev = prices.get(asset)
+          const now = Date.now()
 
-          prices.set(asset, spot)
-
-          if (prevPrice !== undefined) {
-            const diff = Math.abs(spot - prevPrice) / prevPrice
-            if (diff < PRICE_EMISSION_THRESHOLD) {
+          if (prev !== undefined) {
+            const diff = Math.abs(spot - prev.price) / prev.price
+            const elapsedMs = now - prev.updatedAt
+            if (diff < PRICE_EMISSION_THRESHOLD && elapsedMs < MAX_PRICE_UPDATE_INTERVAL) {
               continue
             }
           }
+
+          prices.set(asset, { price: spot, updatedAt: now })
 
           const metaResult = await fetchAssetMetadata([asset.toString()])
           const meta = metaResult.length > 0 ? metaResult[0] : null
@@ -109,7 +112,7 @@ export function hydrationDexMonitor(
             networkId: CHAIN_ID,
             protocol: toProtocol('router'),
             priceUSD: spot.toString(),
-            updatedAt: Date.now(),
+            updatedAt: now,
             decimals: meta?.decimals ?? 0,
             symbol: meta?.symbol ?? '??',
           })
@@ -129,7 +132,7 @@ export function hydrationDexMonitor(
       return
     }
     const reserves = formatUnits(underlying.reserves, underlying.decimals ?? 0)
-    const assetPrice = prices.get(underlying.id) ?? pool.oraclePrice
+    const assetPrice = prices.get(underlying.id)?.price ?? pool.oraclePrice
     const suppliedUSD = bigintToUsd(underlying.reserves, underlying.decimals, assetPrice)
     const borrowedUSD = bigintToUsd(underlying.borrowed, underlying.decimals, assetPrice)
 
@@ -166,7 +169,7 @@ export function hydrationDexMonitor(
     const liquidityAssets: DefiLiquidityAsset[] = []
     let suppliedUSD = 0
     for (const asset of pool.tokens) {
-      const assetPrice = prices.get(asset.id) ?? 0
+      const assetPrice = prices.get(asset.id)?.price ?? 0
       const reserves = formatUnits(asset.reserves, asset.decimals ?? 0)
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
       suppliedUSD += assetReservesUSD
@@ -199,7 +202,7 @@ export function hydrationDexMonitor(
     let suppliedUSD = 0
 
     for (const asset of pool.tokens) {
-      const assetPrice = prices.get(asset.id) ?? 0
+      const assetPrice = prices.get(asset.id)?.price ?? 0
       const reserves = formatUnits(asset.reserves, asset.decimals ?? 0)
       const assetReservesUSD = bigintToUsd(asset.reserves, asset.decimals, assetPrice)
 
@@ -247,7 +250,7 @@ export function hydrationDexMonitor(
   function computeUsdValue(assetId: number, amount: number): number | undefined {
     const p = prices.get(assetId)
     if (p) {
-      return amount * p
+      return amount * p.price
     }
   }
 
