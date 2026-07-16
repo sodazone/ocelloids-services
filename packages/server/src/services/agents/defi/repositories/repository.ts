@@ -253,7 +253,7 @@ export class DefiRepository {
             decimals: (eb: any) => eb.ref('excluded.decimals'),
             updated_at: (eb: any) => eb.ref('excluded.updated_at'),
           })
-          .where((eb: any) => eb.ref('excluded.updated_at').gt(eb.ref('defi_price.updated_at'))),
+          .where((eb: any) => eb('excluded.updated_at', '>', eb.ref('defi_price.updated_at'))),
       )
       .execute()
   }
