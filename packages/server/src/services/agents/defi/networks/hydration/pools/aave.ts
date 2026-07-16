@@ -158,7 +158,6 @@ export function createAaveWatcher(
         supplyCap: reserve.supplyCap.toString(),
         canBorrow: reserve.borrowingEnabled,
         isPaused: reserve.isPaused,
-        utilization,
       }
 
       if (aTokenId !== undefined) {
@@ -169,6 +168,8 @@ export function createAaveWatcher(
             solvencyRatio: bigintToNumber((supplied * PRECISION_BIGINT) / totalSupply, TARGET_PRECISION),
           }
         }
+        // only add utilization if there is corresponding aTokenId i.e. excludes utilization data for HOLLAR
+        details.utilization = utilization
 
         const tokenMetadata = metadataById.get(aTokenId)
 
