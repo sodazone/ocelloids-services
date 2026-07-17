@@ -208,10 +208,11 @@ export class XcmExplorer {
 
               if (existingTrips.length > 0) {
                 this.#log.info(
-                  '[xcm:connecting-trip] trip=%s journey=%s tripId=%s',
+                  '[xcm:connecting-trip] trip=%s journey=%s tripId=%s (%s)',
                   existingTrips.map((t) => t.id),
                   id,
                   tripId,
+                  message.type,
                 )
                 setImmediate(() => this.#updateTripWithJourney(fullJourney, existingTrips))
               }
@@ -287,10 +288,11 @@ export class XcmExplorer {
             if (fullJourney) {
               if (existingTrips.length > 0) {
                 this.#log.info(
-                  '[xcm:connecting-trip] trip=%s journey=%s tripId=%s',
+                  '[xcm:connecting-trip] trip=%s journey=%s tripId=%s (%s)',
                   existingTrips.map((t) => t.id),
                   id,
                   tripId,
+                  message.type,
                 )
                 setImmediate(() => this.#updateTripWithJourney(fullJourney, existingTrips))
                 return
@@ -352,10 +354,11 @@ export class XcmExplorer {
 
           if (existingTrips.length > 0) {
             this.#log.info(
-              '[xcm:connecting-trip] trip=%s journey=%s tripId=%s',
+              '[xcm:connecting-trip] trip=%s journey=%s tripId=%s (%s)',
               existingTrips.map((t) => t.id),
               existingJourney.id,
               tripId,
+              message.type,
             )
             setImmediate(() => this.#updateTripWithJourney(existingJourney, existingTrips))
           } else {
