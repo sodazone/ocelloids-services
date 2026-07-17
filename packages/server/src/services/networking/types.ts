@@ -26,13 +26,19 @@ export interface ApiClient extends ApiOps {
   disconnect(): Promise<void>
 }
 
+export const BlockRangeSchema = z.object({
+  start: z.number().int().positive(),
+  end: z.number().int().positive(),
+})
+
 export const BackfillConfigSchema = z.object({
-  start: z.number(),
-  end: z.number(),
+  ranges: z.array(BlockRangeSchema).nonempty('At least one block range must be provided'),
   emissionRate: z.number().default(12_000),
   paraIds: z.array(z.string()).optional(),
 })
+
 export const BackfillConfigsSchema = z.record(z.string(), BackfillConfigSchema)
 
+export type BlockRange = z.infer<typeof BlockRangeSchema>
 export type BackfillConfig = z.infer<typeof BackfillConfigSchema>
 export type BackfillConfigs = z.infer<typeof BackfillConfigsSchema>

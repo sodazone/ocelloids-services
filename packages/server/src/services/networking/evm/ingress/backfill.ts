@@ -40,10 +40,9 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
         continue
       }
       this.log.info(
-        '[backfill:%s] Initializing backfill stream blocks %s-%s (emission=%sms)',
+        '[backfill:%s] Initializing backfill stream blocks %s (emission=%sms)',
         chainId,
-        config.start,
-        config.end,
+        config.ranges,
         config.emissionRate,
       )
       this.#initChainStream(chainId as NetworkURN, config)
@@ -56,9 +55,7 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
   }
 
   #initChainStream(chainId: NetworkURN, config: BackfillConfig) {
-    const { start, end, emissionRate } = config
-    const totalBlocks = end - start + 1
-
+    const { ranges, emissionRate } = config
     let first = true
 
     const chainBlock$ = this.api$(chainId).pipe(
@@ -68,9 +65,14 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
 
         return delay$.pipe(
           switchMap(() =>
-            range(start, totalBlocks).pipe(
-              zipWith(interval(emissionRate)),
-              map(([blockNumber]) => blockNumber),
+            from(ranges).pipe(
+              concatMap(({ start, end }) => {
+                const totalBlocks = end - start + 1
+                return range(start, totalBlocks).pipe(
+                  zipWith(interval(emissionRate)),
+                  map(([blockNumber]) => blockNumber),
+                )
+              }),
               concatMap((blockNumber) => this.#getBlock(api, chainId, blockNumber)),
             ),
           ),
@@ -80,7 +82,12 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
     )
 
     this.chainBlock$.set(chainId, chainBlock$)
-    this.log.info('[backfill:%s] stream initialized', chainId)
+    this.log.info(
+      '[backfill:%s] stream initialized with %d explicit block ranges (rate: %dms)',
+      chainId,
+      ranges.length,
+      emissionRate,
+    )
   }
 
   #getBlock(api: EvmApi, chainId: string, blockNumber: number): Observable<Block> {
