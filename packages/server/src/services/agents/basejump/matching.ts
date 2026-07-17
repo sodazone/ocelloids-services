@@ -167,8 +167,10 @@ export class BasejumpMatchingEngine {
 
       if (msg.vaaId) {
         await this.#inbound.batch().put(key, msg).put(msg.vaaId, msg).write()
+        await this.#scheduleSweep([key, msg.vaaId], prefixes.matching.landed)
       } else {
         await this.#inbound.put(key, msg)
+        await this.#scheduleSweep(key, prefixes.matching.landed)
       }
     })
   }
