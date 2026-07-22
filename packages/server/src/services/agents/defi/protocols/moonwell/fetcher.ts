@@ -120,10 +120,10 @@ export function createMoonwellDataFetcher(chainId: NetworkURN, client: EvmIngres
           decimals: underlying.decimals,
           priceUSD: priceUSDNum,
           balances: {
-            total: formatUnits(totalUnderlyingSupply, underlying.decimals),
+            total: formatUnits(totalProtocolLiabilities, underlying.decimals),
             available: formatUnits(cash, underlying.decimals),
             borrowed: formatUnits(totalBorrows, underlying.decimals),
-            reserves: formatUnits(totalReserves, underlying.decimals),
+            reserves: formatUnits(totalProtocolAssets, underlying.decimals),
           },
         },
       ],

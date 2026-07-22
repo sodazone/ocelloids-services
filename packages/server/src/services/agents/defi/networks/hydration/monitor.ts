@@ -127,6 +127,8 @@ export function hydrationDexMonitor(
 
   function emitMMLiquidityEvent(pool: AavePool) {
     const underlying = pool.tokens.find((t: AaveToken) => t.isUnderlying)
+    const atoken = pool.tokens.find((t: AaveToken) => !t.isUnderlying)
+
     if (!underlying) {
       logger.warn(`[dex:hydration] No underlying token found in AAVE pool ${pool.address}`)
       return
@@ -135,6 +137,7 @@ export function hydrationDexMonitor(
     const assetPrice = prices.get(underlying.id)?.price ?? pool.oraclePrice
     const suppliedUSD = bigintToUsd(underlying.reserves, underlying.decimals, assetPrice)
     const borrowedUSD = bigintToUsd(underlying.borrowed, underlying.decimals, assetPrice)
+    const atokenSupply = atoken ? formatUnits(atoken.reserves, atoken.decimals) : undefined
 
     subject.next({
       type: 'liquidity',
@@ -154,7 +157,7 @@ export function hydrationDexMonitor(
           decimals: underlying.decimals,
           priceUSD: assetPrice,
           balances: {
-            total: reserves,
+            total: atokenSupply,
             reserves,
             available: formatUnits(underlying.available, underlying.decimals ?? 0),
             borrowed: formatUnits(underlying.borrowed, underlying.decimals ?? 0),
