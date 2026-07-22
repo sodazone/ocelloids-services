@@ -1,7 +1,9 @@
-import { mergeMap, Subject, share } from 'rxjs'
+import { catchError, EMPTY, from, mergeMap, of, Subject, share } from 'rxjs'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { getConsensus } from '@/services/config.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
+import { retryCapped } from '@/services/networking/watcher.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { networks } from '../common/networks.js'
@@ -80,12 +82,28 @@ export class BasejumpTracker {
           sub: this.#ingress.evm
             .finalizedBlocks(networkId)
             .pipe(
-              mergeMap((block) =>
-                this.#ingress.evm.getLogs(networkId, block.number).then((logs) => ({
-                  ...block,
-                  logs,
-                })),
-              ),
+              mergeMap((block) => {
+                return from(this.#ingress.evm.getLogs(networkId, block.number)).pipe(
+                  retryWithTruncatedExpBackoff(retryCapped(3)),
+                  mergeMap((logs) =>
+                    of({
+                      ...block,
+                      logs,
+                    }),
+                  ),
+                  catchError((error) => {
+                    this.#log.error(
+                      error,
+                      '[%s] %s failed to fetch logs for block #%s. Continuing stream...',
+                      this.#id,
+                      networkId,
+                      block.number,
+                    )
+
+                    return EMPTY
+                  }),
+                )
+              }),
               extractBasejumpEvmOutbound(networkId, contractAddress, (txHash: HexString) =>
                 this.#ingress.evm.getTransactionReceipt(networkId, txHash),
               ),

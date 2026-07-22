@@ -40,7 +40,7 @@ describe('subscription api', () => {
     server.inject(
       {
         method: 'GET',
-        url: '/accounts/invite?subject=macario@cheetos.io',
+        url: '/accounts/invite?subject=macario@cheetos.io&scope=w',
         headers: {
           authorization: `Bearer ${rootToken}`,
         },

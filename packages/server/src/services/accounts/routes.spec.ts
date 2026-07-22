@@ -23,7 +23,7 @@ describe('accounts api', () => {
     server.inject(
       {
         method: 'GET',
-        url: '/accounts/invite?subject=macario@cheetos.io',
+        url: '/accounts/invite?subject=macario@cheetos.io&scope=w',
         headers: {
           authorization: `Bearer ${rootToken}`,
         },
@@ -90,6 +90,28 @@ describe('accounts api', () => {
           (_err, response) => {
             expect(response?.statusCode).toStrictEqual(200)
             expect(response?.json().token).toBeDefined()
+            resolve()
+          },
+        )
+      })
+    })
+
+    it('should return 401 if account with default read scope tries to create new token', async () => {
+      await new Promise<void>((resolve) => {
+        server.inject(
+          {
+            method: 'POST',
+            url: '/myself/tokens',
+            headers: {
+              authorization: `Bearer ${pepeToken}`,
+            },
+            body: {
+              scope: { read: true, write: true },
+            },
+          },
+          (_err, response) => {
+            expect(response?.statusCode).toStrictEqual(401)
+            expect(response?.json().code).toEqual('AUTHORIZATION_ERROR')
             resolve()
           },
         )
@@ -394,7 +416,7 @@ describe('accounts api', () => {
             method: 'DELETE',
             url: '/account/pepe@frog.com',
             headers: {
-              authorization: `Bearer ${pepeToken}`,
+              authorization: `Bearer ${macarioToken}`,
             },
           },
           (_err, response) => {

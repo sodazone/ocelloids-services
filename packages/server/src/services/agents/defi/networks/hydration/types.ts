@@ -75,7 +75,7 @@ export type XykPool = PoolBase & {
 }
 
 export type AavePool = PoolBase & {
-  type: 'aave'
+  type: 'aave' | 'aave-gigahdx'
   oraclePrice: number
   details: MoneyMarketPayload
   tokens: AaveToken[]
@@ -106,7 +106,7 @@ export type PoolByType<K extends PoolType> = PoolRegistry[K][number]
 export type PoolsGraph = Map<number, Edge[]>
 
 export type Edge = {
-  poolType: PoolType
+  poolType: Pool['type']
   pool: string
   token: number
   isLowLiquidity: boolean
