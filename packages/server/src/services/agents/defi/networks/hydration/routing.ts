@@ -1,4 +1,8 @@
-import { Edge, Path, Pool, PoolsGraph } from './types.js'
+import { Edge, Path, Pool, PoolsGraph, StartNode } from './types.js'
+
+function isEdge(obj: StartNode | Edge): obj is Edge {
+  return 'poolType' in obj && 'pool' in obj
+}
 
 export function buildGraph(pools: Pool[]): PoolsGraph {
   const graph: PoolsGraph = new Map()
@@ -58,7 +62,7 @@ function findShortestBestPaths(
   graph: PoolsGraph,
   start: number,
   end: number,
-  maxHops = 5,
+  maxHops = 10,
   limit = 3,
 ): Path[] {
   const queue: Path[] = [[{ token: start }]]
@@ -66,17 +70,20 @@ function findShortestBestPaths(
 
   while (queue.length > 0 && results.length < limit) {
     const path = queue.shift()! // Get the oldest path (shortest)
-    const current = path[path.length - 1].token
+    const current = path[path.length - 1]
 
     if (path.length - 1 >= maxHops) {
       continue
     }
 
-    const neighbors = graph.get(current) || []
-
+    const neighbors = graph.get(current.token) || []
     for (const edge of neighbors) {
       // Cycle prevention
       if (path.some((p) => p.token === edge.token) && edge.token !== end) {
+        continue
+      }
+      // Prevent swaps over several tokens of the same pool
+      if (isEdge(current) && current.pool === edge.pool) {
         continue
       }
 
@@ -127,41 +134,7 @@ function getBestPath(paths: Path[]): Path | null {
   })[0]
 }
 
-function collapsePath(path: Path): Path {
-  if (path.length <= 2) {
-    return path
-  }
-
-  const collapsed: Path = [path[0]]
-
-  for (let i = 1; i < path.length; i++) {
-    const currentStep = path[i] as Edge
-    const lastCollapsedStep = collapsed[collapsed.length - 1] as Edge
-
-    // Check if we can collapse:
-    // 1. Both this step and the previous recorded step must have a pool
-    // 2. Both must be 'stableswap' or 'omnipool'
-    // 3. Both must belong to the same pool address
-    const canCollapse =
-      lastCollapsedStep?.pool &&
-      currentStep.pool === lastCollapsedStep.pool &&
-      ((currentStep.poolType === 'stableswap' && lastCollapsedStep.poolType === 'stableswap') ||
-        (currentStep.poolType === 'omnipool' && lastCollapsedStep.poolType === 'omnipool'))
-
-    if (canCollapse) {
-      collapsed[collapsed.length - 1] = {
-        ...lastCollapsedStep,
-        token: currentStep.token,
-      }
-    } else {
-      collapsed.push(currentStep)
-    }
-  }
-
-  return collapsed
-}
-
-export function getSwapPath(graph: PoolsGraph, start: number, end: number, maxLength = 5): Path | null {
+export function getSwapPath(graph: PoolsGraph, start: number, end: number, maxLength?: number): Path | null {
   const paths = findShortestBestPaths(graph, start, end, maxLength)
-  return getBestPath(paths.map(collapsePath))
+  return getBestPath(paths)
 }
