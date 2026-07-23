@@ -8,7 +8,7 @@ const HOUR = 3_600_000
 const HOURS_6 = 6 * HOUR
 const HOURS_24 = 24 * HOUR
 const HOURS_72 = 72 * HOUR
-const DAYS_7 = 604_800_000
+const DAYS_14 = 14 * HOURS_24
 
 type PendingJourney = {
   journey: FullJourney
@@ -72,7 +72,7 @@ export class WormholePendingCache {
 
     const sentAt = Number(journey.sent_at)
     const isReceived = op ? FINAL_STATUS.includes(toStatus(op)) : false
-    const isTimeout = Date.now() - sentAt > DAYS_7
+    const isTimeout = Date.now() - sentAt > DAYS_14
 
     if (isReceived || isTimeout) {
       this.#pendingOps.delete(jid)
