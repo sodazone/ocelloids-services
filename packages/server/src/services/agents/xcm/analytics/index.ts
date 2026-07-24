@@ -19,6 +19,10 @@ import { DailyDuckDBExporter } from './repositories/exporter.js'
 import { XcmTransfersRepository } from './repositories/transfers.js'
 import { NewXcmTransfer } from './types.js'
 
+function matchStatus(payload: XcmMessagePayload): boolean {
+  return 'outcome' in payload.destination && payload.destination.outcome === 'Success'
+}
+
 export class XcmAnalytics {
   readonly #log: Logger
   readonly #db: DuckDBInstance
@@ -50,7 +54,7 @@ export class XcmAnalytics {
     this.#sub = tracker.xcm$
       .pipe(
         filter((payload) => {
-          return matchNotificationType(typeCriteria, payload.type)
+          return matchNotificationType(typeCriteria, payload.type) && matchStatus(payload)
         }),
         mergeMap((payload: XcmMessagePayload) => this.#humanizer.humanize(payload)),
       )
