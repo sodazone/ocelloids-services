@@ -12,7 +12,6 @@ import { DefiLiquidityPayload, DefiMonitorDependencies, DefiSubscriptionPayload 
 import {
   BASE_TOKEN_LOCATION,
   CHAIN_ID,
-  chunk,
   getLocalAssetId,
   isLocalAsset,
   locationToIdString,
@@ -31,6 +30,7 @@ import {
   BaseAssetMetadata,
   PoolAssetsAssetValue,
 } from './types.js'
+import { chunk } from '../../common.js'
 
 const MAX_PRICE_UPDATE_INTERVAL = 30 * 60_000
 

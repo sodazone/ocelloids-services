@@ -1,18 +1,28 @@
-import { filter, firstValueFrom, map, Observable, Subject, Subscription, share } from 'rxjs'
+import { filter, firstValueFrom, map, Observable, Subject, Subscription, share, toArray } from 'rxjs'
 import { AssetMetadata } from '@/services/agents/steward/types.js'
-import { extractEvents } from '@/services/networking/substrate/index.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Block, BlockEvent, SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import {
+  Block,
+  BlockEvent,
+  extractEvents,
+  SubstrateApiContext,
+  storageEntriesAtLatest$,
+} from '@/services/networking/substrate/index.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../../rxjs/trigger.js'
 import { DefiEventPayload, DefiSubscriptionPayload } from '../../../types.js'
 import { CHAIN_ID } from '../common.js'
+import { AcalaDexReservesValue, TokenId } from './types.js'
+import { toMelbourne } from '@/services/agents/common/melbourne.js'
+import { chunk } from '../../../common.js'
 
 const ACALA_DEX_PROTOCOL = 'dex'
+export const MAX_BATCH_SIZE = 50
 
 export function createAcalaDexProcessor({
   logger,
   ingress,
+  fetchAssetMetadata,
   subject,
 }: {
   logger: Logger
@@ -21,6 +31,27 @@ export function createAcalaDexProcessor({
   subject: Subject<DefiSubscriptionPayload>
 }) {
   const subs: Subscription[] = []
+
+  async function init() {
+    const dexPoolEntries = await firstValueFrom(
+      storageEntriesAtLatest$<[TokenId, TokenId], AcalaDexReservesValue>(
+        ingress,
+        CHAIN_ID,
+        'Dex',
+        'LiquidityPool',
+      ).pipe(toArray()),
+    )
+
+    const tokenIdStrings = dexPoolEntries.flatMap(({ key }) => key).map(id => toMelbourne(id))
+    const assetMetadatas = await Promise.all(
+      chunk(tokenIdStrings, MAX_BATCH_SIZE).map((batch) => fetchAssetMetadata(batch)),
+    ).then((results) => results.flat())
+
+    for (const { key, value } of dexPoolEntries) {
+      console.log('pool -----', key)
+      console.log('-------', value)
+    }
+  }
 
   function createDefiEventPayload(event: BlockEvent): DefiEventPayload | null {
     return null
@@ -42,6 +73,7 @@ export function createAcalaDexProcessor({
   }
 
   async function start(block$: Observable<Block>) {
+    await init()
     const apiCtx = await firstValueFrom(ingress.getContext(CHAIN_ID))
     const events$ = block$.pipe(extractEvents(), watchEvents(), share())
 
@@ -59,12 +91,14 @@ export function createAcalaDexProcessor({
         )
         .subscribe(onBlock(apiCtx)),
     )
+
     logger.info('[defi:acala-dex] Processor started.')
   }
 
   function stop() {
     subs.forEach((s) => s.unsubscribe())
     subs.length = 0
+
     logger.info('[defi:acala-dex] Processor stopped.')
   }
 
