@@ -7,6 +7,7 @@ import { IngressConsumers } from '@/services/ingress/index.js'
 import { Block, storageEntriesAtLatest$, XcmLocation } from '@/services/networking/substrate/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
 import { Logger } from '@/services/types.js'
+import { chunk } from '../../common.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
 import { DefiLiquidityPayload, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
 import {
@@ -30,7 +31,6 @@ import {
   BaseAssetMetadata,
   PoolAssetsAssetValue,
 } from './types.js'
-import { chunk } from '../../common.js'
 
 const MAX_PRICE_UPDATE_INTERVAL = 30 * 60_000
 

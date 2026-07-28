@@ -4,6 +4,7 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Logger } from '@/services/types.js'
 import { DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
 import { CHAIN_ID } from './common.js'
+import { createAcalaDexProcessor } from './dex/processor.js'
 import { createHomaProcessor } from './liquid-staking/processor.js'
 
 export function acalaDefiMonitor(logger: Logger, ingress: IngressConsumers, deps: DefiMonitorDependencies) {
@@ -19,7 +20,7 @@ export function acalaDefiMonitor(logger: Logger, ingress: IngressConsumers, deps
     fetchPrices,
     subject,
   }
-  const processors = [createHomaProcessor(ctx)]
+  const processors = [createHomaProcessor(ctx), createAcalaDexProcessor(ctx)]
 
   async function start() {
     const shared$ = SubstrateSharedStreams.instance(ingress.substrate)
