@@ -63,7 +63,7 @@ function findShortestBestPaths(
   start: number,
   end: number,
   maxHops = 10,
-  limit = 3,
+  limit = 8,
 ): Path[] {
   const queue: Path[] = [[{ token: start }]]
   const results: Path[] = []
