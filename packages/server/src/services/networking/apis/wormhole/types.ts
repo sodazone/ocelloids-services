@@ -33,6 +33,8 @@ export interface TransferWithPayload {
 
 export type PayloadPortalTokenBridge = TransferPayload | NFTTransferPayload | TransferWithPayload
 
+export type PayloadNativeTokenTransfer = TransferPayload | TransferWithPayload
+
 // Fallback Types
 export type PayloadUnknown = {
   payloadType: number
@@ -117,7 +119,7 @@ export interface WormholeOperation<P = Payload> {
   transactionLimit: number
 }
 
-export const WormholeProtocols = ['wh', 'wh_portal', 'wh_relayer'] as const
+export const WormholeProtocols = ['wh', 'wh_portal', 'wh_relayer', 'wh_ntt'] as const
 export type WormholeProtocol = (typeof WormholeProtocols)[number]
 export type WormholeAction = 'transfer' | 'transact' | '??'
 

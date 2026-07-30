@@ -47,6 +47,8 @@ function isSupportedWormholeOp(op: WormholeOperation): boolean {
 
 export const WORMHOLE_AGENT_ID = 'wormhole'
 
+const WH_WATCHED_CHAINS = [WormholeIds.MOONBEAM_ID, WormholeIds.HYDRATION_ID]
+
 export class WormholeAgent implements Agent {
   id = WORMHOLE_AGENT_ID
   metadata: AgentMetadata = {
@@ -107,7 +109,7 @@ export class WormholeAgent implements Agent {
 
     this.#log.info('[agent:%s] start', this.id)
 
-    this.#worker.run('startWatcher', { chains: [WormholeIds.MOONBEAM_ID], since: ago(1, 'day') })
+    this.#worker.run('startWatcher', { chains: WH_WATCHED_CHAINS, since: ago(1, 'day') })
 
     if (RECHECK_ENABLED) {
       this.#log.info(

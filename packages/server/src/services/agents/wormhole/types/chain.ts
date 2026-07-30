@@ -16,6 +16,13 @@ export const WormholeIds = {
   CELO_ID: 14,
   AVAX_ID: 6, // C-chain
   APTOS_ID: 22,
+  TEMPO_ID: 68,
+  NEXUS_ID: 69,
+  ARC_ID: 71,
+  ROBINHOOD: 72,
+  HYDRATION_ID: 73,
+  WORMCHAIN_ID: 3104,
+  COSMOSHUB_ID: 4000,
 }
 
 export const WormholeSupportedNetworks = Object.values(WormholeIds)

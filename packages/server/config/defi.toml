@@ -150,5 +150,6 @@ maxBlockDist = 150
       "https://hydration.ibp.network",
       "https://hydration-rpc.n.dwellir.com",
       "https://hydration.dotters.network",
-      "https://rpc.helikon.io/hydradx"
+      "https://rpc.helikon.io/hydradx",
+      "https://rpc.coke.hydration.cloud"
     ]

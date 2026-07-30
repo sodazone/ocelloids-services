@@ -1,6 +1,7 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { defaultAssetMapping, defaultJourneyMapping, toWormholeStops } from './default.js'
+import { NTTMapper } from './ntt.js'
 import { PortalMapper } from './portal.js'
 import { RelayerMapper } from './relayer.js'
 
@@ -13,7 +14,7 @@ interface ProtocolMapping {
   mapAssets: (op: WormholeOperation<any>, journey: NewJourney) => NewAssetOperation[]
 }
 
-const protocolMappings: ProtocolMapping[] = [PortalMapper, RelayerMapper]
+const protocolMappings: ProtocolMapping[] = [NTTMapper, PortalMapper, RelayerMapper]
 
 export type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]
