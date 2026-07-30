@@ -12,7 +12,7 @@ const client = new WormholescanClient()
 
 console.log(
   JSON.stringify(
-    await client.fetchOperationById('2/00000000000000000000000099673a01c5779ebf59399b4b228c1825c0113571/4'),
+    await client.fetchOperationById('6/000000000000000000000000c0d2e01c38ba35a79e1ef79522b4b3b86f0762ea/5'),
   ),
 )
 process.exit(0)

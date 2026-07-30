@@ -2,6 +2,42 @@ import { runWormholeMapperTests, TestCase } from '@/testing/apis/wormhole/wormho
 
 const cases: TestCase[] = [
   {
+    name: 'decode NTT Hydration -> Avalanche NTTUSD transfer',
+    file: 'ntt-hydration-avax_nttusd.json',
+    expected: {
+      status: 'received',
+      type: 'transfer',
+      from: '0xd3dda7c8608ea251c42c6e0a2a686adc5e9c0c03',
+      to: '0xb310408cc8951ddaa38297c872cdd525acbb5fbf',
+      assets: [
+        {
+          asset: 'urn:ocn:polkadot:2034|0x32d20aa7fb151ac1b2c1774d87cbe558f7cbb75e',
+          symbol: '???',
+          amount: '9990000',
+          decimals: 6,
+        },
+      ],
+    },
+  },
+  {
+    name: 'decode NTT Avalanche -> Hydration NTTUSD transfer',
+    file: 'ntt-avax-hydration_nttusd.json',
+    expected: {
+      status: 'waiting',
+      type: 'transfer',
+      from: '0xb310408cc8951ddaa38297c872cdd525acbb5fbf',
+      to: '0xb310408cc8951ddaa38297c872cdd525acbb5fbf',
+      assets: [
+        {
+          asset: 'urn:ocn:ethereum:43114|0xca2a35ba3eed9bc5f7e56bf833526d5cf5eeb475',
+          symbol: '???',
+          amount: '99900000',
+          decimals: 6,
+        },
+      ],
+    },
+  },
+  {
     name: 'decode NTT Hydration -> Ethereum DAI transfer',
     file: 'ntt-hydration-ethereum_dai.json',
     expected: {

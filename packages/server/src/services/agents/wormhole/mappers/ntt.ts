@@ -1,8 +1,10 @@
+import { HexString } from '@/lib.js'
 import { PayloadNativeTokenTransfer, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
+import { hexToAssetId, isAssetAddress } from '../../common/hydration.js'
 import { NewAssetOperation, NewJourney } from '../../crosschain/index.js'
 import { tokenRegistry } from '../metadata/tokens.js'
 import { addressToHex } from '../types/address.js'
-import { tokenAddressToAssetId } from '../types/chain.js'
+import { tokenAddressToAssetId, WormholeIds } from '../types/chain.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 
@@ -33,12 +35,12 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, 
       normalizedDecimals,
     } = op.content.standarizedProperties
 
-    const tokenInfo = tokenRegistry.lookup(tokenChain, tokenAddress)
-
     let decimals = normalizedDecimals ?? 8
-    let baseDecimals = normalizedDecimals
+    let baseDecimals = 8
     let symbol = '???'
     let isNative = false
+
+    const tokenInfo = tokenRegistry.lookup(tokenChain, tokenAddress)
 
     if (tokenInfo) {
       decimals = tokenInfo.decimals ?? decimals
@@ -71,8 +73,12 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, 
 
     const realAmount = wormholeAmountToReal(amount, decimals, baseDecimals)
 
+    // TODO: the final assetUrn must come from the registry as well and the registry
+    // will have access to the Steward to resolve metadata when possible
     const tokenIdentifier = String(tokenAddress).startsWith('0x')
-      ? addressToHex(tokenAddress)
+      ? tokenChain === WormholeIds.HYDRATION_ID && isAssetAddress(tokenAddress as HexString)
+        ? String(hexToAssetId(tokenAddress as HexString))
+        : addressToHex(tokenAddress)
       : String(tokenAddress)
 
     const assetUrn = tokenAddressToAssetId(tokenChain, isNative ? 'native' : tokenIdentifier)

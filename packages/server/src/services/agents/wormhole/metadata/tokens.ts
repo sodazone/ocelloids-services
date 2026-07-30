@@ -4,7 +4,13 @@ type TokenInfo = {
   isNative?: boolean
 }
 
+// TODO: replace with Steward
 const TOKEN_REGISTRY: Record<string, TokenInfo> = {
+  ['73:0x0000000000000000000000000000000100000012']: {
+    symbol: 'DAI',
+    decimals: 18,
+    isNative: false,
+  },
   ['1:so11111111111111111111111111111111111111112']: {
     symbol: 'WSOL',
     decimals: 9,
