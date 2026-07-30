@@ -1,26 +1,14 @@
+import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryResult } from '../../../types.js'
 import { AssetMetadata, WormholeNetwork } from '../../types.js'
 import { assetMetadataKey } from '../../util.js'
 
-const WormholeIds = {
-  MOONBEAM_ID: 16,
-  SOLANA_ID: 1,
-  ETHEREUM_ID: 2,
-  BASE_ID: 30,
-  BSC_ID: 4,
-  POLYGON_ID: 5,
-  SUI_ID: 21,
-  OP_ID: 24,
-  ARB_ID: 23,
-  CELO_ID: 14,
-  AVAX_ID: 6, // C-chain
-  APTOS_ID: 22,
-}
-
+// TBD: move the IDs to the Steward
 export const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
+  'urn:ocn:polkadot:2034': WormholeIds.HYDRATION_ID,
   'urn:ocn:ethereum:56': WormholeIds.BSC_ID,
   'urn:ocn:ethereum:137': WormholeIds.POLYGON_ID,
   'urn:ocn:ethereum:1': WormholeIds.ETHEREUM_ID,
