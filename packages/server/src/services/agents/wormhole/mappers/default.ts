@@ -18,7 +18,7 @@ function prefer(a?: string | null, b?: string | null): string {
     return b
   }
 
-  return a ?? b ?? ''
+  return a && a !== '' ? a : (b ?? '')
 }
 
 /**

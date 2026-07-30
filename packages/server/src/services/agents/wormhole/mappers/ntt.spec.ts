@@ -2,20 +2,37 @@ import { runWormholeMapperTests, TestCase } from '@/testing/apis/wormhole/wormho
 
 const cases: TestCase[] = [
   {
-    name: 'decode NTT transfer (test)',
-    file: 'ntt-sample.json',
+    name: 'decode NTT Hydration -> Ethereum DAI transfer',
+    file: 'ntt-hydration-ethereum_dai.json',
     expected: {
-      status: 'received',
+      status: 'waiting',
       type: 'transfer',
-      from: '0x7f72d8e4d53a9acc52e40c01d504c9ed7099b512',
-      to: '0x7f72d8e4d53a9acc52e40c01d504c9ed7099b512',
+      from: '0x204347eb81e9c82ea9c1f0feced1f1c060278383',
+      to: '0x23812ff0cddd7157c4760e3bb2d39f5f323a7d3c',
       assets: [
         {
-          asset: 'urn:ocn:ethereum:1|0xd166337499e176bbc38a1fbd113ab144e5bd2df7',
+          asset: 'urn:ocn:polkadot:2034|0x0000000000000000000000000000000100000012',
           symbol: '???',
-          amount: '370006138853',
+          amount: '10000000',
           decimals: 8,
-          usd: 3297.04700202,
+        },
+      ],
+    },
+  },
+  {
+    name: 'decode NTT Ethereum -> Hydration DAI transfer',
+    file: 'ntt-ethereum-hydration_dai.json',
+    expected: {
+      status: 'waiting',
+      type: 'transfer',
+      from: '0x553f022201fa7c88e6cc10d1c688b157d6fa7775',
+      to: '0x553f022201fa7c88e6cc10d1c688b157d6fa7775',
+      assets: [
+        {
+          asset: 'urn:ocn:ethereum:1|0x6b175474e89094c44da98b954eedeac495271d0f',
+          symbol: 'DAI',
+          amount: '1000000000000000000',
+          decimals: 18,
         },
       ],
     },

@@ -30,6 +30,7 @@ export const WormholeSupportedNetworks = Object.values(WormholeIds)
 const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
+  'urn:ocn:polkadot:2034': WormholeIds.HYDRATION_ID,
   'urn:ocn:ethereum:56': WormholeIds.BSC_ID,
   'urn:ocn:ethereum:137': WormholeIds.POLYGON_ID,
   'urn:ocn:ethereum:1': WormholeIds.ETHEREUM_ID,

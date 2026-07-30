@@ -9,6 +9,13 @@ const cutDate = new Date(Date.now() - ago).toISOString()
 const chains = [HYDRATION_ID]
 
 const client = new WormholescanClient()
+
+console.log(
+  JSON.stringify(
+    await client.fetchOperationById('2/00000000000000000000000099673a01c5779ebf59399b4b228c1825c0113571/4'),
+  ),
+)
+process.exit(0)
 const watcher = makeWatcher(client /*, storage */)
 const initialState = await watcher.loadInitialState(chains, cutDate)
 

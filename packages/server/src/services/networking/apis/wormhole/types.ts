@@ -33,7 +33,41 @@ export interface TransferWithPayload {
 
 export type PayloadPortalTokenBridge = TransferPayload | NFTTransferPayload | TransferWithPayload
 
-export type PayloadNativeTokenTransfer = TransferPayload | TransferWithPayload
+// Native Token Transfer (NTT) Types
+export interface NttManagerMessage {
+  id: string
+  sender: string
+}
+
+export interface TrimmedAmount {
+  amount: string
+  decimals: number
+}
+
+export interface NttMessage {
+  additionalPayload: string
+  sourceToken: string
+  to: string
+  toChain: number
+  trimmedAmount: TrimmedAmount
+}
+
+export interface TransceiverMessage {
+  prefix: string
+  recipientNttManager: string
+  sourceNttManager: string
+  transceiverPayload: string
+}
+
+export interface NativeTokenTransferDetails {
+  nttManagerMessage: NttManagerMessage
+  nttMessage: NttMessage
+  transceiverMessage: TransceiverMessage
+  payloadType: number
+  amount: string
+}
+
+export type PayloadNativeTokenTransfer = (TransferPayload | TransferWithPayload) & NativeTokenTransferDetails
 
 // Fallback Types
 export type PayloadUnknown = {
@@ -113,6 +147,7 @@ export interface WormholeOperation<P = Payload> {
     }
     status: WormholeOpStatus
   }
+  status?: WormholeOpStatus
   data: Record<string, string>
   isBigTransaction: boolean
   isDailyLimitExceeded: boolean
