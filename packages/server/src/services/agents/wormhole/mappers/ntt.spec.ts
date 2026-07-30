@@ -47,7 +47,7 @@ const cases: TestCase[] = [
       to: '0x23812ff0cddd7157c4760e3bb2d39f5f323a7d3c',
       assets: [
         {
-          asset: 'urn:ocn:polkadot:2034|0x0000000000000000000000000000000100000012',
+          asset: 'urn:ocn:polkadot:2034|18',
           symbol: '???',
           amount: '10000000',
           decimals: 8,
