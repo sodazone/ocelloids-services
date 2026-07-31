@@ -29,7 +29,6 @@ export function extractNttTransferRedeemed(chainId: NetworkURN, contractAddress:
         }
 
         const { digest } = args as TransferRedeemedLog
-
         return {
           digest,
           chainId,

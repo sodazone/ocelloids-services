@@ -416,7 +416,7 @@ export class WormholeAgent implements Agent {
           error: (error: any) => {
             this.#log.error(error, '[%s] %s error on origin stream', this.id, networkId)
           },
-          next: this.#matchRedeemed,
+          next: this.#matchRedeemed.bind(this),
           complete: () => this.#log.info('[%s] %s complete on origin stream', this.id, networkId),
         }),
     })

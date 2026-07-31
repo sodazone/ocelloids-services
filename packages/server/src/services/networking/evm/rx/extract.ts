@@ -97,7 +97,7 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
         }
 
         const topic0 = topics[0]
-        if (typeof topic0 === 'undefined' || data === '0x') {
+        if (typeof topic0 === 'undefined') {
           return null
         }
 
@@ -109,7 +109,11 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
         let decoded: DecodedLogParams = {}
 
         try {
-          const event = decodeEventLog({ abi: [ev], topics: log.topics as LogTopics, data: log.data })
+          const event = decodeEventLog({
+            abi: [ev],
+            topics: log.topics as LogTopics,
+            data: data === '0x' ? undefined : data,
+          })
           decoded = { eventName: event.eventName, args: event.args }
           return asSerializable({
             ...log,
