@@ -35,17 +35,15 @@ export interface NttManagerMessage {
   payload: Hex
 }
 
-export function encodeNativeTokenTransfer(
-  prefix: Hex,
-  params: {
-    amount: bigint | string
-    decimals: number
-    sourceToken: Hex
-    to: Hex
-    toChain: number
-    additionalPayload?: Hex
-  },
-): Hex {
+export function encodeNativeTokenTransfer(params: {
+  amount: bigint | string
+  decimals: number
+  sourceToken: Hex
+  to: Hex
+  toChain: number
+  additionalPayload?: Hex
+}): Hex {
+  const prefix = '0x994E5454' // Magic: 0x99 + NTT
   const decimalsHex = pad(numberToHex(params.decimals), { size: 1 })
   const amountHex = pad(numberToHex(BigInt(params.amount)), { size: 8 })
   const sourceTokenHex = pad(params.sourceToken, { size: 32 })

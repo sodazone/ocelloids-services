@@ -55,7 +55,7 @@ describe('Native Token Transfer (NTT) Digest Verification', () => {
   it('should compute valid digest when re-encoding inner NativeTokenTransfer payload', () => {
     const { nttManagerMessage, nttMessage } = transferData.content.payload
 
-    const innerNttPayload = encodeNativeTokenTransfer('0x994E5454', {
+    const innerNttPayload = encodeNativeTokenTransfer({
       amount: nttMessage.trimmedAmount.amount,
       decimals: nttMessage.trimmedAmount.decimals,
       sourceToken: nttMessage.sourceToken as Hex,
