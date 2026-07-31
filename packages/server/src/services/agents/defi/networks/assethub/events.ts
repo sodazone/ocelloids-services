@@ -143,28 +143,48 @@ export function createEventWatcher({
     event: BlockEvent,
     siblings: EventRecordWithIndex<Event>[],
   ): DefiEventPayload[] {
-    const assetDepositEvent = siblings.find(
-      (s) =>
-        s.index === event.blockPosition - 1 &&
-        s.event.name.toLowerCase() === 'deposited' &&
-        ['assets', 'foreignassets'].includes(s.event.module.toLowerCase()),
-    )
-    if (!assetDepositEvent) {
-      logger.warn('No asset deposit event found in event %s-%s', event.blockNumber, event.blockPosition)
+    try {
+      const assetDepositEvent = siblings.find(
+        (s) =>
+          s.index === event.blockPosition - 1 &&
+          s.event.name.toLowerCase() === 'deposited' &&
+          ['assets', 'foreignassets'].includes(s.event.module.toLowerCase()),
+      )
+      if (!assetDepositEvent) {
+        logger.warn('No asset deposit event found in event %s-%s', event.blockNumber, event.blockPosition)
+        return []
+      }
+
+      const { who } = assetDepositEvent.event.value as AssetDeposited | ForeignAssetDeposited
+      const { path } = event.value as SwapCreditExecuted
+      const segments = getSwapSegments(path)
+
+      return mapSwapSegements(segments, event, who)
+    } catch (e) {
+      logger.error(
+        e,
+        '[defi:assethub] Error mapping swap credit event at block %s #%s',
+        event.blockHash,
+        event.blockNumber,
+      )
       return []
     }
-
-    const { who } = assetDepositEvent.event.value as AssetDeposited | ForeignAssetDeposited
-    const { path } = event.value as SwapCreditExecuted
-    const segments = getSwapSegments(path)
-
-    return mapSwapSegements(segments, event, who)
   }
 
   function handleSwapEvent(event: BlockEvent, siblings: EventRecordWithIndex<Event>[]): DefiEventPayload[] {
-    const { path, who } = event.value as SwapExecuted
-    const segments = getSwapSegments(path)
-    return mapSwapSegements(segments, event, who)
+    try {
+      const { path, who } = event.value as SwapExecuted
+      const segments = getSwapSegments(path)
+      return mapSwapSegements(segments, event, who)
+    } catch (e) {
+      logger.error(
+        e,
+        '[defi:assethub] Error mapping swap event at block %s #%s',
+        event.blockHash,
+        event.blockNumber,
+      )
+      return []
+    }
   }
 
   function watchEvents() {
