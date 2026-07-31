@@ -1,4 +1,5 @@
 import { concat, Hex, keccak256, numberToHex, pad } from 'viem'
+import { deserializeTransferPayload } from '../mappers/payload.js'
 
 /**
  * Extracts encodedNttManagerMessage from raw TransceiverMessage bytes
@@ -72,4 +73,11 @@ export function nttManagerMessageDigest(sourceChainId: number, m: NttManagerMess
   const encodedMsg = encodeNttManagerMessage(m)
   const sourceChainIdHex = pad(numberToHex(sourceChainId), { size: 2 })
   return keccak256(concat([sourceChainIdHex, encodedMsg]))
+}
+
+export function nttManagerDigestFromOp(emitterChain: number, vaa: string) {
+  const rawTransceiverBytes = deserializeTransferPayload(vaa) as Hex
+  const encodedNttMsg = extractEncodedNttManagerMessage(rawTransceiverBytes)
+
+  return nttManagerMessageDigestFromHex(emitterChain, encodedNttMsg)
 }

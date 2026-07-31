@@ -1,5 +1,7 @@
 import { PayloadNativeTokenTransfer, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { NewAssetOperation, NewJourney } from '../../crosschain/index.js'
+import { nttManagerDigestFromOp } from '../ntt/digest.js'
+import { WormholeIds } from '../types/chain.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 import { MapAssetContext, MapJourneyContext } from './index.js'
@@ -18,7 +20,15 @@ function mapNTTOpToJourney(
   op: WormholeOperation<PayloadNativeTokenTransfer>,
   ctx: MapJourneyContext,
 ): NewJourney {
-  return defaultJourneyMapping(op, 'transfer', 'wh_ntt', ctx)
+  const j = defaultJourneyMapping(op, 'transfer', 'wh_ntt', ctx)
+  if (op.vaa && op.content.standarizedProperties.toChain === WormholeIds.HYDRATION_ID) {
+    try {
+      j.trip_id = nttManagerDigestFromOp(op.emitterChain, op.vaa.raw)
+    } catch (error) {
+      console.error('[NTTMapper] while generating manager digest', error)
+    }
+  }
+  return j
 }
 
 async function mapNTTOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, ctx: MapAssetContext) {

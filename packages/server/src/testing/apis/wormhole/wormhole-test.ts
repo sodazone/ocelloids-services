@@ -16,6 +16,7 @@ export type TestCase = {
   name: string
   file: string
   expected: {
+    tripId?: string
     status?: string
     type: string
     from: string
@@ -38,6 +39,9 @@ export function runWormholeMapperTests(cases: TestCase[], label = 'wormhole mapp
 
       if (expected.status) {
         expect(j.status).toBe(expected.status)
+      }
+      if (expected.tripId) {
+        expect(j.trip_id).toBe(expected.tripId)
       }
       expect(j.type).toBe(expected.type)
       expect(j.from).toBe(expected.from)

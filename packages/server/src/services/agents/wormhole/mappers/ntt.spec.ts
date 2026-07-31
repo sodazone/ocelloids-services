@@ -63,6 +63,7 @@ const cases: TestCase[] = [
       type: 'transfer',
       from: '0x553f022201fa7c88e6cc10d1c688b157d6fa7775',
       to: '0x553f022201fa7c88e6cc10d1c688b157d6fa7775',
+      tripId: '0x4ae440693834eae4f4bb48e37637250fbf16b934f147cdcd228c578db5889b24',
       assets: [
         {
           asset: 'urn:ocn:ethereum:1|0x6b175474e89094c44da98b954eedeac495271d0f',
