@@ -106,6 +106,10 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
           return null
         }
 
+        if (eventNames.length > 0 && !eventNames.includes(ev.name)) {
+          return null
+        }
+
         let decoded: DecodedLogParams = {}
 
         try {

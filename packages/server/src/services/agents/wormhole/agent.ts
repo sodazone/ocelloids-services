@@ -18,7 +18,7 @@ import {
   WormholeProtocols,
 } from '@/services/networking/apis/wormhole/types.js'
 import { retryCapped } from '@/services/networking/watcher.js'
-import { RxSubscriptionWithId } from '@/services/subscriptions/types.js'
+import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
 import { networks } from '../common/networks.js'
 import { fullJourneyToResponse, journeyToResponse } from '../crosschain/convert.js'
@@ -34,7 +34,7 @@ import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
 import { createTokenRegistry, WormholeTokenRegistry } from './metadata/tokens.js'
-import { extractNttTransferRedeemed, TransferRedeemedPayload } from './ops/ntt.js'
+import { extractNttTransferRedeemed, TransferRedeemedPayload } from './ntt/ops.js'
 import { WormholePendingCache } from './pending.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
@@ -381,7 +381,10 @@ export class WormholeAgent implements Agent {
   // TODO: extract to extensible config + generic watcher to support more events, protocols and networks
   #subscribeWatchers() {
     const networkId = networks.hydration_evm
-    const contractAddress = '0xcfd576f88c90844aebf45378fd09931281d8b14d'
+    const contractAddresses: HexString[] = [
+      // We are filtering by name since there are multiple Managers
+      // '0xcfd576f88c90844aebf45378fd09931281d8b14d'
+    ]
 
     this.#subs.push({
       id: `${networkId}.ntt.in`,
@@ -410,7 +413,7 @@ export class WormholeAgent implements Agent {
               }),
             )
           }),
-          extractNttTransferRedeemed(networkId, contractAddress),
+          extractNttTransferRedeemed(networkId, contractAddresses),
         )
         .subscribe({
           error: (error: any) => {

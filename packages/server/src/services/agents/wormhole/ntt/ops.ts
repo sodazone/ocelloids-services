@@ -19,10 +19,10 @@ export type TransferRedeemedPayload = {
   timestamp: number
 }
 
-export function extractNttTransferRedeemed(chainId: NetworkURN, contractAddress: HexString) {
+export function extractNttTransferRedeemed(chainId: NetworkURN, contractAddresses: HexString[]) {
   return (source: Observable<BlockWithLogs>): Observable<TransferRedeemedPayload> => {
     return source.pipe(
-      filterLogs({ abi: nttManagerAbi as Abi, addresses: [contractAddress] }, ['TransferRedeemed']),
+      filterLogs({ abi: nttManagerAbi as Abi, addresses: contractAddresses }, ['TransferRedeemed']),
       map(({ args, blockHash, blockNumber, timestamp, transactionHash }) => {
         if (!args || blockHash === null || blockNumber === null) {
           return null
