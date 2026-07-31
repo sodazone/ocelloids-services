@@ -17,10 +17,17 @@ import {
 import { Logger } from '@/services/types.js'
 import { fullJourneyToResponse, journeyToResponse } from '../crosschain/convert.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
-import { CrosschainRepository, FullJourney, Journey, JourneyUpdate } from '../crosschain/index.js'
+import {
+  CrosschainRepository,
+  FullJourney,
+  generateTripId,
+  Journey,
+  JourneyUpdate,
+} from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
+import { createTokenRegistry, WormholeTokenRegistry } from './metadata/tokens.js'
 import { WormholePendingCache } from './pending.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
@@ -66,6 +73,7 @@ export class WormholeAgent implements Agent {
   readonly #wormholeQueue: PQueue
   readonly #wormholePendingCache: WormholePendingCache
   readonly #worker: WormholeWorkerPool
+  readonly #tokenRegistry: WormholeTokenRegistry
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -80,6 +88,7 @@ export class WormholeAgent implements Agent {
     this.#repository = deps.crosschain?.repository
 
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
+    this.#tokenRegistry = createTokenRegistry(deps.steward)
     this.#wormholeQueue = new PQueue({ concurrency: RECHECK_CONCURRENCY, interval: 1200, intervalCap: 1 })
     this.#wormholePendingCache = new WormholePendingCache(ctx.log)
     this.#worker = new WormholeWorkerPool(
@@ -266,7 +275,7 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
+    const journey = await mapOperationToJourney(op, { generateTripId }, this.#tokenRegistry)
 
     if (op.vaa === undefined) {
       this.#log.warn('[agent:%s] No VAA found in op %s (status=%s)', this.id, op.id, journey.status)

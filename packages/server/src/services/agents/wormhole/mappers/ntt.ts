@@ -1,12 +1,8 @@
-import { HexString } from '@/lib.js'
 import { PayloadNativeTokenTransfer, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
-import { hexToAssetId, isAssetAddress } from '../../common/hydration.js'
 import { NewAssetOperation, NewJourney } from '../../crosschain/index.js'
-import { tokenRegistry } from '../metadata/tokens.js'
-import { addressToHex } from '../types/address.js'
-import { tokenAddressToAssetId, WormholeIds } from '../types/chain.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
+import { MapAssetContext, MapJourneyContext } from './index.js'
 
 type NativeTokenTransferOperation = Omit<WormholeOperation, 'content'> & {
   content: Omit<WormholeOperation['content'], 'payload'> & {
@@ -20,12 +16,12 @@ function isNativeTokenTransfer(op: WormholeOperation): op is NativeTokenTransfer
 
 function mapPortalOpToJourney(
   op: WormholeOperation<PayloadNativeTokenTransfer>,
-  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+  ctx: MapJourneyContext,
 ): NewJourney {
-  return defaultJourneyMapping(op, 'transfer', 'wh_ntt', generateTripId)
+  return defaultJourneyMapping(op, 'transfer', 'wh_ntt', ctx)
 }
 
-function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, _journey: NewJourney) {
+async function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, ctx: MapAssetContext) {
   try {
     const {
       tokenAddress,
@@ -38,14 +34,13 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, 
     let decimals = normalizedDecimals ?? 8
     let baseDecimals = 8
     let symbol = '???'
-    let isNative = false
+    let assetUrn = ''
 
-    const tokenInfo = tokenRegistry.lookup(tokenChain, tokenAddress)
-
+    const tokenInfo = await ctx.tokenRegistry?.lookup(tokenChain, tokenAddress)
     if (tokenInfo) {
       decimals = tokenInfo.decimals ?? decimals
       symbol = tokenInfo.symbol ?? wrappedTokenSymbol ?? symbol
-      isNative = !!tokenInfo.isNative
+      assetUrn = tokenInfo.tokenUrn
     } else {
       console.warn(
         `[NTTMapper] Token not found in registry: ${tokenChain} ${tokenAddress}. Using unknown token ??? fallback.`,
@@ -72,16 +67,6 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, 
     }
 
     const realAmount = wormholeAmountToReal(amount, decimals, baseDecimals)
-
-    // TODO: the final assetUrn must come from the registry as well and the registry
-    // will have access to the Steward to resolve metadata when possible
-    const tokenIdentifier = String(tokenAddress).startsWith('0x')
-      ? tokenChain === WormholeIds.HYDRATION_ID && isAssetAddress(tokenAddress as HexString)
-        ? String(hexToAssetId(tokenAddress as HexString))
-        : addressToHex(tokenAddress)
-      : String(tokenAddress)
-
-    const assetUrn = tokenAddressToAssetId(tokenChain, isNative ? 'native' : tokenIdentifier)
 
     const assetOp: NewAssetOperation = {
       journey_id: -1,

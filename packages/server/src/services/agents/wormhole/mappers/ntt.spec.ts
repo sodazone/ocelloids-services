@@ -48,9 +48,9 @@ const cases: TestCase[] = [
       assets: [
         {
           asset: 'urn:ocn:polkadot:2034|18',
-          symbol: 'DAI',
-          amount: '100000000000000000',
-          decimals: 18,
+          symbol: '???',
+          amount: '10000000',
+          decimals: 8,
         },
       ],
     },

@@ -1,9 +1,6 @@
-import { Twox256 } from '@polkadot-api/substrate-bindings'
 import { DeleteResult, Kysely, SelectQueryBuilder, Transaction } from 'kysely'
-import { toHex } from 'polkadot-api/utils'
-import { ulid } from 'ulidx'
 import { microtask } from '@/common/event.loop.js'
-import { asJSON, stringToUa8 } from '@/common/util.js'
+import { asJSON } from '@/common/util.js'
 import { QueryPagination } from '@/lib.js'
 import { SQLDialect } from '@/services/persistence/kysely/db.js'
 import {
@@ -14,6 +11,7 @@ import {
   parseIdCursor,
 } from '../../common/explorer.js'
 import { JourneyFilters, JourneyRangeFilters } from '../types/queries.js'
+import { generateTripId } from './trip-id.js'
 import {
   AssetOperation,
   AssetOperationUpdate,
@@ -605,21 +603,10 @@ export class CrosschainRepository {
   }
 
   /**
-   * Generate a new trip_id (ULID)
-   */
-  generateTripId(identifiers?: { chainId: string; values: string[] }): string {
-    if (identifiers) {
-      return toHex(Twox256(stringToUa8(`${identifiers.chainId}${identifiers.values.join()}`)))
-    }
-
-    return ulid()
-  }
-
-  /**
    * Assign a journey to a trip_id (creates a new one if not provided)
    */
   async assignJourneyToTrip(journeyId: number, tripId?: string): Promise<string> {
-    const finalTripId = tripId ?? this.generateTripId()
+    const finalTripId = tripId ?? generateTripId()
 
     await this.#db
       .updateTable('xc_journeys')
@@ -713,7 +700,7 @@ export class CrosschainRepository {
     let tripId = inJourney?.trip_id
 
     if (!tripId) {
-      tripId = this.generateTripId()
+      tripId = generateTripId()
       await this.assignJourneyToTrip(inJourneyId, tripId)
     }
 
