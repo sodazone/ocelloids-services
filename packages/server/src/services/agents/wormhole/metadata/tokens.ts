@@ -211,7 +211,6 @@ export function createTokenRegistry(steward: DataSteward): WormholeTokenRegistry
           ],
         },
       } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
-      console.log('RRRE', items)
 
       const assetMetadatas = items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
       if (assetMetadatas && assetMetadatas.length === 1) {
@@ -224,11 +223,16 @@ export function createTokenRegistry(steward: DataSteward): WormholeTokenRegistry
       }
     }
 
-    return {
-      ...tokenInfo,
-      tokenId,
-      tokenUrn: tokenAddressToAssetId(chainId, tokenInfo.isNative ? 'native' : tokenId),
-    }
+    return tokenInfo
+      ? {
+          ...tokenInfo,
+          tokenId,
+          tokenUrn: tokenAddressToAssetId(chainId, tokenInfo.isNative ? 'native' : tokenId),
+        }
+      : {
+          tokenId,
+          tokenUrn: tokenAddressToAssetId(chainId, tokenId),
+        }
   }
 
   return {
