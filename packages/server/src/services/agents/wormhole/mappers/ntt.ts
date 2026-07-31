@@ -14,14 +14,14 @@ function isNativeTokenTransfer(op: WormholeOperation): op is NativeTokenTransfer
   return op.content?.standarizedProperties?.appIds?.includes('NATIVE_TOKEN_TRANSFER') ?? false
 }
 
-function mapPortalOpToJourney(
+function mapNTTOpToJourney(
   op: WormholeOperation<PayloadNativeTokenTransfer>,
   ctx: MapJourneyContext,
 ): NewJourney {
   return defaultJourneyMapping(op, 'transfer', 'wh_ntt', ctx)
 }
 
-async function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, ctx: MapAssetContext) {
+async function mapNTTOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer>, ctx: MapAssetContext) {
   try {
     const {
       tokenAddress,
@@ -88,6 +88,6 @@ async function mapPortalOpToAssets(op: WormholeOperation<PayloadNativeTokenTrans
 
 export const NTTMapper = {
   guard: isNativeTokenTransfer,
-  mapJourney: mapPortalOpToJourney,
-  mapAssets: mapPortalOpToAssets,
+  mapJourney: mapNTTOpToJourney,
+  mapAssets: mapNTTOpToAssets,
 }

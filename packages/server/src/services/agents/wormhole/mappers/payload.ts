@@ -1,6 +1,6 @@
 import { deserialize, deserializePayload } from '@wormhole-foundation/sdk-definitions'
+import { toHex } from 'viem'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
-
 import { moonbeamEnhancers } from '../moonbeam/enhancers.js'
 
 export type PayloadEnhancer = (
@@ -13,6 +13,17 @@ const Discriminator: Record<number, string> = {
   0x01: 'TokenBridge:Transfer',
   0x03: 'TokenBridge:TransferWithPayload',
 } as const
+
+export function deserializeTransferPayload(vaa: string) {
+  try {
+    const vaaBytes = new Uint8Array(Buffer.from(vaa, 'base64'))
+    const { payload } = deserialize('Uint8Array', vaaBytes)
+    return toHex(payload)
+  } catch (e) {
+    console.error('Failed to deserialize VAA payload', e)
+    return null
+  }
+}
 
 export function decodeTransferPayload(vaa: string | undefined) {
   if (!vaa) {
