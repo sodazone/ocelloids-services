@@ -113,7 +113,7 @@ export function toBasejumpStops(
         {
           type: 'wormhole',
           from: { chainId: origin.chainId },
-          to: { chainId: networks.moonbeam },
+          to: { chainId: networks.hydration },
           relay: vaaId
             ? {
                 chainId: WORMHOLE,
@@ -124,25 +124,13 @@ export function toBasejumpStops(
           messageId: vaaId,
           instructions: whInstructions,
         },
-        {
-          type: 'hrmp',
-          from: { chainId: networks.moonbeam },
-          to: { chainId: networks.hydration },
-          instructions: {},
-        },
       ]
     }
 
     return [
       {
-        type: 'hrmp',
-        from: { chainId: networks.hydration },
-        to: { chainId: networks.moonbeam },
-        instructions: {},
-      },
-      {
         type: 'wormhole',
-        from: { chainId: networks.moonbeam },
+        from: { chainId: networks.hydration },
         to: { chainId: destination.chainId },
         relay: vaaId
           ? {
@@ -173,7 +161,7 @@ export function toBasejumpStops(
   const stops = existingStops
 
   const wormholeLegIndex = isToHydration ? 0 : 1
-  const wormholeLeg = stops[wormholeLegIndex]
+  const _wormholeLeg = stops[wormholeLegIndex]
 
   switch (type) {
     case 'basejump.initiated': {
@@ -181,38 +169,38 @@ export function toBasejumpStops(
       break
     }
 
-    case 'basejump.processed': {
-      const leg = wormholeLeg
-      leg.to = context
-      leg.relay = leg.relay
-        ? {
-            ...leg.relay,
-            status: 'completed',
-            vaaId,
-          }
-        : {
-            chainId: WORMHOLE,
-            status: 'completed',
-            vaaId,
-          }
-      leg.messageId = vaaId
-      leg.instructions = whInstructions
-      break
-    }
+    // case 'basejump.processed': {
+    //   const leg = wormholeLeg
+    //   leg.to = context
+    //   leg.relay = leg.relay
+    //     ? {
+    //         ...leg.relay,
+    //         status: 'completed',
+    //         vaaId,
+    //       }
+    //     : {
+    //         chainId: WORMHOLE,
+    //         status: 'completed',
+    //         vaaId,
+    //       }
+    //   leg.messageId = vaaId
+    //   leg.instructions = whInstructions
+    //   break
+    // }
 
     case 'basejump.executed': {
-      stops[1].to = context
+      stops[stops.length - 1].to = context
       break
     }
 
     case 'basejump.queued': {
-      stops[1].to = { ...context, status: 'waiting' }
-      stops[1].queueId = (payload as BasejumpPending).id
+      stops[stops.length - 1].to = { ...context, status: 'waiting' }
+      stops[stops.length - 1].queueId = (payload as BasejumpPending).id
       break
     }
 
     case 'basejump.fulfilled': {
-      stops[1].to = { ...(stops[1].to ?? {}), fulfilled: context }
+      stops[stops.length - 1].to = { ...(stops[1].to ?? {}), fulfilled: context }
       break
     }
   }
