@@ -57,6 +57,15 @@ function toMarketId(tokenId0: string | TokenId, tokenId1: string | TokenId): str
   return `${DEX_ACC_ID}_${first}-${second}`
 }
 
+function calculateMedian(prices: number[]): number {
+  if (prices.length === 0) {
+    return 0
+  }
+  const sorted = [...prices].sort((a, b) => a - b)
+  const mid = Math.floor(sorted.length / 2)
+  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+}
+
 export function createAcalaDexProcessor({
   logger,
   ingress,
@@ -99,9 +108,13 @@ export function createAcalaDexProcessor({
         }
       })
 
+      poolMap.clear()
+      priceMap.clear()
+
       for (const { key, value } of dexPoolEntries) {
         const [tokenKey0, tokenKey1] = key[0].map(mapTokenId)
         const [reserve0, reserve1] = value
+
         const meta0 = metadataMap.get(tokenKey0)
         const meta1 = metadataMap.get(tokenKey1)
 
@@ -125,77 +138,94 @@ export function createAcalaDexProcessor({
         })
       }
 
+      const pools = [...poolMap.values()]
+
+      priceMap.clear()
+
       const externalPrices = await fetchPrices(['ACA', 'DOT'])
+
       const priceACA = externalPrices.find((p) => p.ticker === 'ACA')?.medianPrice
       const priceDOT = externalPrices.find((p) => p.ticker === 'DOT')?.medianPrice
 
-      const poolPriceSamples = new Map<string, number[]>()
-
-      const addSample = (assetId: string, price: number) => {
-        if (!poolPriceSamples.has(assetId)) {
-          poolPriceSamples.set(assetId, [])
-        }
-        poolPriceSamples.get(assetId)!.push(price)
-      }
-
-      const pools = poolMap.values()
       for (const pool of pools) {
         if (pool.token0.symbol === 'ACA' && priceACA !== undefined) {
           priceMap.set(pool.token0.id, priceACA)
         }
+
         if (pool.token1.symbol === 'ACA' && priceACA !== undefined) {
           priceMap.set(pool.token1.id, priceACA)
         }
+
         if (pool.token0.symbol === 'DOT' && priceDOT !== undefined) {
           priceMap.set(pool.token0.id, priceDOT)
         }
+
         if (pool.token1.symbol === 'DOT' && priceDOT !== undefined) {
           priceMap.set(pool.token1.id, priceDOT)
         }
       }
 
-      let newPriceDiscovered = true
-      let iterations = 0
-      const maxIterations = poolMap.size
+      const addSample = (samples: Map<string, number[]>, assetId: string, price: number) => {
+        if (!Number.isFinite(price) || price <= 0) {
+          return
+        }
 
-      while (newPriceDiscovered && iterations < maxIterations) {
-        newPriceDiscovered = false
+        if (!samples.has(assetId)) {
+          samples.set(assetId, [])
+        }
+
+        samples.get(assetId)!.push(price)
+      }
+
+      let iterations = 0
+      let changed = true
+
+      const MAX_ITERATIONS = 20
+      const EPSILON = 1e-6
+
+      while (changed && iterations < MAX_ITERATIONS) {
         iterations++
+        changed = false
+
+        const samples = new Map<string, number[]>()
 
         for (const pool of pools) {
           if (pool.token0.decimals === undefined || pool.token1.decimals === undefined) {
             continue
           }
 
-          const p0 = priceMap.get(pool.token0.id)
-          const p1 = priceMap.get(pool.token1.id)
+          const reserve0 = formatReserve(pool.token0.reserve, pool.token0.decimals)
+          const reserve1 = formatReserve(pool.token1.reserve, pool.token1.decimals)
 
-          const r0 = formatReserve(pool.token0.reserve, pool.token0.decimals)
-          const r1 = formatReserve(pool.token1.reserve, pool.token1.decimals)
-
-          if (r0 <= 0 || r1 <= 0) {
+          if (reserve0 <= 0 || reserve1 <= 0) {
             continue
           }
 
-          const isToken0Fixed = pool.token0.symbol && EXTERNAL_PRICE_SYMBOLS.has(pool.token0.symbol)
-          const isToken1Fixed = pool.token1.symbol && EXTERNAL_PRICE_SYMBOLS.has(pool.token1.symbol)
+          const price0 = priceMap.get(pool.token0.id)
+          const price1 = priceMap.get(pool.token1.id)
 
-          if (p0 !== undefined && !isToken1Fixed) {
-            const derivedPrice1 = (r0 * p0) / r1
-            addSample(pool.token1.id, derivedPrice1)
+          const token0Fixed =
+            pool.token0.symbol !== undefined && EXTERNAL_PRICE_SYMBOLS.has(pool.token0.symbol)
+
+          const token1Fixed =
+            pool.token1.symbol !== undefined && EXTERNAL_PRICE_SYMBOLS.has(pool.token1.symbol)
+
+          if (price0 !== undefined && !token1Fixed) {
+            addSample(samples, pool.token1.id, (reserve0 * price0) / reserve1)
           }
 
-          if (p1 !== undefined && !isToken0Fixed) {
-            const derivedPrice0 = (r1 * p1) / r0
-            addSample(pool.token0.id, derivedPrice0)
+          if (price1 !== undefined && !token0Fixed) {
+            addSample(samples, pool.token0.id, (reserve1 * price1) / reserve0)
           }
         }
 
-        for (const [assetId, samples] of poolPriceSamples.entries()) {
-          if (!priceMap.has(assetId) && samples.length > 0) {
-            const meanPrice = samples.reduce((a, b) => a + b, 0) / samples.length
-            priceMap.set(assetId, meanPrice)
-            newPriceDiscovered = true
+        for (const [assetId, assetSamples] of samples) {
+          const median = calculateMedian(assetSamples)
+          const previous = priceMap.get(assetId)
+
+          if (previous === undefined || Math.abs(previous - median) / previous > EPSILON) {
+            priceMap.set(assetId, median)
+            changed = true
           }
         }
       }
@@ -205,8 +235,13 @@ export function createAcalaDexProcessor({
           continue
         }
 
-        const price0 = priceMap.get(pool.token0.id) ?? 0
-        const price1 = priceMap.get(pool.token1.id) ?? 0
+        const price0 = priceMap.get(pool.token0.id)
+        const price1 = priceMap.get(pool.token1.id)
+
+        if (price0 === undefined || price1 === undefined) {
+          logger.warn('[%s] No price found for pool tokens %s', processorId, marketId)
+          continue
+        }
 
         const r0 = formatReserve(pool.token0.reserve, pool.token0.decimals)
         const r1 = formatReserve(pool.token1.reserve, pool.token1.decimals)
