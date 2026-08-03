@@ -1,21 +1,20 @@
 import { HexString } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
-import { tokenRegistry } from '../metadata/tokens.js'
 import { decodeRelayerPayload, getRelayerInfo } from '../relayers/decode.js'
 import { addressToHex } from '../types/address.js'
-import { tokenAddressToAssetId } from '../types/chain.js'
 import { defaultAssetMapping, defaultJourneyMapping } from './default.js'
+import { MapAssetContext, MapJourneyContext } from './index.js'
 
-function mapRelayerOpToJourney(
-  op: WormholeOperation,
-  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
-): NewJourney {
-  return defaultJourneyMapping(op, 'transfer', 'wh_relayer', generateTripId)
+function mapRelayerOpToJourney(op: WormholeOperation, ctx: MapJourneyContext): NewJourney {
+  return defaultJourneyMapping(op, 'transfer', 'wh_relayer', ctx)
 }
 
-function mapRelayerOpToAssets(op: WormholeOperation, journey: NewJourney): NewAssetOperation[] {
-  const assetOps: NewAssetOperation[] = [...defaultAssetMapping(op, journey)]
+async function mapRelayerOpToAssets(
+  op: WormholeOperation,
+  ctx: MapAssetContext,
+): Promise<NewAssetOperation[]> {
+  const assetOps: NewAssetOperation[] = [...defaultAssetMapping(op, ctx)]
 
   const s = op.content.standarizedProperties
   const relayerInfo = getRelayerInfo(s.toChain, s.toAddress)
@@ -29,14 +28,13 @@ function mapRelayerOpToAssets(op: WormholeOperation, journey: NewJourney): NewAs
     if ('amount' in decoded && 'token' in decoded && 'to' in decoded) {
       const chainId = op.targetChain?.chainId ?? op.content.standarizedProperties.toChain
       const tokenAddr = decoded['token']
-      const assetId = tokenAddressToAssetId(chainId, tokenAddr)
-      const tokenInfo = tokenRegistry.lookup(chainId, tokenAddr)
+      const tokenInfo = await ctx.tokenRegistry?.lookup(chainId, tokenAddr)
 
       assetOps.push({
         journey_id: -1,
         role: 'transfer',
         sequence: assetOps.length,
-        asset: assetId,
+        asset: tokenInfo?.tokenUrn ?? '',
         amount: String(decoded['amount']),
         decimals: tokenInfo?.decimals ?? 0,
         symbol: tokenInfo?.symbol,
@@ -44,8 +42,8 @@ function mapRelayerOpToAssets(op: WormholeOperation, journey: NewJourney): NewAs
       })
 
       // update journey fields
-      journey.to = addressToHex(decoded['to'])
-      journey.type = 'transfer'
+      ctx.journey.to = addressToHex(decoded['to'])
+      ctx.journey.type = 'transfer'
     }
   } catch (err) {
     console.error(`RelayerMapper: failed to decode payload for op ${op.id}`, err)

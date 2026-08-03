@@ -19,7 +19,7 @@ import {
   MoneyMarketPayload,
 } from '../types.js'
 import { DefiDatabase, DefiPool, NewDefiEventAsset, NewDefiOrder, NewDefiPoolAsset } from './types.js'
-import { calculateBorrowedUsd, calculateSuppliedUsd } from './util.js'
+import { calculateBorrowedUsd, calculateLiabilitiesUsd, calculateSuppliedUsd } from './util.js'
 
 function buildOrderKey(network: string, protocol: string, order_id: string) {
   return `${network}:${protocol}:${order_id}`
@@ -489,14 +489,15 @@ export class DefiRepository {
 
         let suppliedUSD = 0
         let borrowedUSD = 0
+        let liabilitiesUSD = 0
 
         for (const asset of parsedAssets) {
           suppliedUSD += calculateSuppliedUsd(pool.category, asset)
           borrowedUSD += calculateBorrowedUsd(pool.category, asset)
+          liabilitiesUSD += calculateLiabilitiesUsd(pool.category, asset)
         }
 
-        const marketUtilization =
-          suppliedUSD + borrowedUSD > 0 ? borrowedUSD / (suppliedUSD + borrowedUSD) : 0
+        const marketUtilization = suppliedUSD > 0 ? borrowedUSD / suppliedUSD : 0
 
         const lendingData: MoneyMarketPayload | undefined =
           pool.category === 'money-market'
@@ -510,7 +511,7 @@ export class DefiRepository {
                 borrowCap: pool.borrowCap ?? '0',
                 supplyCap: pool.supplyCap ?? '0',
                 health: {
-                  solvencyRatio: borrowedUSD > 0 ? suppliedUSD / borrowedUSD : 0,
+                  solvencyRatio: liabilitiesUSD > 0 ? suppliedUSD / liabilitiesUSD : 0,
                   tokenDeficitUSD: pool.tokenDeficitUsd ? Number(pool.tokenDeficitUsd) : 0,
                 },
               }

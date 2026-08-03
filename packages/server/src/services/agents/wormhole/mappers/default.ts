@@ -10,6 +10,7 @@ import {
   WormholeOperation,
   WormholeProtocol,
 } from '@/services/networking/apis/wormhole/types.js'
+import { MapJourneyContext } from './index.js'
 
 function prefer(a?: string | null, b?: string | null): string {
   const isZeroAddress = typeof a === 'string' && a === '0x0000000000000000000000000000000000000000'
@@ -18,7 +19,7 @@ function prefer(a?: string | null, b?: string | null): string {
     return b
   }
 
-  return a ?? b ?? ''
+  return a && a !== '' ? a : (b ?? '')
 }
 
 /**
@@ -28,7 +29,7 @@ export function defaultJourneyMapping(
   op: WormholeOperation,
   type: WormholeAction,
   protocol: WormholeProtocol,
-  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+  { generateTripId }: MapJourneyContext,
 ): NewJourney {
   const s = op.content?.standarizedProperties ?? {}
   const from = prefer(op.sourceChain?.from, s.fromAddress)
@@ -76,7 +77,10 @@ export function defaultJourneyMapping(
 /**
  * Default asset mapping with safe fallbacks
  */
-export function defaultAssetMapping(op: WormholeOperation, journey: NewJourney): NewAssetOperation[] {
+export function defaultAssetMapping(
+  op: WormholeOperation,
+  { journey }: { journey: NewJourney },
+): NewAssetOperation[] {
   try {
     const s = op.content?.standarizedProperties ?? {}
 

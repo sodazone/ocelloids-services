@@ -1,4 +1,5 @@
 import { mapOperationToJourney } from '@/services/agents/wormhole/mappers/index.js'
+import { _createStaticRegistry } from '@/services/agents/wormhole/metadata/tokens.js'
 import { toDecimalAmount } from '@/services/agents/wormhole/types/decimals.js'
 import { _test_whscanResponse } from '@/testing/apis/wormhole/data.js'
 
@@ -15,6 +16,7 @@ export type TestCase = {
   name: string
   file: string
   expected: {
+    tripId?: string
     status?: string
     type: string
     from: string
@@ -25,15 +27,21 @@ export type TestCase = {
 
 export function runWormholeMapperTests(cases: TestCase[], label = 'wormhole mapper') {
   describe(label, () => {
-    test.each(cases)('$name', ({ file, expected }) => {
-      const j = mapOperationToJourney(
+    test.each(cases)('$name', async ({ file, expected }) => {
+      const j = await mapOperationToJourney(
         _test_whscanResponse(file),
-        (identifiers?: { chainId: string; values: string[] }) =>
-          identifiers ? `${identifiers.chainId}${identifiers.values.join()}` : 'xxx',
+        {
+          generateTripId: (identifiers?: { chainId: string; values: string[] }) =>
+            identifiers ? `${identifiers.chainId}${identifiers.values.join()}` : 'xxx',
+        },
+        _createStaticRegistry(),
       )
 
       if (expected.status) {
         expect(j.status).toBe(expected.status)
+      }
+      if (expected.tripId) {
+        expect(j.trip_id).toBe(expected.tripId)
       }
       expect(j.type).toBe(expected.type)
       expect(j.from).toBe(expected.from)

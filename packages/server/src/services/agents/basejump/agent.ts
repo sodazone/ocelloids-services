@@ -5,7 +5,13 @@ import { toAssetId } from '../common/assets.js'
 import { HOUR } from '../common/time.js'
 import { fullJourneyToResponse, journeyToResponse } from '../crosschain/convert.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
-import { CrosschainRepository, FullJourney, JourneyUpdate, NewAssetOperation } from '../crosschain/index.js'
+import {
+  CrosschainRepository,
+  FullJourney,
+  generateTripId,
+  JourneyUpdate,
+  NewAssetOperation,
+} from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { AssetMetadata, Empty, isAssetMetadata, StewardQueryArgs } from '../steward/types.js'
 import { TickerAgent } from '../ticker/agent.js'
@@ -273,9 +279,7 @@ export class BasejumpAgent implements Agent {
 
     if (isBasejumpProcessed(message)) {
       const { chainId, txHashSecondary } = message.waypoint
-      const tripId = txHashSecondary
-        ? this.#repository.generateTripId({ chainId, values: [txHashSecondary] })
-        : undefined
+      const tripId = txHashSecondary ? generateTripId({ chainId, values: [txHashSecondary] }) : undefined
       if (tripId) {
         updateWith.trip_id = tripId
         this.#setTripId(existingJourney.correlation_id, tripId)

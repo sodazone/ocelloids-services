@@ -43,7 +43,7 @@ describe('evm decoder', () => {
     })
     expect(decoded).toBeDefined()
     expect(decoded?.eventName).toBe('PriceData')
-    expect((decoded?.args as any).token).toBe('0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D')
+    expect((decoded?.args as any)?.token).toBe('0xE57eBd2d67B462E9926e04a8e33f01cD0D64346D')
   })
   it('decode call data', () => {
     const abi = moonbeamAbis().prices

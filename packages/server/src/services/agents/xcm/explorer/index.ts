@@ -7,6 +7,7 @@ import {
   CrosschainRepository,
   FullJourney,
   FullJourneyResponse,
+  generateTripId,
   Journey,
   JourneyUpdate,
   NewAssetOperation,
@@ -151,7 +152,7 @@ export class XcmExplorer {
         message.origin.connectionId ??
         ('connectionId' in message.destination ? message.destination.connectionId : undefined)
       const tripId = connectionId
-        ? this.#repository.generateTripId({ chainId: connectionId.chainId, values: [connectionId.data] })
+        ? generateTripId({ chainId: connectionId.chainId, values: [connectionId.data] })
         : undefined
       const existingTrips = await this.#repository.getJourneyByTripId(tripId)
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
@@ -434,7 +435,7 @@ export class XcmExplorer {
         const dest = message.destination as XcmTerminusContext
         updateWith.recv_at = dest.timestamp
         if (dest.connectionId) {
-          updateWith.trip_id = this.#repository.generateTripId({
+          updateWith.trip_id = generateTripId({
             chainId: dest.connectionId.chainId,
             values: [dest.connectionId.data],
           })
@@ -450,7 +451,7 @@ export class XcmExplorer {
         updateWith.status = toStatus(message)
         updateWith.recv_at = dest.timestamp
         if (dest.connectionId) {
-          updateWith.trip_id = this.#repository.generateTripId({
+          updateWith.trip_id = generateTripId({
             chainId: dest.connectionId.chainId,
             values: [dest.connectionId.data],
           })
@@ -573,7 +574,7 @@ export class XcmExplorer {
     const xcmDestination = message.destination as XcmTerminusContext
 
     if (xcmDestination.connectionId) {
-      updateWith.trip_id = this.#repository.generateTripId({
+      updateWith.trip_id = generateTripId({
         chainId: xcmDestination.connectionId.chainId,
         values: [xcmDestination.connectionId.data],
       })

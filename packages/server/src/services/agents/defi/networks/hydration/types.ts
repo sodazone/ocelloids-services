@@ -112,7 +112,7 @@ export type Edge = {
   isLowLiquidity: boolean
 }
 
-type StartNode = {
+export type StartNode = {
   token: number
 }
 

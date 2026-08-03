@@ -10,4 +10,4 @@ const generateTripId = (identifiers?: { chainId: string; values: string[] }) =>
   identifiers ? `${identifiers.chainId}${identifiers.values.join()}` : 'xxx'
 
 console.log('\n\n-\n\n', JSON.stringify(op, null, 2))
-console.log('\n\n-\n\n', JSON.stringify(mapOperationToJourney(op, generateTripId), null, 2))
+console.log('\n\n-\n\n', JSON.stringify(mapOperationToJourney(op, { generateTripId }), null, 2))

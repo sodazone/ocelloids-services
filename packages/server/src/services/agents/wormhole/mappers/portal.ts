@@ -1,20 +1,18 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { PayloadPortalTokenBridge, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
-import { tokenRegistry } from '../metadata/tokens.js'
-import { addressToHex } from '../types/address.js'
-import { tokenAddressToAssetId } from '../types/chain.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
+import { MapAssetContext, MapJourneyContext } from './index.js'
 import { decodeTransferPayload, resolvePayloadEnhancer } from './payload.js'
 
 function mapPortalOpToJourney(
   op: WormholeOperation<PayloadPortalTokenBridge>,
-  generateTripId: (identifiers?: { chainId: string; values: string[] }) => string,
+  ctx: MapJourneyContext,
 ): NewJourney {
-  return defaultJourneyMapping(op, 'transfer', 'wh_portal', generateTripId)
+  return defaultJourneyMapping(op, 'transfer', 'wh_portal', ctx)
 }
 
-function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, journey: NewJourney) {
+async function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, ctx: MapAssetContext) {
   try {
     const {
       tokenAddress,
@@ -26,17 +24,17 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
       toChain,
     } = op.content.standarizedProperties
 
-    const tokenInfo = tokenRegistry.lookup(tokenChain, tokenAddress)
+    const tokenInfo = await ctx.tokenRegistry?.lookup(tokenChain, tokenAddress)
 
     let decimals = normalizedDecimals ?? 8
     let baseDecimals = normalizedDecimals
     let symbol = '???'
-    let isNative = false
+    let assetUrn = ''
 
     if (tokenInfo) {
       decimals = tokenInfo.decimals ?? decimals
       symbol = tokenInfo.symbol ?? wrappedTokenSymbol ?? symbol
-      isNative = !!tokenInfo.isNative
+      assetUrn = tokenInfo.tokenUrn
     } else {
       console.warn(
         `[PortalMapper] Token not found in registry: ${tokenChain} ${tokenAddress}. Using unknown token ??? fallback.`,
@@ -64,12 +62,6 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
 
     const realAmount = wormholeAmountToReal(amount, decimals, baseDecimals)
 
-    const tokenIdentifier = String(tokenAddress).startsWith('0x')
-      ? addressToHex(tokenAddress)
-      : String(tokenAddress)
-
-    const assetUrn = tokenAddressToAssetId(tokenChain, isNative ? 'native' : tokenIdentifier)
-
     const assetOp: NewAssetOperation = {
       journey_id: -1,
       asset: assetUrn,
@@ -92,7 +84,7 @@ function mapPortalOpToAssets(op: WormholeOperation<PayloadPortalTokenBridge>, jo
           assetOp.amount = wormholeAmountToReal(payload.token.amount.toString(), decimals, normalizedDecimals)
         }
         if (enhancer) {
-          enhancer(payload.payload, assetOp, journey)
+          enhancer(payload.payload, assetOp, ctx.journey)
         }
       }
     }

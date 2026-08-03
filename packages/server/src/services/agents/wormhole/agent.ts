@@ -1,6 +1,7 @@
 import PQueue from 'p-queue'
-
+import { catchError, EMPTY, from, mergeMap, of } from 'rxjs'
 import { immediate } from '@/common/event.loop.js'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { ago } from '@/common/time.js'
 import { asJSON, createTypedEventEmitter } from '@/common/util.js'
 import {
@@ -8,19 +9,32 @@ import {
   WormholeIds,
   WormholeSupportedNetworks,
 } from '@/services/agents/wormhole/types/chain.js'
+import { toUTCMillis } from '@/services/archive/time.js'
+import { IngressConsumers } from '@/services/ingress/index.js'
 import { isWormholeId } from '@/services/networking/apis/wormhole/ids.js'
 import {
   isWormholeProtocol,
   WormholeOperation,
   WormholeProtocols,
 } from '@/services/networking/apis/wormhole/types.js'
+import { retryCapped } from '@/services/networking/watcher.js'
+import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
+import { networks } from '../common/networks.js'
 import { fullJourneyToResponse, journeyToResponse } from '../crosschain/convert.js'
 import { CrosschainExplorer } from '../crosschain/explorer.js'
-import { CrosschainRepository, FullJourney, Journey, JourneyUpdate } from '../crosschain/index.js'
+import {
+  CrosschainRepository,
+  FullJourney,
+  generateTripId,
+  Journey,
+  JourneyUpdate,
+} from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
+import { createTokenRegistry, WormholeTokenRegistry } from './metadata/tokens.js'
+import { extractNttTransferRedeemed, TransferRedeemedPayload } from './ntt/ops.js'
 import { WormholePendingCache } from './pending.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
@@ -47,6 +61,8 @@ function isSupportedWormholeOp(op: WormholeOperation): boolean {
 
 export const WORMHOLE_AGENT_ID = 'wormhole'
 
+const WH_WATCHED_CHAINS = [WormholeIds.MOONBEAM_ID, WormholeIds.HYDRATION_ID]
+
 export class WormholeAgent implements Agent {
   id = WORMHOLE_AGENT_ID
   metadata: AgentMetadata = {
@@ -59,11 +75,15 @@ export class WormholeAgent implements Agent {
   readonly #log: Logger
   readonly #config: Record<string, any>
   readonly #crosschain: CrosschainExplorer
+  readonly #ingress: IngressConsumers
   readonly #repository: CrosschainRepository
   readonly #telemetry: TelemetryWormholeEventEmitter
   readonly #wormholeQueue: PQueue
   readonly #wormholePendingCache: WormholePendingCache
   readonly #worker: WormholeWorkerPool
+  readonly #tokenRegistry: WormholeTokenRegistry
+
+  readonly #subs: RxSubscriptionWithId[] = []
 
   constructor(
     ctx: AgentRuntimeContext,
@@ -76,8 +96,10 @@ export class WormholeAgent implements Agent {
     this.#config = ctx.config ?? {}
     this.#crosschain = deps.crosschain
     this.#repository = deps.crosschain?.repository
+    this.#ingress = ctx.ingress
 
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
+    this.#tokenRegistry = createTokenRegistry(deps.steward)
     this.#wormholeQueue = new PQueue({ concurrency: RECHECK_CONCURRENCY, interval: 1200, intervalCap: 1 })
     this.#wormholePendingCache = new WormholePendingCache(ctx.log)
     this.#worker = new WormholeWorkerPool(
@@ -97,6 +119,10 @@ export class WormholeAgent implements Agent {
 
   async stop() {
     await this.#worker.run('stop')
+
+    for (const { sub } of this.#subs) {
+      sub.unsubscribe()
+    }
   }
 
   start() {
@@ -107,7 +133,7 @@ export class WormholeAgent implements Agent {
 
     this.#log.info('[agent:%s] start', this.id)
 
-    this.#worker.run('startWatcher', { chains: [WormholeIds.MOONBEAM_ID], since: ago(1, 'day') })
+    this.#worker.run('startWatcher', { chains: WH_WATCHED_CHAINS, since: ago(1, 'day') })
 
     if (RECHECK_ENABLED) {
       this.#log.info(
@@ -118,6 +144,18 @@ export class WormholeAgent implements Agent {
       )
       setInterval(() => this.#recheckPendingJourneys(), PENDING_RECHECK_INTERVAL)
     }
+
+    this.#subscribeWatchers()
+  }
+
+  collectTelemetry() {
+    wormholeAgentMetrics(this.#telemetry)
+
+    return [
+      collectWormholeStats({
+        pending: () => 0, //this.#watcher.pendingCount(),
+      }),
+    ]
   }
 
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
@@ -264,7 +302,7 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    const journey = mapOperationToJourney(op, this.#repository.generateTripId.bind(this))
+    const journey = await mapOperationToJourney(op, { generateTripId }, this.#tokenRegistry)
 
     if (op.vaa === undefined) {
       this.#log.warn('[agent:%s] No VAA found in op %s (status=%s)', this.id, op.id, journey.status)
@@ -340,6 +378,98 @@ export class WormholeAgent implements Agent {
     }
   }
 
+  // TODO: extract to extensible config + generic watcher to support more events, protocols and networks
+  #subscribeWatchers() {
+    const networkId = networks.hydration_evm
+    const contractAddresses: HexString[] = [
+      // We are filtering by name since there are multiple Managers
+      // '0xcfd576f88c90844aebf45378fd09931281d8b14d'
+    ]
+
+    this.#subs.push({
+      id: `${networkId}.ntt.in`,
+      sub: this.#ingress.evm
+        .finalizedBlocks(networkId)
+        .pipe(
+          mergeMap((block) => {
+            return from(this.#ingress.evm.getLogs(networkId, block.number)).pipe(
+              retryWithTruncatedExpBackoff(retryCapped(3)),
+              mergeMap((logs) =>
+                of({
+                  ...block,
+                  logs,
+                }),
+              ),
+              catchError((error) => {
+                this.#log.error(
+                  error,
+                  '[%s] %s failed to fetch logs for block #%s. Continuing stream...',
+                  this.id,
+                  networkId,
+                  block.number,
+                )
+
+                return EMPTY
+              }),
+            )
+          }),
+          extractNttTransferRedeemed(networkId, contractAddresses),
+        )
+        .subscribe({
+          error: (error: any) => {
+            this.#log.error(error, '[%s] %s error on origin stream', this.id, networkId)
+          },
+          next: this.#matchRedeemed.bind(this),
+          complete: () => this.#log.info('[%s] %s complete on origin stream', this.id, networkId),
+        }),
+    })
+  }
+
+  async #matchRedeemed(msg: TransferRedeemedPayload) {
+    try {
+      const existingTrips = await this.#repository.getJourneyByTripId(msg.digest)
+      // Assumes we always receive redeem event after the origin msg is emitted
+      // Otherwise we need to store digest with destination context somewhere for out-of-order matching
+      if (existingTrips.length === 0) {
+        return
+      }
+      const trip = existingTrips[0] // for ntt there should be only 1 trip per digest
+      const stops = JSON.parse(trip.stops)
+      const updatedStops = [
+        {
+          ...stops[0],
+          to: {
+            chainId: msg.chainId,
+            timestamp: toUTCMillis(msg.timestamp),
+            status: 'completed',
+            tx: {
+              txHash: msg.txHash,
+            },
+          },
+        },
+      ]
+
+      const update: JourneyUpdate = {
+        status: 'received',
+        recv_at: msg.timestamp,
+        stops: asJSON(updatedStops),
+      }
+
+      await this.#repository.updateJourney(trip.id, update)
+
+      this.#broadcast('update_journey', trip.id)
+    } catch (e) {
+      this.#log.error(
+        e,
+        '[%s] Error matching redeem transfer %s (%s #%s)',
+        this.id,
+        msg.digest,
+        msg.blockHash,
+        msg.blockNumber,
+      )
+    }
+  }
+
   async #updateTrip(journey: NewJourneyWithAssets, existingTrips: Journey[], journeyId: number) {
     const existingTrip =
       existingTrips.length === 1
@@ -396,15 +526,5 @@ export class WormholeAgent implements Agent {
     } catch (e) {
       this.#log.error(e, '[wh:connecting-trip] error %s', journeyId)
     }
-  }
-
-  collectTelemetry() {
-    wormholeAgentMetrics(this.#telemetry)
-
-    return [
-      collectWormholeStats({
-        pending: () => 0, //this.#watcher.pendingCount(),
-      }),
-    ]
   }
 }

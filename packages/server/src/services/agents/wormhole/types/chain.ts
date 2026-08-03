@@ -16,6 +16,13 @@ export const WormholeIds = {
   CELO_ID: 14,
   AVAX_ID: 6, // C-chain
   APTOS_ID: 22,
+  TEMPO_ID: 68,
+  NEXUS_ID: 69,
+  ARC_ID: 71,
+  ROBINHOOD: 72,
+  HYDRATION_ID: 73,
+  WORMCHAIN_ID: 3104,
+  COSMOSHUB_ID: 4000,
 }
 
 export const WormholeSupportedNetworks = Object.values(WormholeIds)
@@ -23,6 +30,7 @@ export const WormholeSupportedNetworks = Object.values(WormholeIds)
 const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
+  'urn:ocn:polkadot:2034': WormholeIds.HYDRATION_ID,
   'urn:ocn:ethereum:56': WormholeIds.BSC_ID,
   'urn:ocn:ethereum:137': WormholeIds.POLYGON_ID,
   'urn:ocn:ethereum:1': WormholeIds.ETHEREUM_ID,

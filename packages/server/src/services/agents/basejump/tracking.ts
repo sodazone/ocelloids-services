@@ -6,19 +6,16 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { retryCapped } from '@/services/networking/watcher.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
-import { networks } from '../common/networks.js'
 import { AgentRuntimeContext } from '../types.js'
 import { CONFIG } from './config.js'
 import { BasejumpMatchingEngine } from './matching.js'
 import { extractBasejumpLanding } from './ops/destination.js'
 import { extractBasejumpEvmOutbound } from './ops/origin.js'
-import { extractBasejumpProxy } from './ops/relay.js'
 import {
   BasejumpInitiated,
   BasejumpInitiatedWithContext,
   BasejumpLandedWithContext,
   BasejumpMessagePayload,
-  BasejumpRelayedWithContext,
 } from './types.js'
 
 export class BasejumpTracker {
@@ -56,7 +53,6 @@ export class BasejumpTracker {
     await this.#ingress.substrate.isReady()
 
     this.#monitorOrigins()
-    this.#monitorRelays()
     this.#monitorDestinations()
     this.#log.info('[agent:%s] started', this.#id)
   }
@@ -126,33 +122,33 @@ export class BasejumpTracker {
     this.#streams.o = subs
   }
 
-  #monitorRelays() {
-    if (this.#streams.r.length > 0) {
-      throw new Error('Relay streams already open')
-    }
-    const relayId = networks.moonbeam
-    const proxyAddress = CONFIG.relay[relayId]
+  // #monitorRelays() {
+  //   if (this.#streams.r.length > 0) {
+  //     throw new Error('Relay streams already open')
+  //   }
+  //   const relayId = networks.moonbeam
+  //   const proxyAddress = CONFIG.relay[relayId]
 
-    const subs: RxSubscriptionWithId[] = [
-      {
-        id: `${relayId}.relay`,
-        sub: this.#shared
-          .blockExtrinsics(relayId)
-          .pipe(extractBasejumpProxy(relayId, proxyAddress))
-          .subscribe({
-            error: (error: any) => {
-              this.#log.error(error, '[%s] %s error on relay stream', this.#id, relayId)
-            },
-            next: (msg: BasejumpRelayedWithContext) => {
-              this.#engine.onRelayMessage(msg)
-            },
-            complete: () => this.#log.info('[%s] %s complete on relay stream', this.#id, relayId),
-          }),
-      },
-    ]
+  //   const subs: RxSubscriptionWithId[] = [
+  //     {
+  //       id: `${relayId}.relay`,
+  //       sub: this.#shared
+  //         .blockExtrinsics(relayId)
+  //         .pipe(extractBasejumpProxy(relayId, proxyAddress))
+  //         .subscribe({
+  //           error: (error: any) => {
+  //             this.#log.error(error, '[%s] %s error on relay stream', this.#id, relayId)
+  //           },
+  //           next: (msg: BasejumpRelayedWithContext) => {
+  //             this.#engine.onRelayMessage(msg)
+  //           },
+  //           complete: () => this.#log.info('[%s] %s complete on relay stream', this.#id, relayId),
+  //         }),
+  //     },
+  //   ]
 
-    this.#streams.r = subs
-  }
+  //   this.#streams.r = subs
+  // }
 
   #monitorDestinations() {
     if (this.#streams.d.length > 0) {

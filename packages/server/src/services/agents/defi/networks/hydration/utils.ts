@@ -1,4 +1,4 @@
-const USD_PRECISION = 6
+const USD_PRECISION = 18
 
 /**
  * Calculates USD value from BigInt reserves.

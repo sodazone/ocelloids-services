@@ -1,10 +1,19 @@
-type TokenInfo = {
+import { HexString, QueryParams, QueryResult } from '@/lib.js'
+import { hexToAssetId, isAssetAddress } from '../../common/hydration.js'
+import { DataSteward } from '../../steward/agent.js'
+import { AssetMetadata, StewardQueryArgs } from '../../steward/lib.js'
+import { chainIdToUrn } from '../../steward/metadata/queries/wormhole.js'
+import { Empty, isAssetMetadata } from '../../steward/types.js'
+import { addressToHex } from '../types/address.js'
+import { tokenAddressToAssetId, WormholeIds } from '../types/chain.js'
+
+type TokenInfo = Partial<{
   symbol: string
   decimals: number
-  isNative?: boolean
-}
+  isNative: boolean
+}>
 
-const TOKEN_REGISTRY: Record<string, TokenInfo> = {
+const TOKEN_OVERRIDES: Record<string, TokenInfo> = {
   ['1:so11111111111111111111111111111111111111112']: {
     symbol: 'WSOL',
     decimals: 9,
@@ -147,8 +156,86 @@ const TOKEN_REGISTRY: Record<string, TokenInfo> = {
   },
 }
 
-export const tokenRegistry = {
-  lookup: (chain: string | number, address: string): TokenInfo | undefined => {
-    return TOKEN_REGISTRY[`${chain}:${address.toLowerCase()}`]
-  },
+function resolveTokenId(chain: number, address: string) {
+  const tokenId = String(address).startsWith('0x')
+    ? chain === WormholeIds.HYDRATION_ID && isAssetAddress(address as HexString)
+      ? String(hexToAssetId(address as HexString))
+      : addressToHex(address)
+    : String(address)
+  return tokenId
+}
+
+export type WormholeTokenMetadata = TokenInfo & {
+  tokenId: string
+  tokenUrn: string
+}
+
+export type WormholeTokenRegistry = {
+  lookup(chain: string | number, address: string): Promise<WormholeTokenMetadata>
+}
+
+export function _createStaticRegistry(): WormholeTokenRegistry {
+  const lookup = async (chainId: number, address: string): Promise<WormholeTokenMetadata> => {
+    const tokenId = resolveTokenId(chainId, address)
+    const tokenInfo = TOKEN_OVERRIDES[`${chainId}:${address.toLowerCase()}`]
+
+    return tokenInfo
+      ? {
+          ...tokenInfo,
+          tokenId,
+          tokenUrn: tokenAddressToAssetId(chainId, tokenInfo.isNative ? 'native' : tokenId),
+        }
+      : {
+          tokenId,
+          tokenUrn: tokenAddressToAssetId(chainId, tokenId),
+        }
+  }
+  return {
+    lookup,
+  }
+}
+
+export function createTokenRegistry(steward: DataSteward): WormholeTokenRegistry {
+  const lookup = async (chainId: number, address: string): Promise<WormholeTokenMetadata> => {
+    const tokenId = resolveTokenId(chainId, address)
+    let tokenInfo = TOKEN_OVERRIDES[`${chainId}:${address.toLowerCase()}`]
+    if (tokenInfo === undefined && chainId === WormholeIds.HYDRATION_ID) {
+      const { items } = (await steward.query({
+        args: {
+          op: 'assets',
+          criteria: [
+            {
+              network: chainIdToUrn(chainId),
+              assets: [tokenId],
+            },
+          ],
+        },
+      } as QueryParams<StewardQueryArgs>)) as QueryResult<AssetMetadata | Empty>
+
+      const assetMetadatas = items.map((i) => (isAssetMetadata(i) ? i : null)).filter((i) => i !== null)
+      if (assetMetadatas && assetMetadatas.length === 1) {
+        const assetMetadata = assetMetadatas[0]
+        tokenInfo = {
+          decimals: assetMetadata.decimals,
+          symbol: assetMetadata.symbol,
+          isNative: assetMetadata.id === 'native',
+        }
+      }
+    }
+
+    return tokenInfo
+      ? {
+          ...tokenInfo,
+          tokenId,
+          tokenUrn: tokenAddressToAssetId(chainId, tokenInfo.isNative ? 'native' : tokenId),
+        }
+      : {
+          tokenId,
+          tokenUrn: tokenAddressToAssetId(chainId, tokenId),
+        }
+  }
+
+  return {
+    lookup,
+  }
 }
