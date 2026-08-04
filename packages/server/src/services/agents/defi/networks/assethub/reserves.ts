@@ -5,7 +5,8 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
-import { CHAIN_ID, chunk, MAX_BATCH_SIZE } from './common.js'
+import { chunk } from '../../common.js'
+import { CHAIN_ID, MAX_BATCH_SIZE } from './common.js'
 import { AssetConversionPool, AssetConversionPoolReserves } from './types.js'
 
 function makeBalanceKey(pallet: 'System' | 'Assets' | 'ForeignAssets', assetId: string, account: string) {
