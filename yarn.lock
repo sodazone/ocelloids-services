@@ -3825,15 +3825,15 @@ __metadata:
   linkType: hard
 
 "fast-jwt@npm:^6.0.2":
-  version: 6.2.2
-  resolution: "fast-jwt@npm:6.2.2"
+  version: 6.3.2
+  resolution: "fast-jwt@npm:6.3.2"
   dependencies:
     "@lukeed/ms": "npm:^2.0.2"
     asn1.js: "npm:^5.4.1"
     ecdsa-sig-formatter: "npm:^1.0.11"
     mnemonist: "npm:^0.40.0"
     safe-regex2: "npm:^5.1.0"
-  checksum: 10c0/ae746d7a6cc11edced6a5c423979d5a5a0084d85b7226d1b2503e00f0af3f84a1d6801f6710a8877577ecd203bd3e5ff74457ad530b61a1efd28b678191e753d
+  checksum: 10c0/88df228f81384d06f30f01533bd83318161433ebe25548bfa74753f1ba9369064cf2e20693b603e4462dfead58737f01ab1ed52800df79ae368c59addb8b318b
   languageName: node
   linkType: hard
 
