@@ -20,7 +20,8 @@ import { DefiEventPayload, DefiLiquidityPayload, DefiSubscriptionPayload } from 
 import { CHAIN_ID } from '../common.js'
 import { AcalaDexReservesValue, AcalaDexSwapEvent, AcalaPool, TokenId } from './types.js'
 
-const ACALA_DEX_PROTOCOL = 'dex'
+const ACALA_DEX_MODULE = 'dex'
+const ACALA_DEX_PROTOCOL = `acala.dex`
 const DEX_ACC_ID = '0x6d6f646c6163612f6465786d0000000000000000000000000000000000000000'
 const MAX_BATCH_SIZE = 50
 const EXTERNAL_PRICE_SYMBOLS = new Set(['ACA', 'DOT'])
@@ -252,7 +253,7 @@ export function createAcalaDexProcessor({
           type: 'liquidity',
           category: 'exchange',
           networkId: CHAIN_ID,
-          protocol: 'acala-dex',
+          protocol: ACALA_DEX_PROTOCOL,
           marketId,
           suppliedUSD,
           assets: [
@@ -388,7 +389,7 @@ export function createAcalaDexProcessor({
   function watchEvents() {
     return (source$: Observable<BlockEvent>): Observable<DefiEventPayload> =>
       source$.pipe(
-        filter((e) => e.module.toLowerCase() === ACALA_DEX_PROTOCOL),
+        filter((e) => e.module.toLowerCase() === ACALA_DEX_MODULE),
         mergeMap((event) => createDefiEventPayload(event)),
       )
   }

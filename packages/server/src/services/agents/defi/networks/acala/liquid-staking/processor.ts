@@ -40,7 +40,8 @@ import {
   HomaStakingLedgerValue,
 } from './types.js'
 
-const HOMA_PROTOCOL = 'homa'
+const HOMA_MODULE = 'homa'
+const HOMA_PROTOCOL = 'acala.homa'
 const HOMA_ADDRESS = '0x6d6f646c6163612f686f6d610000000000000000000000000000000000000000'
 
 const LDOT_ASSET_ID = {
@@ -164,7 +165,7 @@ export function createHomaProcessor({
   function watchEvents() {
     return (source$: Observable<BlockEvent>): Observable<DefiEventPayload> =>
       source$.pipe(
-        filter((e) => e.module.toLowerCase() === HOMA_PROTOCOL),
+        filter((e) => e.module.toLowerCase() === HOMA_MODULE),
         map((event) => createDefiEventPayload(event)),
         filter((payload): payload is DefiEventPayload => payload !== null),
       )
