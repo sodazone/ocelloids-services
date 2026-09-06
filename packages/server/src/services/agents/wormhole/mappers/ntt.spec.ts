@@ -74,6 +74,24 @@ const cases: TestCase[] = [
       ],
     },
   },
+  {
+    name: 'decode NTT Hydration -> Solana PRIME transfer',
+    file: 'ntt-hydration-solana_prime.json',
+    expected: {
+      status: 'received',
+      type: 'transfer',
+      from: '0x8cfa14a326954a6684fc2ecf9d1e82cee6576f7f',
+      to: '0xc35e791e72a7fd7e9c75aa1a16df45aaab181b170dcd64c6ea269f2ea32bc7d2',
+      assets: [
+        {
+          asset: 'urn:ocn:polkadot:2034|43',
+          symbol: '???',
+          amount: '17000000',
+          decimals: 6,
+        },
+      ],
+    },
+  },
 ]
 
 runWormholeMapperTests(cases, 'wormhole NTT mapper')

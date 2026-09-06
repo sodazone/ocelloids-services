@@ -6,6 +6,8 @@ import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 import { MapAssetContext, MapJourneyContext } from './index.js'
 
+const SYNTH = '0x73796e74680000000000000000000073796e7468'
+
 type NativeTokenTransferOperation = Omit<WormholeOperation, 'content'> & {
   content: Omit<WormholeOperation['content'], 'payload'> & {
     payload: PayloadNativeTokenTransfer
@@ -26,6 +28,12 @@ function mapNTTOpToJourney(
       j.trip_id = nttManagerDigestFromOp(op.emitterChain, op.vaa.raw)
     } catch (error) {
       console.error('[NTTMapper] while generating manager digest', error)
+    }
+  } else if (op.content.standarizedProperties.fromChain === WormholeIds.HYDRATION_ID && j.from === SYNTH) {
+    // See https://github.com/galacticcouncil/sdk/blob/master/packages/xc/docs/ntt-reorg-recovery.md
+    const { fromAddress } = op.content.standarizedProperties
+    if (fromAddress && fromAddress !== '') {
+      j.from = fromAddress.toLowerCase()
     }
   }
   return j
