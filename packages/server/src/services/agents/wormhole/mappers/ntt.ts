@@ -1,11 +1,11 @@
 import { PayloadNativeTokenTransfer, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { NewAssetOperation, NewJourney } from '../../crosschain/index.js'
 import { nttManagerDigestFromOp } from '../ntt/digest.js'
+import { addressToHex } from '../types/address.js'
 import { WormholeIds } from '../types/chain.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 import { MapAssetContext, MapJourneyContext } from './index.js'
-import { addressToHex } from '../types/address.js'
 
 const SYNTH = '0x73796e74680000000000000000000073796e7468'
 
