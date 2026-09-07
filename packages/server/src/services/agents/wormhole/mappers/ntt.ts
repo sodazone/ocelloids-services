@@ -5,6 +5,7 @@ import { WormholeIds } from '../types/chain.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
 import { defaultJourneyMapping } from './default.js'
 import { MapAssetContext, MapJourneyContext } from './index.js'
+import { addressToHex } from '../types/address.js'
 
 const SYNTH = '0x73796e74680000000000000000000073796e7468'
 
@@ -33,7 +34,8 @@ function mapNTTOpToJourney(
     // See https://github.com/galacticcouncil/sdk/blob/master/packages/xc/docs/ntt-reorg-recovery.md
     const { fromAddress } = op.content.standarizedProperties
     if (fromAddress && fromAddress !== '') {
-      j.from = fromAddress.toLowerCase()
+      j.from = addressToHex(fromAddress)
+      j.from_formatted = fromAddress.toLowerCase()
     }
   }
   return j
