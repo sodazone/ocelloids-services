@@ -124,10 +124,16 @@ export async function withOpenGov(chainId: NetworkURN, api: SubstrateIngressCons
     if (!info) {
       return null
     }
-    const decodedCall =
-      info.type === 'Ongoing' && info.value.proposal
-        ? await decodeProposal(info.value.proposal, at)
-        : undefined
+
+    let decodedCall = undefined
+
+    if (info.type === 'Ongoing' && info.value.proposal) {
+      try {
+        decodedCall = await decodeProposal(info.value.proposal, at)
+      } catch (e) {
+        console.error(e, `[decodeProposal] Error decoding call for ref ${id}.`)
+      }
+    }
 
     return { id, info, decodedCall }
   }
