@@ -158,6 +158,19 @@ export class WormholeAgent implements Agent {
     ]
   }
 
+  async backfill(operationId: string) {
+    this.#log.info('[agent:%s] backfill request %s', this.id, operationId)
+
+    const op = await this.#safeFetchOp(operationId)
+
+    if (op === null) {
+      this.#log.info('[agent:%s] backfill op not found %s', this.id, operationId)
+      return
+    }
+
+    await this.#onOperation(op)
+  }
+
   #broadcast = async (event: 'new_journey' | 'update_journey', id: number) => {
     const fullJourney = await this.#repository.getJourneyById(id)
     if (!fullJourney) {

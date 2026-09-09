@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import fp from 'fastify-plugin'
-
+import { WormholeAgent } from '../agents/wormhole/agent.js'
 import { CAP_ADMIN } from '../auth/index.js'
 import { Scheduled } from '../persistence/level/index.js'
 import { jsonEncoded, NetworkURN, prefixes } from '../types.js'
@@ -16,7 +16,7 @@ const itOps = {
 }
 
 async function AdminRoutes(api: FastifyInstance) {
-  const { levelDB: rootStore, scheduler } = api
+  const { levelDB: rootStore, scheduler, agentCatalog } = api
 
   const opts = {
     config: {
@@ -26,6 +26,17 @@ async function AdminRoutes(api: FastifyInstance) {
       hide: true,
     },
   }
+
+  api.post<{ Body: { ops: string[] } }>('/admin/wormhole/backfill', opts, (request, reply) => {
+    const wh = agentCatalog.getAgentById('wormhole') as WormholeAgent
+    const { ops } = request.body
+    if (ops && ops.length > 0) {
+      for (const op of ops) {
+        wh.backfill(op)
+      }
+    }
+    reply.send()
+  })
 
   api.delete<{
     Params: {
