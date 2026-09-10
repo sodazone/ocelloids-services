@@ -76,7 +76,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     }
 
     const nextCursor = rememberSeen(
-      { ...cursor, lastSeen: new Date(new Date(maxTs).getTime() + 1).toISOString() },
+      { ...cursor, lastSeen: new Date(new Date(maxTs).getTime()).toISOString() },
       freshOps.map((o) => o.id),
     )
 
