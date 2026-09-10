@@ -1538,12 +1538,12 @@ __metadata:
 
 "@polkadot-api/tx-utils@patch:@polkadot-api/tx-utils@npm%3A0.1.8#~/.yarn/patches/@polkadot-api-tx-utils-npm-0.1.8-6da7ae7729.patch":
   version: 0.1.8
-  resolution: "@polkadot-api/tx-utils@patch:@polkadot-api/tx-utils@npm%3A0.1.8#~/.yarn/patches/@polkadot-api-tx-utils-npm-0.1.8-6da7ae7729.patch::version=0.1.8&hash=9fa7a9"
+  resolution: "@polkadot-api/tx-utils@patch:@polkadot-api/tx-utils@npm%3A0.1.8#~/.yarn/patches/@polkadot-api-tx-utils-npm-0.1.8-6da7ae7729.patch::version=0.1.8&hash=8f35d1"
   dependencies:
     "@polkadot-api/metadata-builders": "npm:0.13.7"
     "@polkadot-api/substrate-bindings": "npm:0.16.5"
     "@polkadot-api/utils": "npm:0.2.0"
-  checksum: 10c0/d697963c84589f19da44275c61bbe21064c95137a2556d8bd0e09abd51352f416e5b3ee4281de9aeaa489c8c2e44cd7ef1baeb0cf9affb7e948acf627f2761dd
+  checksum: 10c0/378c4a50a9b2f490f2f93b2739255e7681c5c2a491a93d24f8bbb935933f2d24b9ad3ac430151a45629eb9af17988f6b297b9efda47c1bfdb698c7c78b786ae9
   languageName: node
   linkType: hard
 

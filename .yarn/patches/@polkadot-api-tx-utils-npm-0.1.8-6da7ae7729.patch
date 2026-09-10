@@ -1,16 +1,56 @@
 diff --git a/dist/esm/decode-extrinsic.mjs b/dist/esm/decode-extrinsic.mjs
-index 3b1bbbffbeac98cfe63f543bddd6f78adb873a13..36b1f4f9517cdff9ec1eadda711176c0e9a788f9 100644
+index 3b1bbbffbeac98cfe63f543bddd6f78adb873a13..f895bb135a4664cb86bbf04b3aa3754da8fa2944 100644
 --- a/dist/esm/decode-extrinsic.mjs
 +++ b/dist/esm/decode-extrinsic.mjs
-@@ -7,8 +7,10 @@ const getExtrinsicDecoder = (metadataRaw) => {
+@@ -7,7 +7,14 @@ const getExtrinsicDecoder = (metadataRaw) => {
    const metadata = getMetadata(metadataRaw);
    const lookup = getLookupFn(metadata);
    const dynamicBuilder = getDynamicBuilder(lookup);
 +  // Temprary patch, this can drop tail extensions above index 12
 +  // and it is fixed in new papi versions. When upgrading will be solved.
    const innerExtra = Object.fromEntries(
--    metadata.extrinsic.signedExtensions.map(
 +    metadata.extrinsic.signedExtensions.slice(0, 13).map(
++      (x) => [x.identifier, dynamicBuilder.buildDefinition(x.type)[1]]
++    )
++  );
++  const innerExtraAll = Object.fromEntries(
+     metadata.extrinsic.signedExtensions.map(
        (x) => [x.identifier, dynamicBuilder.buildDefinition(x.type)[1]]
      )
-   );
+@@ -48,17 +55,29 @@ const getExtrinsicDecoder = (metadataRaw) => {
+       let extraDec;
+       if (metadata.version === 16) {
+         const extensionsToApply = metadata.extrinsic.signedExtensionsByVersion.find(
+-          ([x]) => x === extensionVersion
++          ([x]) => x === extensionVersion,
+         );
+-        if (!extensionsToApply) throw new Error("Unexpected extension version");
++
++        if (!extensionsToApply) {
++          throw new Error("Unexpected extension version");
++        }
++
++        const extensionIndexes = extensionsToApply[1];
++
+         extraDec = Struct.dec(
+           Object.fromEntries(
+-            Object.entries(innerExtra).filter(
+-              (_, idx) => extensionsToApply[1].includes(idx)
+-            )
+-          )
++            extensionIndexes.map((idx) => {
++              const entry = Object.entries(innerExtraAll)[idx];
++
++              if (!entry) {
++                throw new Error(`Invalid signed extension index: ${idx}`);
++              }
++
++              return entry;
++            }),
++          ),
+         );
+-      } else extraDec = Struct.dec(innerExtra);
++      } else extraDec = Struct.dec(innerExtraAll);
+       const extra = extraDec(data);
+       return {
+         len,
