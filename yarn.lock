@@ -2202,7 +2202,7 @@ __metadata:
     "@types/ws": "npm:^8.18.1"
     "@vitest/coverage-v8": "npm:4.1.5"
     "@vitest/ui": "npm:4.1.5"
-    "@wormhole-foundation/sdk-definitions": "npm:^4.24.0"
+    "@wormhole-foundation/sdk-definitions": "npm:^6.1.5"
     async-mutex: "npm:^0.5.0"
     better-sqlite3: "npm:^12.9.0"
     bs58: "npm:^6.0.0"
@@ -2533,24 +2533,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wormhole-foundation/sdk-base@npm:4.24.0":
-  version: 4.24.0
-  resolution: "@wormhole-foundation/sdk-base@npm:4.24.0"
+"@wormhole-foundation/sdk-base@npm:6.1.5":
+  version: 6.1.5
+  resolution: "@wormhole-foundation/sdk-base@npm:6.1.5"
   dependencies:
     "@scure/base": "npm:^1.1.3"
     binary-layout: "npm:^1.0.3"
-  checksum: 10c0/88b5d985c7117a1202b75e9c993404741830a838bde59ced76289c736c9a0e9c4e65184f96ac30b5d382bda668f32a85fac6c6d14fffb05a5111eda8c6cd05f2
+  checksum: 10c0/5eadd93a5c28e93e45724014ff0780b7b574efbc0b6b1b82ca51d784013f30174d41135b098db259f725e3509e2ebfccbdbc59774642d0b03590e4e1517d4471
   languageName: node
   linkType: hard
 
-"@wormhole-foundation/sdk-definitions@npm:^4.24.0":
-  version: 4.24.0
-  resolution: "@wormhole-foundation/sdk-definitions@npm:4.24.0"
+"@wormhole-foundation/sdk-definitions@npm:^6.1.5":
+  version: 6.1.5
+  resolution: "@wormhole-foundation/sdk-definitions@npm:6.1.5"
   dependencies:
     "@noble/curves": "npm:^1.4.0"
     "@noble/hashes": "npm:^1.3.1"
-    "@wormhole-foundation/sdk-base": "npm:4.24.0"
-  checksum: 10c0/91e674f4a7623c9acadbe937aecdca14cc0554828d6ca96daee96f42d4d75c274258143d8467e5cb3a6b0f8d13269c267b2603026e6eaa24f399fc40fd39b446
+    "@wormhole-foundation/sdk-base": "npm:6.1.5"
+  checksum: 10c0/ad348650a2a0a262205b80e63e6b018c5664d27fdc21b06fa01ab1da1a7814ba620cd7f69f2b19f0cc0f20adf378cfb5ae25df8bc12a52ebe7ef534f8f262694
   languageName: node
   linkType: hard
 
