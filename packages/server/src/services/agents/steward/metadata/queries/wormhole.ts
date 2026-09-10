@@ -23,6 +23,7 @@ export const WormholeIds = {
   HYDRATION_ID: 73,
   WORMCHAIN_ID: 3104,
   COSMOSHUB_ID: 4000,
+  NEAR_ID: 15
 }
 
 export const WormholeSupportedNetworks = Object.values(WormholeIds)
@@ -42,6 +43,7 @@ export const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:ethereum:4663': WormholeIds.ROBINHOOD_ID,
   'urn:ocn:sui:0x35834a8a': WormholeIds.SUI_ID,
   'urn:ocn:aptos:1': WormholeIds.APTOS_ID,
+  'urn:ocn:near:397': WormholeIds.NEAR_ID
 } as const
 
 const WormholeChainUrns: Record<number, keyof typeof WormholeChainIds> = Object.fromEntries(
