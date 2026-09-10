@@ -26,6 +26,10 @@ function withRetry<T>(
     try {
       return await fn()
     } catch (err) {
+      if (err instanceof DOMException) {
+        console.warn(`Aborting request after ${attempt} attempts`)
+        throw err
+      }
       if (attempt >= retries) {
         throw err
       }

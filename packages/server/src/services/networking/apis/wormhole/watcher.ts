@@ -10,6 +10,7 @@ import { WormholeOperation } from './types.js'
 const FINAL_STATUS: JourneyStatus[] = ['received', 'timeout', 'failed', 'unknown']
 const MAX_SEEN = 1_000
 const CONCURRENCY = 5
+const PENDING_THROTTLE_MS = 500
 
 const limit = pLimit(CONCURRENCY)
 
@@ -59,9 +60,9 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           freshOps.push(op)
         }
 
-        const ts = op.sourceChain.timestamp
+        const ts = op.sourceChain?.timestamp
 
-        if (ts > maxTs) {
+        if (ts && ts > maxTs) {
           maxTs = ts
         }
       }
@@ -154,7 +155,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
 
   function operations$(
     initialState: WatcherState,
-    intervalMs = 10_000, // 10s
+    intervalMs = 20_000, // 20s
     timeoutMs = 2 * 60 * 60 * 1_000, // 2h
   ): Observable<{ op: WormholeOperation; status: JourneyStatus }> {
     return new Observable((subscriber) => {
@@ -197,6 +198,9 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
                   console.error('Failed to fetch pending op', id, err)
                 }
               })
+
+              // Throttle
+              await new Promise((r) => setTimeout(r, PENDING_THROTTLE_MS))
             }
 
             // 3. handle timeout
