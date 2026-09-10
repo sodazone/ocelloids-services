@@ -1,0 +1,16 @@
+diff --git a/dist/esm/decode-extrinsic.mjs b/dist/esm/decode-extrinsic.mjs
+index 3b1bbbffbeac98cfe63f543bddd6f78adb873a13..36b1f4f9517cdff9ec1eadda711176c0e9a788f9 100644
+--- a/dist/esm/decode-extrinsic.mjs
++++ b/dist/esm/decode-extrinsic.mjs
+@@ -7,8 +7,10 @@ const getExtrinsicDecoder = (metadataRaw) => {
+   const metadata = getMetadata(metadataRaw);
+   const lookup = getLookupFn(metadata);
+   const dynamicBuilder = getDynamicBuilder(lookup);
++  // Temprary patch, this can drop tail extensions above index 12
++  // and it is fixed in new papi versions. When upgrading will be solved.
+   const innerExtra = Object.fromEntries(
+-    metadata.extrinsic.signedExtensions.map(
++    metadata.extrinsic.signedExtensions.slice(0, 13).map(
+       (x) => [x.identifier, dynamicBuilder.buildDefinition(x.type)[1]]
+     )
+   );
