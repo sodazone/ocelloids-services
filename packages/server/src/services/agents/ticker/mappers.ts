@@ -196,6 +196,10 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
       chainId: 'urn:ocn:polkadot:2034',
       assetId: 0,
     },
+    {
+      chainId: 'urn:ocn:ethereum:4663',
+      assetId: '0xb423c0b59c615793b0903668dc414e4fa3a64a33',
+    },
   ],
   MYTH: [
     {
@@ -418,6 +422,14 @@ export const tickerToAssetIdMap: Record<string, AssetIdentifier | AssetIdentifie
     {
       chainId: 'urn:ocn:polkadot:2034',
       assetId: '222',
+    },
+    {
+      chainId: 'urn:ocn:polkadot:2034',
+      assetId: '0x531a654d1696ed52e7275a8cede955e82620f99a',
+    },
+    {
+      chainId: 'urn:ocn:ethereum:4663',
+      assetId: '0xd1dc3517732c98502b5c1ba2389aca9e9016d89a',
     },
   ],
   GDOT: [
