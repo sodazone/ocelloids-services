@@ -28,6 +28,7 @@ import {
   FullJourney,
   generateTripId,
   Journey,
+  JourneyStatus,
   JourneyUpdate,
 } from '../crosschain/index.js'
 import { DataSteward } from '../steward/agent.js'
@@ -46,6 +47,7 @@ const PENDING_RECHECK_WINDOW_MIN = 2 * 60 * 60_000 // 2h
 const PENDING_RECHECK_WINDOW_MAX = 604_800_000 // 7 days
 const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1)
 const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
+const FINAL_STATUS: JourneyStatus[] = ['received', 'failed']
 
 function isChainSupported(chainId?: number): boolean {
   return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
@@ -341,54 +343,57 @@ export class WormholeAgent implements Agent {
       return
     }
 
-    if (existingJourney.status !== 'received') {
-      const update: JourneyUpdate = {}
-      if (existingJourney.status !== journey.status) {
-        if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
-          update.status = journey.status
-        }
-
-        if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
-          update.recv_at = journey.recv_at
-        }
-
-        if (journey.to !== existingJourney.to) {
-          update.to = journey.to
-          update.to_formatted = journey.to_formatted
-        }
-        if (journey.from !== existingJourney.from) {
-          update.from = journey.from
-          update.from_formatted = journey.from_formatted
-        }
-        if (journey.destination !== existingJourney.destination) {
-          update.destination = journey.destination
-        }
-      }
-
-      if (journey.trip_id && !existingJourney.trip_id) {
-        update.trip_id = journey.trip_id
-      }
-
-      if (op.vaa !== undefined) {
-        update.stops = journey.stops
-      } else {
-        update.stops = asJSON(mergeUpdatedStops(op, JSON.parse(existingJourney.stops)))
-      }
-
-      await this.#repository.updateJourney(existingJourney.id, update)
-      if (existingTrips.length > 0) {
-        this.#log.info(
-          '[agent:%s:connecting-trip] Update journey trip=%s journey=%s tripId=%s',
-          this.id,
-          existingTrips.map((t) => t.id),
-          existingJourney.id,
-          journey.trip_id,
-        )
-        setImmediate(() => this.#updateTrip(journey, existingTrips, existingJourney.id))
-        return
-      }
-      this.#broadcast('update_journey', existingJourney.id)
+    if (FINAL_STATUS.includes(existingJourney.status)) {
+      this.#log.info('[agent:%s] Dropping completed journey %s', this.id, existingJourney.id)
+      return
     }
+
+    const update: JourneyUpdate = {}
+    if (existingJourney.status !== journey.status) {
+      if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
+        update.status = journey.status
+      }
+
+      if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
+        update.recv_at = journey.recv_at
+      }
+
+      if (journey.to !== existingJourney.to) {
+        update.to = journey.to
+        update.to_formatted = journey.to_formatted
+      }
+      if (journey.from !== existingJourney.from) {
+        update.from = journey.from
+        update.from_formatted = journey.from_formatted
+      }
+      if (journey.destination !== existingJourney.destination) {
+        update.destination = journey.destination
+      }
+    }
+
+    if (journey.trip_id && !existingJourney.trip_id) {
+      update.trip_id = journey.trip_id
+    }
+
+    update.stops =
+      op.vaa !== undefined ? journey.stops : asJSON(mergeUpdatedStops(op, JSON.parse(existingJourney.stops)))
+
+    if (Object.keys(update).length > 0) {
+      await this.#repository.updateJourney(existingJourney.id, update)
+    }
+
+    if (existingTrips.length > 0) {
+      this.#log.info(
+        '[agent:%s:connecting-trip] Update journey trip=%s journey=%s tripId=%s',
+        this.id,
+        existingTrips.map((t) => t.id),
+        existingJourney.id,
+        journey.trip_id,
+      )
+      setImmediate(() => this.#updateTrip(journey, existingTrips, existingJourney.id))
+      return
+    }
+    this.#broadcast('update_journey', existingJourney.id)
   }
 
   // TODO: extract to extensible config + generic watcher to support more events, protocols and networks
