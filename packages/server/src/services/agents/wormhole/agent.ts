@@ -8,7 +8,7 @@ import {
   urnToChainId,
   WormholeIds,
   WormholeSupportedNetworks,
-} from '@/services/agents/wormhole/types/chain.js'
+} from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { toUTCMillis } from '@/services/archive/time.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { isWormholeId } from '@/services/networking/apis/wormhole/ids.js'

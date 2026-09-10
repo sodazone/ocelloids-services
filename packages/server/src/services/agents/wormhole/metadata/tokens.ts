@@ -1,11 +1,11 @@
 import { HexString, QueryParams, QueryResult } from '@/lib.js'
+import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
+import { DataSteward } from '@/services/agents/steward/agent.js'
+import { AssetMetadata, StewardQueryArgs } from '@/services/agents/steward/lib.js'
+import { chainIdToUrn, WormholeIds } from '@/services/agents/steward/metadata/queries/wormhole.js'
+import { Empty, isAssetMetadata } from '@/services/agents/steward/types.js'
 import { hexToAssetId, isAssetAddress } from '../../common/hydration.js'
-import { DataSteward } from '../../steward/agent.js'
-import { AssetMetadata, StewardQueryArgs } from '../../steward/lib.js'
-import { chainIdToUrn } from '../../steward/metadata/queries/wormhole.js'
-import { Empty, isAssetMetadata } from '../../steward/types.js'
 import { addressToHex } from '../types/address.js'
-import { tokenAddressToAssetId, WormholeIds } from '../types/chain.js'
 
 type TokenInfo = Partial<{
   symbol: string
@@ -154,6 +154,15 @@ const TOKEN_OVERRIDES: Record<string, TokenInfo> = {
     decimals: 6,
     isNative: false,
   },
+  ['73:0x531a654d1696ed52e7275a8cede955e82620f99a']: {
+    symbol: 'HOLLAR',
+    decimals: 18,
+    isNative: false,
+  },
+}
+
+function tokenAddressToAssetId(chainId: number, tokenAddress: string | 'native') {
+  return `${chainIdToUrn(chainId)}|${tokenAddress === 'native' ? tokenAddress : normalizeAssetId(tokenAddress)}`
 }
 
 function resolveTokenId(chain: number, address: string) {

@@ -1,9 +1,9 @@
 import { asJSON } from '@/common/util.js'
 import { NetworkURN } from '@/lib.js'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
+import { WormholeIds } from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { getConsensus } from '@/services/config.js'
 import { PayloadEnhancer } from '../mappers/payload.js'
-import { WormholeIds } from '../types/chain.js'
 import { decodeGmpInstruction, GmpInstruction } from './gmp.js'
 
 const GMP_PRECOMPILE = '0x0000000000000000000000000000000000000816'

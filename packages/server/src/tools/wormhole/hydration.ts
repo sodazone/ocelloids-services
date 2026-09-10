@@ -1,4 +1,4 @@
-import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
+import { WormholeIds } from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { makeWatcher, WormholescanClient } from '@/services/networking/apis/wormhole/index.js'
 
 const { HYDRATION_ID } = WormholeIds

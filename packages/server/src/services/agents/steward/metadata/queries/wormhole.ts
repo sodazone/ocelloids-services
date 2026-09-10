@@ -1,10 +1,32 @@
-import { WormholeIds } from '@/services/agents/wormhole/types/chain.js'
 import { LevelDB, NetworkURN } from '@/services/types.js'
 import { QueryResult } from '../../../types.js'
 import { AssetMetadata, WormholeNetwork } from '../../types.js'
 import { assetMetadataKey } from '../../util.js'
 
-// TBD: move the IDs to the Steward
+export const WormholeIds = {
+  MOONBEAM_ID: 16,
+  SOLANA_ID: 1,
+  ETHEREUM_ID: 2,
+  BASE_ID: 30,
+  BSC_ID: 4,
+  POLYGON_ID: 5,
+  SUI_ID: 21,
+  OP_ID: 24,
+  ARB_ID: 23,
+  CELO_ID: 14,
+  AVAX_ID: 6, // C-chain
+  APTOS_ID: 22,
+  TEMPO_ID: 68,
+  NEXUS_ID: 69,
+  ARC_ID: 71,
+  ROBINHOOD_ID: 72,
+  HYDRATION_ID: 73,
+  WORMCHAIN_ID: 3104,
+  COSMOSHUB_ID: 4000,
+}
+
+export const WormholeSupportedNetworks = Object.values(WormholeIds)
+
 export const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:solana:101': WormholeIds.SOLANA_ID,
   'urn:ocn:polkadot:2004': WormholeIds.MOONBEAM_ID,
@@ -17,6 +39,7 @@ export const WormholeChainIds: Record<NetworkURN, number> = {
   'urn:ocn:ethereum:8453': WormholeIds.BASE_ID,
   'urn:ocn:ethereum:42220': WormholeIds.CELO_ID,
   'urn:ocn:ethereum:43114': WormholeIds.AVAX_ID,
+  'urn:ocn:ethereum:4663': WormholeIds.ROBINHOOD_ID,
   'urn:ocn:sui:0x35834a8a': WormholeIds.SUI_ID,
   'urn:ocn:aptos:1': WormholeIds.APTOS_ID,
 } as const
@@ -28,6 +51,10 @@ const WormholeChainUrns: Record<number, keyof typeof WormholeChainIds> = Object.
 export function chainIdToUrn(chainId: number): NetworkURN {
   const urn = WormholeChainUrns[chainId]
   return urn === undefined ? `urn:ocn:unknown:${chainId}` : urn
+}
+
+export function urnToChainId(chainUrn: NetworkURN): number | undefined {
+  return WormholeChainIds[chainUrn]
 }
 
 export class WormholeQueryHandler {
