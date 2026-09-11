@@ -35,7 +35,7 @@ function mapNTTOpToJourney(
     const { fromAddress } = op.content.standarizedProperties
     if (fromAddress && fromAddress !== '') {
       j.from = addressToHex(fromAddress)
-      j.from_formatted = fromAddress.toLowerCase()
+      j.from_formatted = fromAddress
     }
   }
   return j
