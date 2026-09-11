@@ -61,10 +61,7 @@ export function createRuntimeManager({
   rpc: RpcApi
 }): RuntimeManager {
   const runtimeCache = new LRUCache<number, RuntimeApiContext>({
-    ttl: 3_600_000, // 1 hour
-    ttlResolution: 10 * 60 * 1000, // 10 minutes
-    ttlAutopurge: true,
-    max: 50,
+    max: 5,
   })
 
   let currentSpecVersion: number | undefined
