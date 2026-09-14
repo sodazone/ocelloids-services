@@ -8,10 +8,9 @@ describe('basejump destination operators', () => {
   describe('extractBasejumpLanding', () => {
     it('should extract Basejump landing queued', async () => {
       const blocks$ = from(testBlocksFrom('hydra/12636284.cbor'))
-      const test$ = extractBasejumpLanding(
-        networks.hydration,
+      const test$ = extractBasejumpLanding(networks.hydration, [
         '0x70e9b12c3b19cb5f0e59984a5866278ab69df976',
-      )(blocks$.pipe(extractEvents()))
+      ])(blocks$.pipe(extractEvents()))
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {
@@ -39,10 +38,9 @@ describe('basejump destination operators', () => {
 
     it('should extract Basejump landing executed', async () => {
       const blocks$ = from(testBlocksFrom('hydra/12587459.cbor'))
-      const test$ = extractBasejumpLanding(
-        networks.hydration,
+      const test$ = extractBasejumpLanding(networks.hydration, [
         '0x70e9b12c3b19cb5f0e59984a5866278ab69df976',
-      )(blocks$.pipe(extractEvents()))
+      ])(blocks$.pipe(extractEvents()))
       const calls = vi.fn()
 
       await new Promise<void>((resolve) => {

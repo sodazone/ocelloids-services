@@ -23,12 +23,12 @@ type BridgeInitiatedLog = {
 
 export function extractBasejumpEvmOutbound(
   chainId: NetworkURN,
-  contractAddress: HexString,
+  contractAddresses: HexString[] = [],
   getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,
 ) {
   return (source: Observable<BlockWithLogs>): Observable<BasejumpInitiatedWithContext> => {
     return source.pipe(
-      filterLogs({ abi: basejumpAbi as Abi, addresses: [contractAddress] }, ['BridgeInitiated']),
+      filterLogs({ abi: basejumpAbi as Abi, addresses: contractAddresses }, ['BridgeInitiated']),
       filter((log) => log.transactionHash !== null),
       mergeMap((log) =>
         from(getTransactionReceipt(log.transactionHash!)).pipe(

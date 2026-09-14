@@ -92,7 +92,7 @@ export function filterLogs(params: DecodeContractParams, eventNames: string[] = 
       ),
       map(({ log, timestamp }) => {
         const { address, topics, data } = log
-        if (addressFilter.length > 0 && !addressFilter.includes(address)) {
+        if (addressFilter.length > 0 && !addressFilter.includes(address.toLowerCase())) {
           return null
         }
 

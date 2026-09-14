@@ -28,14 +28,20 @@ const eventSelectorRegistry = new Map(
     .map((ev) => [toEventSelector(ev), [ev]]),
 )
 
-export function extractBasejumpLanding(chainId: NetworkURN, contractAddress: HexString) {
+export function extractBasejumpLanding(chainId: NetworkURN, contractAddresses: HexString[] = []) {
   return (source: Observable<BlockEvent>): Observable<BasejumpLandedWithContext> => {
     return source.pipe(
       filter((e) => e.module.toLowerCase() === 'evm' && e.name.toLowerCase() === 'log'),
       map((event) => {
         const { address, topics, data } = event.value.log as Log
+
+        const addressFilter = contractAddresses.map((a) => a.toLowerCase())
+        if (addressFilter.length > 0 && !addressFilter.includes(address.toLowerCase())) {
+          return null
+        }
+
         const topic0 = topics[0]
-        if (address !== contractAddress || typeof topic0 === 'undefined' || data === '0x' || !topic0) {
+        if (typeof topic0 === 'undefined' || data === '0x' || !topic0) {
           return null
         }
 
