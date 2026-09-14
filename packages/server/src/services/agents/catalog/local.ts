@@ -60,12 +60,12 @@ const registry: Record<AgentId, (ctx: AgentRuntimeContext, activations: Record<A
       steward: activations['steward'] as DataSteward,
       crosschain: activations['crosschain'] as CrosschainExplorer,
     }),
-  hyperbridge: (ctx, activations) =>
-    new HyperbridgeAgent(ctx, {
-      steward: activations['steward'] as DataSteward,
-      ticker: activations['ticker'] as TickerAgent,
-      crosschain: activations['crosschain'] as CrosschainExplorer,
-    }),
+  // hyperbridge: (ctx, activations) =>
+  //   new HyperbridgeAgent(ctx, {
+  //     steward: activations['steward'] as DataSteward,
+  //     ticker: activations['ticker'] as TickerAgent,
+  //     crosschain: activations['crosschain'] as CrosschainExplorer,
+  //   }),
   xcm: (ctx, activations) =>
     new XcmAgent(ctx, {
       steward: activations['steward'] as DataSteward,
