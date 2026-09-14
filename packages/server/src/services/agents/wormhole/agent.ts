@@ -449,6 +449,13 @@ export class WormholeAgent implements Agent {
       // Assumes we always receive redeem event after the origin msg is emitted
       // Otherwise we need to store digest with destination context somewhere for out-of-order matching
       if (existingTrips.length === 0) {
+        this.#log.warn(
+          '[%s] No journeys found by NTT digest %s block=%s (#%s)',
+          this.id,
+          msg.digest,
+          msg.blockHash,
+          msg.blockNumber,
+        )
         return
       }
       const trip = existingTrips[0] // for ntt there should be only 1 trip per digest
