@@ -158,7 +158,11 @@ export class XcmExplorer {
       const existingJourney = await this.#repository.getJourneyByCorrelationId(correlationId)
 
       if (existingJourney && (existingJourney.status === 'received' || existingJourney.status === 'failed')) {
-        this.#log.info('[xcm:explorer] Journey complete for correlationId: %s', correlationId)
+        this.#log.info(
+          '[xcm:explorer] Journey complete for correlationId: %s (id=%s)',
+          correlationId,
+          existingJourney.id,
+        )
         return
       }
 

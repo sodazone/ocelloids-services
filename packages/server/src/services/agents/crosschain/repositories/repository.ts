@@ -42,6 +42,10 @@ const STATUS_PRIORITY: Record<string, number> = {
   confirmed: 3,
 }
 
+function asNum(x: unknown): number {
+  return x === undefined || x === null ? 0 : Number(x)
+}
+
 export function calculateTotalUsd(assets: { usd?: number | null; role?: AssetRole }[]) {
   return assets.reduce((sum, row) => {
     if (row.role !== undefined && row.role !== 'transfer') {
@@ -1101,8 +1105,7 @@ export class CrosschainRepository {
         journey.assets.push(asset)
 
         if (row.a_role === 'transfer') {
-          const usd = row.a_usd ?? 0
-          journey.totalUsd += usd
+          journey.totalUsd += asNum(row.a_usd)
         }
       }
     }
@@ -1187,7 +1190,7 @@ export class CrosschainRepository {
         journeyAssetsMap.get(a.journey_id)!.push(a)
 
         if (a.role === 'transfer') {
-          journeyUsdMap.set(a.journey_id, (journeyUsdMap.get(a.journey_id) ?? 0) + (a.usd ?? 0))
+          journeyUsdMap.set(a.journey_id, (journeyUsdMap.get(a.journey_id) ?? 0) + asNum(a.usd))
         }
       }
 
