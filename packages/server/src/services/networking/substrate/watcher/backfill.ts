@@ -47,7 +47,7 @@ export class SubstrateBackfill extends Backfill<SubstrateApi, Block> {
         continue
       }
       this.log.info(
-        '[backfill:%s] Initializing backfill stream blocks %s (emission=%sms)',
+        '[backfill:%s] Initializing backfill stream blocks %j (emission=%sms)',
         chainId,
         config.ranges,
         config.emissionRate,
