@@ -7,7 +7,7 @@ export const CONFIG: {
   destination: Record<NetworkURN, HexString[]>
 } = {
   origin: {
-    [networks.base]: ['0xf5b9334e44f800382cb47fc19669401d694e529b'],
+    // [networks.base]: ['0xf5b9334e44f800382cb47fc19669401d694e529b'],
     [networks.ethereum]: ['0xa72e2bf29c840eb93adbb9ee1aa41580f01c9944'],
   },
   destination: {
