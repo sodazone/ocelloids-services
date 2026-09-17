@@ -338,6 +338,10 @@ export class DefiAgent implements Agent, Subscribable, Queryable {
   }
 
   async #fetchAssetMetadata(network: string, assets: string[]): Promise<AssetMetadata[]> {
+    if (assets.length === 0) {
+      return []
+    }
+
     const { items } = (await this.#dependencies.steward.query({
       args: {
         op: 'assets',
