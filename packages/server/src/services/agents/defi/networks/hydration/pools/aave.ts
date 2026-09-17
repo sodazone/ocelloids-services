@@ -5,7 +5,13 @@ import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingres
 import { HexString } from '@/services/subscriptions/types.js'
 import { MoneyMarketPayload } from '../../../types.js'
 import aaveDataProviderAbi from '../abi/aave_data_provider.json' with { type: 'json' }
-import { AaveV3HydrationMainnet, ASSET_ID_MAP, CHAIN_ID, EVM_CHAIN_ID } from '../consts.js'
+import {
+  AaveV3HydrationMainnet,
+  ASSET_ID_MAP,
+  CHAIN_ID,
+  EVM_CHAIN_ID,
+  FALLBACK_AAVE_PAIRS,
+} from '../consts.js'
 import { PRECISION_BIGINT, TARGET_PRECISION } from '../pricing/common.js'
 import { AavePool, AaveToken, AssetMetadataFetcher } from '../types.js'
 import { bigintToNumber } from '../utils.js'
@@ -205,13 +211,14 @@ export function createAaveWatcher(
   }
 
   async function loadLendingPools(): Promise<AavePool[]> {
-    const pairs = await substrateIngress.runtimeCall<AaveTradeExecutorPair[]>(CHAIN_ID, {
+    let pairs = await substrateIngress.runtimeCall<AaveTradeExecutorPair[]>(CHAIN_ID, {
       api: 'AaveTradeExecutor',
       method: 'pairs',
     })
 
-    if (!pairs) {
-      throw new Error('No AAVE pools found')
+    if (!pairs || !Array.isArray(pairs) || pairs.length === 0) {
+      console.warn('No AAVE pairs returned from runtime call, using fallback AAVE pairs')
+      pairs = FALLBACK_AAVE_PAIRS
     }
 
     const aavePairs = new Map(pairs)

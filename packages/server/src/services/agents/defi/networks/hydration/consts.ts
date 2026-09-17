@@ -29,3 +29,28 @@ export const AaveV3HydrationMainnet = {
 export const AAVE_GAS_LIMIT = 1_000_000n
 export const AAVE_ROUNDING_THRESHOLD = 5
 export const AAVE_UINT_256_MAX = BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+
+export const FALLBACK_AAVE_PAIRS: [number, number][] = [
+  [22, 1003],
+  [10, 1002],
+  [19, 1004],
+  [5, 1001],
+  [15, 1005],
+  [1000765, 1006],
+  [690, 69],
+  [4200, 420],
+  [34, 1007],
+  [103, 1008],
+  [110, 1110],
+  [111, 1111],
+  [112, 1112],
+  [113, 1113],
+  [39, 1039],
+  [43, 1043],
+  [90001, 9001],
+  [1000752, 1009],
+  [44, 1044],
+  [10044, 4444],
+  [816, 1816],
+  [46, 1046],
+]
