@@ -1,3 +1,4 @@
+import { LRUCache } from 'lru-cache/raw'
 import { Observable } from 'rxjs'
 import {
   createPublicClient,
@@ -33,6 +34,7 @@ const defaultConfirmations: Record<string, number> = {
   optimism: 0,
   moonbeam: 5,
   'bnb smart chain': 25, // higher confirmations to avoid getBlockByNumber errors
+  'robinhood chain': 0,
 }
 
 function asTransport(url: string) {
@@ -84,16 +86,6 @@ function markSeen(seenBlocks: Set<string>, blockId: string) {
   }
 }
 
-function _shuffle<T>(arr: T[]): T[] {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0
-    const tmp = arr[i]
-    arr[i] = arr[j]
-    arr[j] = tmp
-  }
-  return arr
-}
-
 function getHttpEndpoints(endpoints: string[]) {
   return endpoints.filter((url) => url.startsWith('https://') || url.startsWith('http://'))
 }
@@ -109,6 +101,7 @@ export class EvmApi implements ApiClient {
   readonly #log: Logger
   readonly #httpClient: PublicClient<Transport, viemChains.Chain>
   readonly #unwatches: Set<() => void> = new Set()
+  readonly #blockTimestampCache: LRUCache<string, number>
 
   constructor(log: Logger, chainId: string, url: string | string[]) {
     this.chainId = chainId
@@ -122,6 +115,14 @@ export class EvmApi implements ApiClient {
       chain: resolveChain(chainId),
       transport: fallback(httpEndpoints.map(asTransport)),
     })
+
+    this.#blockTimestampCache = new LRUCache({
+      ttl: 3_600_000,
+      ttlResolution: 60_000,
+      ttlAutopurge: true,
+      max: 1_000,
+    })
+
     this.#log.info('[client:%s] Public client created with providers %o', this.chainId, httpEndpoints)
   }
 
@@ -287,7 +288,7 @@ export class EvmApi implements ApiClient {
       const unwatch = this.#httpClient.watchBlocks({
         includeTransactions: false,
         emitMissed: true,
-        onBlock: async (block: any) => {
+        onBlock: async (block) => {
           if (block === undefined || block === null) {
             this.#log.debug('[%s] Received undefined block on watchBlocks', this.chainId)
             return
@@ -462,8 +463,40 @@ export class EvmApi implements ApiClient {
     return asSerializable<typeof logs>(logs)
   }
 
+  async getLogsInRange(fromBlock: bigint, toBlock: bigint): Promise<SerializableLog[]> {
+    const logs = await this.#httpClient.getLogs({
+      fromBlock,
+      toBlock,
+    })
+
+    return asSerializable<typeof logs>(logs)
+  }
+
   async getTransactionReceipt(txHash: HexString): Promise<TransactionReceipt> {
     return await this.#httpClient.getTransactionReceipt({ hash: txHash })
+  }
+
+  async getBlockNumber(): Promise<bigint> {
+    return await this.#httpClient.getBlockNumber()
+  }
+
+  async getBlockTimestampMs(height: bigint | number | string): Promise<number> {
+    const blockNumber = String(height)
+    const cached = this.#blockTimestampCache.get(blockNumber)
+    if (cached) {
+      return cached
+    }
+
+    const block = await this.#httpClient.getBlock({ blockNumber: BigInt(height) })
+
+    if (block === null) {
+      throw new Error(`[${this.chainId}] Block at ${height} not found`)
+    }
+
+    const timestampMs = Number(block.timestamp) * 1_000
+    this.#blockTimestampCache.set(blockNumber, timestampMs)
+
+    return timestampMs
   }
 
   async multiCall(args: MulticallParameters): Promise<MulticallReturnType> {

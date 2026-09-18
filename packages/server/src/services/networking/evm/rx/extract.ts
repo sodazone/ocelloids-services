@@ -1,6 +1,16 @@
-import { combineLatest, filter, from, map, mergeMap, Observable, toArray } from 'rxjs'
-import { Abi, decodeEventLog, decodeFunctionData, toEventSelector, toFunctionSelector } from 'viem'
+import { catchError, combineLatest, EMPTY, filter, from, map, mergeMap, Observable, toArray } from 'rxjs'
+import {
+  Abi,
+  AbiEvent,
+  AbiFunction,
+  decodeEventLog,
+  decodeFunctionData,
+  toEventSelector,
+  toFunctionSelector,
+} from 'viem'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { asSerializable } from '@/common/util.js'
+import { retryCapped } from '../../watcher.js'
 import {
   Block,
   BlockWithLogs,
@@ -10,6 +20,7 @@ import {
   DecodedLogWithTimestamp,
   DecodedTx,
   DecodedTxWithLogs,
+  EvmLog,
   TransactionWithTimestamp,
 } from '../types.js'
 
@@ -74,69 +85,152 @@ export function decodeLogs(params: DecodeContractParams[]) {
     )
 }
 
+function decodeLog(
+  log: EvmLog,
+  addressFilterSet: Set<string>,
+  eventNameSet: Set<string>,
+  abiSelectorMap:
+    | {
+        [k: string]: AbiEvent
+      }
+    | {
+        [k: string]: AbiFunction
+      },
+): DecodedLog | null {
+  if (addressFilterSet.size > 0 && !addressFilterSet.has(log.address.toLowerCase())) {
+    return null
+  }
+
+  const topic0 = log.topics?.[0]
+  if (!topic0) {
+    return null
+  }
+
+  const ev = abiSelectorMap[topic0]
+  if (!ev) {
+    return null
+  }
+
+  if (eventNameSet.size > 0 && !eventNameSet.has(ev.name)) {
+    return null
+  }
+
+  try {
+    const event = decodeEventLog({
+      abi: [ev],
+      topics: log.topics as LogTopics,
+      data: log.data === '0x' ? undefined : log.data,
+    })
+
+    return asSerializable({
+      ...log,
+      eventName: event.eventName,
+      args: event.args,
+    }) as DecodedLog
+  } catch (err) {
+    console.warn(`[${log.address}] failed to decode log:`, err)
+    return null
+  }
+}
+
+/** Prepares fast lookup filters and ABI selector map */
+function prepareLogDecoderConfig(params: DecodeContractParams, eventNames: string[]) {
+  return {
+    addressSet: new Set(params.addresses?.map((a) => a.toLowerCase()) ?? []),
+    eventNameSet: new Set(eventNames),
+    abiSelectorMap: buildAbiSelectorMap(params, 'logs'),
+  }
+}
+
+export function filterAndDecodeLogs(params: DecodeContractParams, eventNames: string[] = []) {
+  const { addressSet, eventNameSet, abiSelectorMap } = prepareLogDecoderConfig(params, eventNames)
+
+  return (source: Observable<EvmLog>): Observable<DecodedLog> =>
+    source.pipe(
+      mergeMap((log) => {
+        const decoded = decodeLog(log, addressSet, eventNameSet, abiSelectorMap)
+        return decoded ? [decoded] : EMPTY
+      }),
+    )
+}
+
 export function filterLogs(params: DecodeContractParams, eventNames: string[] = []) {
-  const addressFilter = params.addresses ? params.addresses.map((a) => a.toLowerCase()) : []
-  const abiSelectorMap = buildAbiSelectorMap(params, 'logs')
+  const { addressSet, eventNameSet, abiSelectorMap } = prepareLogDecoderConfig(params, eventNames)
 
   return (source: Observable<BlockWithLogs>): Observable<DecodedLogWithTimestamp> =>
     source.pipe(
-      mergeMap(
-        (block) =>
-          from(block.logs ?? []).pipe(
-            map((log) => ({
-              log,
-              timestamp: block.timestamp,
-            })),
-          ),
-        MAX_CONCURRENCY_LOGS,
-      ),
-      map(({ log, timestamp }) => {
-        const { address, topics, data } = log
-        if (addressFilter.length > 0 && !addressFilter.includes(address.toLowerCase())) {
-          return null
+      mergeMap((block) => {
+        const timestampMs = Number(block.timestamp) * 1_000
+        return from(block.logs ?? []).pipe(map((log) => ({ log, timestampMs })))
+      }, MAX_CONCURRENCY_LOGS),
+      mergeMap(({ log, timestampMs }) => {
+        const decoded = decodeLog(log, addressSet, eventNameSet, abiSelectorMap)
+        if (!decoded) {
+          return EMPTY
         }
 
-        const topic0 = topics[0]
-        if (typeof topic0 === 'undefined') {
-          return null
-        }
-
-        const ev = abiSelectorMap[topic0]
-        if (!ev) {
-          return null
-        }
-
-        if (eventNames.length > 0 && !eventNames.includes(ev.name)) {
-          return null
-        }
-
-        let decoded: DecodedLogParams = {}
-
-        try {
-          const event = decodeEventLog({
-            abi: [ev],
-            topics: log.topics as LogTopics,
-            data: data === '0x' ? undefined : data,
-          })
-          decoded = { eventName: event.eventName, args: event.args }
-          return asSerializable({
-            ...log,
+        return [
+          {
             ...decoded,
-            timestamp: Number(timestamp) * 1_000,
-          }) as DecodedLogWithTimestamp
-        } catch (err) {
-          console.warn(`[${log.address}] failed to decode log:`, err)
-          return null
-        }
+            timestamp: timestampMs,
+          } as DecodedLogWithTimestamp,
+        ]
       }),
-      filter((log): log is DecodedLogWithTimestamp => {
-        if (log === null) {
-          return false
+    )
+}
+
+export function enrichLogWithTimestamp(
+  chainId: string,
+  fetcher: (height: bigint | string) => Promise<number>,
+): (source$: Observable<DecodedLog>) => Observable<DecodedLogWithTimestamp> {
+  const inFlightRequests = new Map<string, Promise<number>>()
+
+  const getDeduplicatedTimestampMs = (height: bigint | string): Promise<number> => {
+    const key = String(height)
+    const existing = inFlightRequests.get(key)
+    if (existing) {
+      return existing
+    }
+
+    const promise = fetcher(height).finally(() => {
+      inFlightRequests.delete(key)
+    })
+
+    inFlightRequests.set(key, promise)
+    return promise
+  }
+
+  return (source$: Observable<DecodedLog>) =>
+    source$.pipe(
+      mergeMap((log) => {
+        if (log.blockNumber === null || log.blockNumber === undefined) {
+          console.warn(`[${chainId}] Log missing blockNumber:`, log)
+          return EMPTY
         }
-        if (eventNames.length > 0 && !eventNames.includes(log.eventName ?? '')) {
-          return false
+
+        if (log.blockTimestamp && log.blockTimestamp !== '0') {
+          return [
+            {
+              ...log,
+              timestamp: Number(log.blockTimestamp) * 1_000,
+            } as DecodedLogWithTimestamp,
+          ]
         }
-        return true
+
+        return from(getDeduplicatedTimestampMs(log.blockNumber)).pipe(
+          retryWithTruncatedExpBackoff(retryCapped(5)),
+          map(
+            (ts) =>
+              ({
+                ...log,
+                timestamp: ts,
+              }) as DecodedLogWithTimestamp,
+          ),
+          catchError((err) => {
+            console.error(err, `[${chainId}] Failed to resolve timestamp for block ${log.blockNumber}:`)
+            return EMPTY
+          }),
+        )
       }),
     )
 }

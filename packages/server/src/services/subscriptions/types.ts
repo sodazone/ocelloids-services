@@ -8,8 +8,8 @@ import { AnyJson } from '../types.js'
 export const $ChainHead = z.object({
   chainId: z.string().min(1),
   blockNumber: z.string().min(1),
-  blockHash: z.string().min(1),
-  parentHash: z.string().min(1),
+  blockHash: z.string().min(1).optional(),
+  parentHash: z.string().min(1).optional(),
   receivedAt: z.date(),
 })
 

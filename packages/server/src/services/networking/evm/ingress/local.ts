@@ -1,7 +1,7 @@
 import { Chain, GetBalanceParameters, MulticallParameters, ReadContractParameters } from 'viem'
 import { HexString } from '@/lib.js'
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
-import { Services } from '@/services/types.js'
+import { NetworkURN, Services } from '@/services/types.js'
 import { BlockWithLogs } from '../types.js'
 import { EvmIngressConsumer } from './types.js'
 import { EvmWatcher } from './watcher.js'
@@ -31,8 +31,15 @@ export class EvmLocalConsumer
   }
 
   async getLogs(chainId: string, blockNumber: bigint | string) {
-    const bn = typeof blockNumber === 'string' ? BigInt(blockNumber) : blockNumber
-    return await this.watcher.getLogs(chainId, bn)
+    return await this.watcher.getLogs(chainId, blockNumber)
+  }
+
+  async getBlockTimestampMs(chainId: string, blockNumber: bigint | string) {
+    return await this.watcher.getBlockTimestampMs(chainId, blockNumber)
+  }
+
+  streamLogs(chainId: NetworkURN) {
+    return this.watcher.streamLogs(chainId)
   }
 
   // watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {

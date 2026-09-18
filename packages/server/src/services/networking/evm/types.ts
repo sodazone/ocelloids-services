@@ -7,6 +7,8 @@ type BlockWithTransactions = GetBlockReturnType<undefined, true>
 
 export type SerializableLog = Serializable<Log>
 
+export type EvmLog = SerializableLog
+
 export type BlockWithLogs = Serializable<BlockWithTransactions> & {
   logs: SerializableLog[]
 }
@@ -45,3 +47,4 @@ export type DecodedTxWithLogsAndReceipt = DecodedTx & WithLogs & WithReceipt
 export type DecodedLogWithTxReceipt = DecodedLogWithTimestamp & WithReceipt
 
 export type DecodeContractParams = { abi: Abi; addresses: HexString[] }
+export type FilterLogParams = DecodeContractParams & { eventNames: string[] }

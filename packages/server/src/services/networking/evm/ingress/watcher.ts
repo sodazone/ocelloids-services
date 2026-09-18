@@ -20,6 +20,7 @@ import {
   takeUntil,
   tap,
   timeout,
+  timer,
   toArray,
 } from 'rxjs'
 import { GetBalanceParameters, GetBalanceReturnType, MulticallParameters, ReadContractParameters } from 'viem'
@@ -28,9 +29,9 @@ import { HexString } from '@/lib.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
 import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'
-import { RETRY_INFINITE, Watcher } from '../../watcher.js'
+import { RETRY_INFINITE, retryCapped, Watcher } from '../../watcher.js'
 import { EvmApi } from '../client.js'
-import { Block, SerializableLog } from '../types.js'
+import { Block, EvmLog, SerializableLog } from '../types.js'
 import { EvmBackfill } from './backfill.js'
 
 const API_TIMEOUT_MS = 4 * 60_000
@@ -38,7 +39,10 @@ const API_TIMEOUT_MS = 4 * 60_000
 const BATCH_SIZE = 9
 const CONCURRENT_FETCH = 3
 
-const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:56']
+const MAX_BLOCK_RANGE_SIZE = 150
+const DEFAULT_LOG_POLLING_INTERVAL = 3_000
+
+const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:56', 'urn:ocn:ethereum:4663']
 
 /**
  * Evm Watcher.
@@ -60,6 +64,7 @@ export class EvmWatcher extends Watcher<Block> {
   readonly #apis: Record<string, EvmApi>
   readonly #finalized$: Record<NetworkURN, Observable<Block>> = {}
   readonly #new$: Record<NetworkURN, Observable<Block>> = {}
+  readonly #log$: Record<NetworkURN, Observable<EvmLog>> = {}
   readonly #apiCancel: Record<NetworkURN, Subject<void>> = {}
   readonly #backfill: EvmBackfill
 
@@ -105,6 +110,9 @@ export class EvmWatcher extends Watcher<Block> {
 
     const news = Object.values(this.#new$).map((s) => safeLastValueFrom(s))
     await Promise.allSettled(news)
+
+    const logs = Object.values(this.#log$).map((s) => safeLastValueFrom(s))
+    await Promise.allSettled(logs)
 
     Object.values(this.#apiCancel).forEach((cancel$) => {
       try {
@@ -183,6 +191,162 @@ export class EvmWatcher extends Watcher<Block> {
     }
 
     return this.#finalizedBlocks(chainId)
+  }
+
+  streamLogs(chainId: NetworkURN): Observable<EvmLog> {
+    const cachedLog$ = this.#log$[chainId]
+
+    if (cachedLog$) {
+      this.log.debug('[%s] returning cached log stream', chainId)
+      return cachedLog$
+    }
+
+    if (!this.#api$[chainId]) {
+      this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+    }
+
+    return this.#pollLogs(chainId)
+  }
+
+  // watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
+  //   if (!this.#api$[chainId]) {
+  //     this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
+  //   }
+
+  //   return this.#api$[chainId].pipe(
+  //     switchMap((api) =>
+  //       defer(() => api.watchEvents$(params, eventNames)).pipe(
+  //         this.tapError(chainId, 'watchEvents()'),
+  //         retryWithTruncatedExpBackoff(retryCapped(3)),
+  //         catchError((err) => {
+  //           if (err instanceof SocketClosedError) {
+  //             this.log.info('[%s] reconnecting API due to SocketClosedError', chainId)
+
+  //             this.#reconnect(chainId)
+  //           }
+
+  //           return this.#api$[chainId].pipe(
+  //             take(1),
+  //             switchMap((api) => api.watchEvents$(params, eventNames)),
+  //           )
+  //         }),
+  //       ),
+  //     ),
+  //   )
+  // }
+
+  getNetworkInfo(chainId: string): Promise<AnyJson> {
+    const chain = this.#apis[chainId].getNetworkInfo()
+    return Promise.resolve(chain as unknown as AnyJson)
+  }
+
+  async getTransactionReceipt(chainId: string, txHash: HexString) {
+    return await this.#apis[chainId].getTransactionReceipt(txHash)
+  }
+
+  async multiCall(chainId: string, args: MulticallParameters) {
+    return await this.#apis[chainId].multiCall(args)
+  }
+
+  async readContract<T = any>(chainId: string, args: ReadContractParameters) {
+    return await this.#apis[chainId].readContract<T>(args)
+  }
+
+  async getBalance(chainId: string, args: GetBalanceParameters): Promise<GetBalanceReturnType> {
+    return await this.#apis[chainId].getBalance(args)
+  }
+
+  async getLogs(chainId: string, blockNumber: bigint | string): Promise<SerializableLog[]> {
+    const bn = typeof blockNumber === 'string' ? BigInt(blockNumber) : blockNumber
+    return await this.#apis[chainId].getLogs(bn)
+  }
+
+  async getBlockTimestampMs(chainId: string, blockNumber: bigint | string): Promise<number> {
+    return await this.#apis[chainId].getBlockTimestampMs(blockNumber)
+  }
+
+  protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {
+    return (source: Observable<NeutralHeader>): Observable<NeutralHeader> => {
+      return source.pipe(
+        concatMap((newHead) =>
+          defer(async () => {
+            const tip = await this.chainTips.get(chainId)
+            return tip ? Number(tip.blockNumber) : newHead.height - 1
+          }).pipe(
+            switchMap((lastFetched) => {
+              const target = newHead.height
+
+              if (target <= lastFetched) {
+                return EMPTY
+              }
+              if (target === lastFetched + 1) {
+                return from(api.getNeutralBlockHeaderByNumber(target)).pipe(
+                  this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
+                  retryWithTruncatedExpBackoff(RETRY_INFINITE),
+                  mergeMap((header) =>
+                    defer(async () => {
+                      await this.chainTips.put(chainId, {
+                        blockHash: header.hash,
+                        blockNumber: header.height.toString(),
+                        chainId,
+                        parentHash: header.parenthash,
+                        receivedAt: new Date(),
+                      })
+                      return header
+                    }),
+                  ),
+                )
+              }
+
+              const missing: number[] = []
+              const maxDist = this.maxBlockDist(chainId)
+              const start = target - lastFetched > maxDist ? target - maxDist : lastFetched
+              for (let h = start + 1; h <= target; h++) {
+                missing.push(h)
+              }
+              this.log.info('[%s] CATCHUP #%s - #%s', chainId, start + 1, target)
+
+              const batches: number[][] = []
+              const batchSize = this.batchSize(chainId)
+              for (let i = 0; i < missing.length; i += batchSize) {
+                batches.push(missing.slice(i, i + batchSize))
+              }
+
+              return from(batches).pipe(
+                mergeMap(
+                  (batch) =>
+                    from(batch).pipe(
+                      mergeMap((h) => api.getNeutralBlockHeaderByNumber(h), CONCURRENT_FETCH),
+                      this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
+                      retryWithTruncatedExpBackoff(RETRY_INFINITE),
+                      toArray(),
+                      map((b) => b.sort((a, b) => a.height - b.height)),
+                      mergeMap((headers) =>
+                        defer(async () => {
+                          const last = headers[headers.length - 1]
+                          await this.chainTips.put(chainId, {
+                            blockHash: last.hash,
+                            blockNumber: last.height.toString(),
+                            chainId,
+                            parentHash: last.parenthash,
+                            receivedAt: new Date(),
+                          })
+                          return headers
+                        }),
+                      ),
+                      mergeMap((headers) => from(headers)),
+                      map((header): NeutralHeader => ({ ...header, ingestionMode: 'catchup' })),
+                    ),
+                  1,
+                ),
+              )
+            }),
+          ),
+        ),
+        this.tapError(chainId, '#catchUpHeads()'),
+        retryWithTruncatedExpBackoff(RETRY_INFINITE),
+      )
+    }
   }
 
   #finalizedBlocks(chainId: NetworkURN): Observable<Block> {
@@ -287,140 +451,103 @@ export class EvmWatcher extends Watcher<Block> {
     return finalized$
   }
 
-  // watchEvents(chainId: NetworkURN, params: DecodeContractParams, eventNames?: string[]) {
-  //   if (!this.#api$[chainId]) {
-  //     this.#api$[chainId] = new BehaviorSubject(this.#apis[chainId])
-  //   }
+  #pollLogs(chainId: NetworkURN, intervalMs: number = DEFAULT_LOG_POLLING_INTERVAL): Observable<EvmLog> {
+    const maxBlockDist = this.maxBlockDist(chainId)
 
-  //   return this.#api$[chainId].pipe(
-  //     switchMap((api) =>
-  //       defer(() => api.watchEvents$(params, eventNames)).pipe(
-  //         this.tapError(chainId, 'watchEvents()'),
-  //         retryWithTruncatedExpBackoff(retryCapped(3)),
-  //         catchError((err) => {
-  //           if (err instanceof SocketClosedError) {
-  //             this.log.info('[%s] reconnecting API due to SocketClosedError', chainId)
+    const backfill$ = this.#backfill.getLogsBackfill$(chainId)
+    const logs$ = this.#api$[chainId].pipe(
+      switchMap((api) => {
+        const live$ = timer(0, intervalMs).pipe(
+          takeUntil(shutdown$),
+          concatMap(() =>
+            defer(async () => {
+              const [tip, latestBlockNumber] = await Promise.all([
+                this.chainTips.get(chainId),
+                api.getBlockNumber(),
+              ])
 
-  //             this.#reconnect(chainId)
-  //           }
+              const target = Number(latestBlockNumber)
+              const lastFetched = tip ? Number(tip.blockNumber) : target - 1
 
-  //           return this.#api$[chainId].pipe(
-  //             take(1),
-  //             switchMap((api) => api.watchEvents$(params, eventNames)),
-  //           )
-  //         }),
-  //       ),
-  //     ),
-  //   )
-  // }
+              return { lastFetched, target }
+            }).pipe(
+              switchMap(({ lastFetched, target }) => {
+                if (target <= lastFetched) {
+                  return EMPTY
+                }
 
-  getNetworkInfo(chainId: string): Promise<AnyJson> {
-    const chain = this.#apis[chainId].getNetworkInfo()
-    return Promise.resolve(chain as unknown as AnyJson)
-  }
+                let startFrom = lastFetched + 1
+                if (target - lastFetched > maxBlockDist) {
+                  startFrom = target - maxBlockDist + 1
+                  this.log.warn(
+                    '[%s] Lag exceeded %s blocks. Skipping ahead to block %s',
+                    chainId,
+                    maxBlockDist,
+                    startFrom,
+                  )
+                }
 
-  async getTransactionReceipt(chainId: string, txHash: HexString) {
-    return await this.#apis[chainId].getTransactionReceipt(txHash)
-  }
+                const ranges: { fromBlock: number; toBlock: number }[] = []
+                for (let fromBlock = startFrom; fromBlock <= target; fromBlock += MAX_BLOCK_RANGE_SIZE) {
+                  const toBlock = Math.min(fromBlock + MAX_BLOCK_RANGE_SIZE - 1, target)
+                  ranges.push({ fromBlock, toBlock })
+                }
 
-  async multiCall(chainId: string, args: MulticallParameters) {
-    return await this.#apis[chainId].multiCall(args)
-  }
-
-  async readContract<T = any>(chainId: string, args: ReadContractParameters) {
-    return await this.#apis[chainId].readContract<T>(args)
-  }
-
-  async getBalance(chainId: string, args: GetBalanceParameters): Promise<GetBalanceReturnType> {
-    return await this.#apis[chainId].getBalance(args)
-  }
-
-  async getLogs(chainId: string, blockNumber: bigint): Promise<SerializableLog[]> {
-    return await this.#apis[chainId].getLogs(blockNumber)
-  }
-
-  protected override catchUpHeads(chainId: NetworkURN, api: EvmApi) {
-    return (source: Observable<NeutralHeader>): Observable<NeutralHeader> => {
-      return source.pipe(
-        concatMap((newHead) =>
-          defer(async () => {
-            const tip = await this.chainTips.get(chainId)
-            return tip ? Number(tip.blockNumber) : newHead.height - 1
-          }).pipe(
-            switchMap((lastFetched) => {
-              const target = newHead.height
-
-              if (target <= lastFetched) {
-                return EMPTY
-              }
-              if (target === lastFetched + 1) {
-                return from(api.getNeutralBlockHeaderByNumber(target)).pipe(
-                  this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
-                  retryWithTruncatedExpBackoff(RETRY_INFINITE),
-                  mergeMap((header) =>
-                    defer(async () => {
-                      await this.chainTips.put(chainId, {
-                        blockHash: header.hash,
-                        blockNumber: header.height.toString(),
-                        chainId,
-                        parentHash: header.parenthash,
-                        receivedAt: new Date(),
-                      })
-                      return header
-                    }),
-                  ),
+                this.log.info(
+                  '[%s] Fetching logs from #%s to #%s in %s chunk(s)',
+                  chainId,
+                  startFrom,
+                  target,
+                  ranges.length,
                 )
-              }
 
-              const missing: number[] = []
-              const maxDist = this.maxBlockDist(chainId)
-              const start = target - lastFetched > maxDist ? target - maxDist : lastFetched
-              for (let h = start + 1; h <= target; h++) {
-                missing.push(h)
-              }
-              this.log.info('[%s] CATCHUP #%s - #%s', chainId, start + 1, target)
-
-              const batches: number[][] = []
-              const batchSize = this.batchSize(chainId)
-              for (let i = 0; i < missing.length; i += batchSize) {
-                batches.push(missing.slice(i, i + batchSize))
-              }
-
-              return from(batches).pipe(
-                mergeMap(
-                  (batch) =>
-                    from(batch).pipe(
-                      mergeMap((h) => api.getNeutralBlockHeaderByNumber(h), CONCURRENT_FETCH),
-                      this.tapError(chainId, 'getNeutralBlockHeaderByNumber()'),
-                      retryWithTruncatedExpBackoff(RETRY_INFINITE),
-                      toArray(),
-                      map((b) => b.sort((a, b) => a.height - b.height)),
-                      mergeMap((headers) =>
+                return from(ranges).pipe(
+                  concatMap(({ fromBlock, toBlock }) =>
+                    from(api.getLogsInRange(BigInt(fromBlock), BigInt(toBlock))).pipe(
+                      this.tapError(chainId, 'getLogsInRange()'),
+                      retryWithTruncatedExpBackoff(retryCapped(3)),
+                      mergeMap((logs) =>
                         defer(async () => {
-                          const last = headers[headers.length - 1]
                           await this.chainTips.put(chainId, {
-                            blockHash: last.hash,
-                            blockNumber: last.height.toString(),
+                            blockNumber: toBlock.toString(),
                             chainId,
-                            parentHash: last.parenthash,
                             receivedAt: new Date(),
                           })
-                          return headers
+                          return logs
                         }),
                       ),
-                      mergeMap((headers) => from(headers)),
-                      map((header): NeutralHeader => ({ ...header, ingestionMode: 'catchup' })),
+                      mergeMap((logs) => from(logs)),
+                      catchError((err) => {
+                        this.log.error(
+                          err,
+                          '[%s] Exhausted retries for range %s-%s:',
+                          chainId,
+                          fromBlock,
+                          toBlock,
+                        )
+                        return EMPTY
+                      }),
                     ),
-                  1,
-                ),
-              )
-            }),
+                  ),
+                )
+              }),
+            ),
           ),
-        ),
-        this.tapError(chainId, '#catchUpHeads()'),
-        retryWithTruncatedExpBackoff(RETRY_INFINITE),
-      )
-    }
+        )
+        return backfill$.pipe(
+          mergeWith(live$),
+          takeUntil(shutdown$),
+          finalize(() => this.log.info('[%s] Inner logs stream completed', chainId)),
+        )
+      }),
+      shareReplay({ bufferSize: 1_000, refCount: true }),
+    )
+
+    this.#log$[chainId] = logs$
+
+    this.log.debug('[%s] created logs stream', chainId)
+
+    return logs$
   }
 
   // Fast catchup logic; directly fetches full blocks with txs by block number

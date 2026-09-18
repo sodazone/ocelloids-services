@@ -34,6 +34,8 @@ export const BlockRangeSchema = z.object({
 export const BackfillConfigSchema = z.object({
   ranges: z.array(BlockRangeSchema).nonempty('At least one block range must be provided'),
   emissionRate: z.number().default(12_000),
+  blocks: z.boolean().default(true),
+  logs: z.boolean().default(false),
   paraIds: z.array(z.string()).optional(),
 })
 

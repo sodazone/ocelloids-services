@@ -6,6 +6,7 @@ import {
   from,
   interval,
   map,
+  mergeMap,
   Observable,
   range,
   share,
@@ -18,11 +19,15 @@ import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { Backfill, INITIAL_DELAY_MS } from '../../backfill.js'
 import { BackfillConfig } from '../../types.js'
-import { RETRY_ONCE } from '../../watcher.js'
+import { RETRY_ONCE, retryCapped } from '../../watcher.js'
 import { EvmApi } from '../client.js'
-import { Block } from '../types.js'
+import { Block, EvmLog } from '../types.js'
+
+const MAX_BLOCK_RANGE_SIZE = 150
 
 export class EvmBackfill extends Backfill<EvmApi, Block> {
+  readonly chainLogs$ = new Map<string, Observable<EvmLog>>()
+
   constructor(log: Logger, api$: (chainId: NetworkURN) => Observable<EvmApi>) {
     super(log, api$)
   }
@@ -45,7 +50,12 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
         config.ranges,
         config.emissionRate,
       )
-      this.#initChainStream(chainId as NetworkURN, config)
+      if (config.blocks) {
+        this.#initBlockStream(chainId as NetworkURN, config)
+      }
+      if (config.logs) {
+        this.#initLogsStream(chainId as NetworkURN, config)
+      }
     }
     this.log.info('[backfill:evm] started')
   }
@@ -54,7 +64,15 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
     this.log.info('[backfill:evm] stopped')
   }
 
-  #initChainStream(chainId: NetworkURN, config: BackfillConfig) {
+  getLogsBackfill$(chainId: NetworkURN): Observable<EvmLog> {
+    const backfill$ = this.chainLogs$.get(chainId)
+    if (!backfill$) {
+      return EMPTY
+    }
+    return backfill$
+  }
+
+  #initBlockStream(chainId: NetworkURN, config: BackfillConfig) {
     const { ranges, emissionRate } = config
     let first = true
 
@@ -88,6 +106,64 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
       ranges.length,
       emissionRate,
     )
+  }
+
+  #initLogsStream(chainId: NetworkURN, config: BackfillConfig) {
+    const { ranges, emissionRate } = config
+    let first = true
+
+    const logs$ = this.api$(chainId).pipe(
+      switchMap((api) => {
+        const delay$ = first ? timer(INITIAL_DELAY_MS) : timer(10)
+        first = false
+
+        return delay$.pipe(
+          switchMap(() =>
+            from(ranges).pipe(
+              zipWith(interval(emissionRate)),
+              concatMap(([{ start, end }]) => {
+                const ranges: { fromBlock: number; toBlock: number }[] = []
+                for (let fromBlock = start; fromBlock <= end; fromBlock += MAX_BLOCK_RANGE_SIZE) {
+                  const toBlock = Math.min(fromBlock + MAX_BLOCK_RANGE_SIZE - 1, end)
+                  ranges.push({ fromBlock, toBlock })
+                }
+
+                this.log.info(
+                  '[backfill:%s] Fetching logs from #%s to #%s in %s chunk(s)',
+                  chainId,
+                  start,
+                  end,
+                  ranges.length,
+                )
+
+                return from(ranges).pipe(
+                  concatMap(({ fromBlock, toBlock }) =>
+                    from(api.getLogsInRange(BigInt(fromBlock), BigInt(toBlock))).pipe(
+                      retryWithTruncatedExpBackoff(retryCapped(10)),
+                      mergeMap((logs) => from(logs)),
+                      catchError((err) => {
+                        this.log.error(
+                          err,
+                          '[backfill:%s] Exhausted retries for range %s-%s:',
+                          chainId,
+                          fromBlock,
+                          toBlock,
+                        )
+                        return EMPTY
+                      }),
+                    ),
+                  ),
+                )
+              }),
+            ),
+          ),
+        )
+      }),
+      share(),
+    )
+
+    this.chainLogs$.set(chainId, logs$)
+    this.log.info('[backfill:%s] stream initialized with %d explicit block ranges', chainId, ranges.length)
   }
 
   #getBlock(api: EvmApi, chainId: string, blockNumber: number): Observable<Block> {
