@@ -40,4 +40,5 @@ export const networks: Record<string, NetworkURN> = setNetworks({
   soneium: 'urn:ocn:ethereum:1868',
   polygon: 'urn:ocn:ethereum:137',
   unichain: 'urn:ocn:ethereum:130',
+  robinhood: 'urn:ocn:ethereum:4663',
 })
