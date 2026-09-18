@@ -1,7 +1,5 @@
 import PQueue from 'p-queue'
-import { catchError, EMPTY, from, mergeMap, of } from 'rxjs'
 import { immediate } from '@/common/event.loop.js'
-import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { ago } from '@/common/time.js'
 import { asJSON, createTypedEventEmitter } from '@/common/util.js'
 import {
@@ -17,8 +15,7 @@ import {
   WormholeOperation,
   WormholeProtocols,
 } from '@/services/networking/apis/wormhole/types.js'
-import { retryCapped } from '@/services/networking/watcher.js'
-import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
+import { RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
 import { networks } from '../common/networks.js'
 import { fullJourneyToResponse, journeyToResponse } from '../crosschain/convert.js'
@@ -48,6 +45,7 @@ const PENDING_RECHECK_WINDOW_MAX = 604_800_000 // 7 days
 const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1)
 const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 const FINAL_STATUS: JourneyStatus[] = ['received', 'failed']
+const NTT_RECEIVER_CHAINS = [networks.hydration_evm, networks.robinhood]
 
 function isChainSupported(chainId?: number): boolean {
   return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
@@ -398,49 +396,34 @@ export class WormholeAgent implements Agent {
 
   // TODO: extract to extensible config + generic watcher to support more events, protocols and networks
   #subscribeWatchers() {
-    const networkId = networks.hydration_evm
-    const contractAddresses: HexString[] = [
-      // We are filtering by name since there are multiple Managers
-      // '0xcfd576f88c90844aebf45378fd09931281d8b14d'
-    ]
-
-    this.#subs.push({
-      id: `${networkId}.ntt.in`,
-      sub: this.#ingress.evm
-        .finalizedBlocks(networkId)
-        .pipe(
-          mergeMap((block) => {
-            return from(this.#ingress.evm.getLogs(networkId, block.number)).pipe(
-              retryWithTruncatedExpBackoff(retryCapped(3)),
-              mergeMap((logs) =>
-                of({
-                  ...block,
-                  logs,
-                }),
-              ),
-              catchError((error) => {
-                this.#log.error(
-                  error,
-                  '[%s] %s failed to fetch logs for block #%s. Continuing stream...',
-                  this.id,
-                  networkId,
-                  block.number,
-                )
-
-                return EMPTY
-              }),
-            )
-          }),
-          extractNttTransferRedeemed(networkId, contractAddresses),
+    for (const networkId of NTT_RECEIVER_CHAINS) {
+      if (!this.#ingress.evm.isNetworkDefined(networkId)) {
+        this.#log.warn(
+          '[%s] %s not configured, skipping subscription to NTT redeem events.',
+          this.id,
+          networkId,
         )
-        .subscribe({
-          error: (error: any) => {
-            this.#log.error(error, '[%s] %s error on origin stream', this.id, networkId)
-          },
-          next: this.#matchRedeemed.bind(this),
-          complete: () => this.#log.info('[%s] %s complete on origin stream', this.id, networkId),
-        }),
-    })
+        continue
+      }
+
+      this.#subs.push({
+        id: `${networkId}.ntt.in`,
+        sub: this.#ingress.evm
+          .streamLogs(networkId)
+          .pipe(
+            extractNttTransferRedeemed(networkId, (blockNumber: bigint | string) =>
+              this.#ingress.evm.getBlockTimestampMs(networkId, blockNumber),
+            ),
+          )
+          .subscribe({
+            error: (error: any) => {
+              this.#log.error(error, '[%s] %s error on origin stream', this.id, networkId)
+            },
+            next: this.#matchRedeemed.bind(this),
+            complete: () => this.#log.info('[%s] %s complete on origin stream', this.id, networkId),
+          }),
+      })
+    }
   }
 
   async #matchRedeemed(msg: TransferRedeemedPayload) {

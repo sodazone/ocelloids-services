@@ -8,6 +8,7 @@ import { defaultJourneyMapping } from './default.js'
 import { MapAssetContext, MapJourneyContext } from './index.js'
 
 const SYNTH = '0x73796e74680000000000000000000073796e7468'
+const DESTINATIONS = [WormholeIds.HYDRATION_ID, WormholeIds.ROBINHOOD_ID]
 
 type NativeTokenTransferOperation = Omit<WormholeOperation, 'content'> & {
   content: Omit<WormholeOperation['content'], 'payload'> & {
@@ -24,7 +25,7 @@ function mapNTTOpToJourney(
   ctx: MapJourneyContext,
 ): NewJourney {
   const j = defaultJourneyMapping(op, 'transfer', 'wh_ntt', ctx)
-  if (op.vaa && op.content.standarizedProperties.toChain === WormholeIds.HYDRATION_ID) {
+  if (op.vaa && DESTINATIONS.includes(op.content.standarizedProperties.toChain)) {
     try {
       j.trip_id = nttManagerDigestFromOp(op.emitterChain, op.vaa.raw)
     } catch (error) {
