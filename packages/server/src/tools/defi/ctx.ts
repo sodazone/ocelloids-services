@@ -45,6 +45,23 @@ export function initRuntime() {
             url: ['https://rpc.hydradx.cloud', 'https://hydration-rpc.n.dwellir.com'],
           },
         },
+        {
+          id: 'urn:ocn:ethereum:4663',
+          maxBlockDist: 1_200,
+          provider: {
+            type: 'rpc',
+            url: [
+              'https://robinhood.api.pocket.network',
+              'https://lb.routeme.sh/rpc/evm/4663',
+              'https://rpc.nodeflare.app/robinhood/public',
+              'https://rpc-robinhood.blockmachine.io',
+              'https://robinhood.rpc.blxrbdn.com',
+              'https://rpc.ordofi.network',
+              'https://robinhood-rpc.publicnode.com',
+              'https://rpc.mainnet.chain.robinhood.com',
+            ],
+          },
+        },
       ],
     },
     bitcoin: { networks: [] },
