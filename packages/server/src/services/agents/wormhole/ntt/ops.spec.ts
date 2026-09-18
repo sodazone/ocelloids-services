@@ -1,4 +1,4 @@
-import { from, mergeMap, of } from 'rxjs'
+import { from, mergeMap } from 'rxjs'
 import { testEvmBlocksFrom } from '@/testing/blocks.js'
 import { extractNttTransferRedeemed } from './ops.js'
 
@@ -10,7 +10,11 @@ describe('wormhole ntt operator', () => {
       const block$ = from(testEvmBlocksFrom('hydration_evm/14405953.cbor', true))
       const test$ = block$.pipe(
         mergeMap((blockWithLogs) => {
-          return of(blockWithLogs).pipe(extractNttTransferRedeemed(chainId, []))
+          return from(blockWithLogs.logs).pipe(
+            extractNttTransferRedeemed(chainId, (_blockNumber: bigint | string) =>
+              Promise.resolve(Date.now()),
+            ),
+          )
         }),
       )
       const calls = vi.fn()
