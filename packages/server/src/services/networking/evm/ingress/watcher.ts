@@ -4,8 +4,10 @@ import {
   concatMap,
   defer,
   EMPTY,
+  exhaustMap,
   finalize,
   from,
+  interval,
   lastValueFrom,
   map,
   merge,
@@ -22,6 +24,7 @@ import {
   timeout,
   timer,
   toArray,
+  zipWith,
 } from 'rxjs'
 import { GetBalanceParameters, GetBalanceReturnType, MulticallParameters, ReadContractParameters } from 'viem'
 import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
@@ -459,7 +462,7 @@ export class EvmWatcher extends Watcher<Block> {
       switchMap((api) => {
         const live$ = timer(0, intervalMs).pipe(
           takeUntil(shutdown$),
-          concatMap(() =>
+          exhaustMap(() =>
             defer(async () => {
               const [tip, latestBlockNumber] = await Promise.all([
                 this.chainTips.get(chainId),
@@ -502,7 +505,8 @@ export class EvmWatcher extends Watcher<Block> {
                 )
 
                 return from(ranges).pipe(
-                  concatMap(({ fromBlock, toBlock }) =>
+                  zipWith(interval(250)),
+                  concatMap(([{ fromBlock, toBlock }]) =>
                     from(api.getLogsInRange(BigInt(fromBlock), BigInt(toBlock))).pipe(
                       this.tapError(chainId, 'getLogsInRange()'),
                       retryWithTruncatedExpBackoff(retryCapped(3)),
