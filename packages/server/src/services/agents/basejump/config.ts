@@ -12,8 +12,8 @@ export const CONFIG: {
   },
   destination: {
     [networks.hydration]: [
-      '0x70e9b12c3b19cb5f0e59984a5866278ab69df976', // Base EURC (archived)
-      '0x35bf3a1b9ac564c8f66c97cea1ee410cd3f97c8a',
+      '0x70e9b12c3b19cb5f0e59984a5866278ab69df976', //landing
+      '0x35bf3a1b9ac564c8f66c97cea1ee410cd3f97c8a', // receiver
     ],
   },
 }
