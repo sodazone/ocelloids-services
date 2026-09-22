@@ -1,0 +1,63 @@
+{
+  "id": "73/0000000000000000000000008acce9ca511d5d7213f8c3f813b8916087cd00ae/100",
+  "emitterChain": 73,
+  "emitterAddress": {
+    "hex": "0000000000000000000000008acce9ca511d5d7213f8c3f813b8916087cd00ae",
+    "native": "0x8acce9ca511d5d7213f8c3f813b8916087cd00ae"
+  },
+  "sequence": "100",
+  "vaa": {
+    "raw": "AQAAAAcNADlFJagW3+qiI1zoZF6za0yuE+5i6hg3KPaF7Yye2HP2IcsElHoYOGKD7JDzm7HoCU6mof4Wcb0jl7lEz3LMif0AA4uToRx1yQMw1Q4GL4dMo3x+hz4g4zxkc6rX3ArCuoxebs4rwLBMhD8lixWFgbJKJ4kQAEUEjR1s8dYHa3XDMR4BBKCMV0cDoGTwmfr4cNSSH+7MkyenllPickO7T3rBzC/1c8F3pc1yzB0amzdhQziP0mMshRVK2n3RQ80JwvfV0TwABvb8uaFlqa4y0TQOSmSNZW3f7coN78CcS7w1dYC/kRLNf6ayU+CbKUaChVzWNSqCgcFsb7PexKN+MZB1O7HuTNABB4/3Ke5olsrsxhHN6ds331IqyLkAbTkv2mNHdYXKCASCZrJKT0QRV+QcXD13/Bytt+hOV0fARDGqcyBT2ye1v5EBCdzKF3JH44OzA/7gjFXjy54HVBskArCpKdjXhdqciq4bFOsbaafBC7JIoS2UuUEL+rNSEIl8qv9+Sl5ixhjjBIIBChMvPS1vkVQo0PAIzvXjfWYuA8pKn+g1EWu68sR1Ft3IYxp7gYi8sCqlDF4R8vUgvOUqCi4VX2McwNtQo1wnyZEBC100q04uUgEknyH7GhF12+ZTEOQwjCdNBW8+q3mmDMNhCJ4bTj66ZJ8cfE9md5fEbo2xupojOvphKSEcyOyf7hABDGPVllPgXbi2tU7/dZjPQVFRvv7tobUrpvuh2ZkiCg56aQJIKsZvXVf+cTx/a7VU49EtVEvK/4H7jgvvrf/Mlv8ADchVm4DVJyFd4XM4O8Bn2YxCu1ZgdCLpFaw7l2r9f0s7Isp/g+GIk+nIyl0bfA2/I74yfvecihLQj7VKK6rzZRQBD1zXKcqTO6fPAL5338vrgPl8TC/x6c+MFlEwAwdnsJpYNI0d8pZcKa8LTA45JBqINWZZXJglmy3bV2sE6ReQ6UMBEL9Dgo0G19WsNC/xi6WUxCqEnrR76jDLnbgKeWPwrD3kalXqivR9kgRHSCct2b4WH9H3/Uf5UJFqDmf0D6FXtTABEqyBHxiAf73zE0CwCra1oH+gNDQbhPI1cU2waCwO0T6uJYmLcNWU0xxnBsr9xXaBppjX60I84q409D0ul7yLy48AarGU4gAAAAAASQAAAAAAAAAAAAAAAIrM6cpRHV1yE/jD+BO4kWCHzQCuAAAAAAAAAGTKmUX/EAAAAAAAAAAAAAAAALXO95DVKlf6YZ7Zbt1kxTKPPc+3AAAAAAAAAAAAAAAAsaKry8H6J2IS9u0jlkUWHe6phhoAkQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABhAAAAAAAAAAAAAAAAiu5OFk1dcKxnMI8wPH4GPpFWkD4AT5lOVFQIAAAAAAAJiB4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAFAAAAAAAAAAAAAAAABEDbZNL4KjbW/ITeeNTRriEEX+HAEgAAA==",
+    "guardianSetIndex": 7,
+    "isDuplicated": false
+  },
+  "content": {
+    "payload": {
+      "nttManagerMessage": {
+        "id": "0000000000000000000000000000000000000000000000000000000000000061",
+        "sender": "0x0000000000000000000000008aee4e164d5d70ac67308f303c7e063e9156903e"
+      },
+      "nttMessage": {
+        "additionalPayload": "",
+        "sourceToken": "0x0000000000000000000000000000000000000000000000000000000100000014",
+        "to": "0x00000000000000000000000011036d934be0a8db5bf21379e35346b884117f87",
+        "toChain": 72,
+        "trimmedAmount": { "amount": "624670", "decimals": 8 }
+      },
+      "transceiverMessage": {
+        "prefix": "9945ff10",
+        "recipientNttManager": "0x000000000000000000000000b1a2abcbc1fa276212f6ed239645161deea9861a",
+        "sourceNttManager": "0x000000000000000000000000b5cef790d52a57fa619ed96edd64c5328f3dcfb7",
+        "transceiverPayload": ""
+      }
+    },
+    "standarizedProperties": {
+      "appIds": ["NATIVE_TOKEN_TRANSFER"],
+      "fromChain": 73,
+      "fromAddress": "0x8aeE4e164d5d70ac67308F303C7e063E9156903E",
+      "toChain": 72,
+      "toAddress": "0x11036d934be0a8DB5bF21379e35346b884117f87",
+      "tokenChain": 73,
+      "tokenAddress": "0x0000000000000000000000000000000100000014",
+      "amount": "624670",
+      "feeAddress": "0x8aeE4e164d5d70ac67308F303C7e063E9156903E",
+      "feeChain": 73,
+      "fee": "",
+      "normalizedDecimals": 8
+    },
+    "executorRequest": null
+  },
+  "sourceChain": {
+    "chainId": 73,
+    "timestamp": "2026-09-21T20:34:42Z",
+    "transaction": {
+      "txHash": "0xde37446aff644a58dbefddde363686bfb269d6647cc433e24af795418eee0bba"
+    },
+    "from": "0x73796e74680000000000000000000073796e7468",
+    "status": "confirmed",
+    "fee": "0",
+    "gasTokenNotional": "2800.65",
+    "feeUSD": "0",
+    "isSolanaShim": false
+  }
+}

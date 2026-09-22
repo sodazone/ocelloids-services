@@ -31,7 +31,8 @@ function mapNTTOpToJourney(
     } catch (error) {
       console.error('[NTTMapper] while generating manager digest', error)
     }
-  } else if (op.content.standarizedProperties.fromChain === WormholeIds.HYDRATION_ID && j.from === SYNTH) {
+  }
+  if (op.content.standarizedProperties.fromChain === WormholeIds.HYDRATION_ID && j.from === SYNTH) {
     // See https://github.com/galacticcouncil/sdk/blob/master/packages/xc/docs/ntt-reorg-recovery.md
     const { fromAddress } = op.content.standarizedProperties
     if (fromAddress && fromAddress !== '') {

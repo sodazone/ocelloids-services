@@ -92,6 +92,25 @@ const cases: TestCase[] = [
       ],
     },
   },
+  {
+    name: 'decode NTT Hydration -> Robinhood WETH transfer',
+    file: 'ntt-hydration-robinhood_weth.json',
+    expected: {
+      status: 'waiting',
+      type: 'transfer',
+      tripId: '0x9b3eb8500182c7e34a271b5edf829d36cb5a78b59e0423bd6bbd4d170ebed5fc',
+      from: '0x8aee4e164d5d70ac67308f303c7e063e9156903e',
+      to: '0x11036d934be0a8db5bf21379e35346b884117f87',
+      assets: [
+        {
+          asset: 'urn:ocn:polkadot:2034|20',
+          symbol: '???',
+          amount: '624670',
+          decimals: 8,
+        },
+      ],
+    },
+  },
 ]
 
 runWormholeMapperTests(cases, 'wormhole NTT mapper')
