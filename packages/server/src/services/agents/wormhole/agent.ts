@@ -433,8 +433,9 @@ export class WormholeAgent implements Agent {
       // Otherwise we need to store digest with destination context somewhere for out-of-order matching
       if (existingTrips.length === 0) {
         this.#log.warn(
-          '[%s] No journeys found by NTT digest %s block=%s (#%s)',
+          '[%s:%s] No journeys found by NTT digest %s block=%s (#%s)',
           this.id,
+          msg.chainId,
           msg.digest,
           msg.blockHash,
           msg.blockNumber,
