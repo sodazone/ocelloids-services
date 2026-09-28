@@ -208,7 +208,7 @@ export function createTokenRegistry(steward: DataSteward): WormholeTokenRegistry
   const lookup = async (chainId: number, address: string): Promise<WormholeTokenMetadata> => {
     const tokenId = resolveTokenId(chainId, address)
     let tokenInfo = TOKEN_OVERRIDES[`${chainId}:${address.toLowerCase()}`]
-    if (tokenInfo === undefined && chainId === WormholeIds.HYDRATION_ID) {
+    if (tokenInfo === undefined) {
       const { items } = (await steward.query({
         args: {
           op: 'assets',
