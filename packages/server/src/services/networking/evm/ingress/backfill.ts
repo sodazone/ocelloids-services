@@ -3,6 +3,7 @@ import {
   concatMap,
   defer,
   EMPTY,
+  finalize,
   from,
   interval,
   map,
@@ -41,7 +42,7 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
     for (const chainId of chains) {
       const config = this.backfillConfig[chainId]
       if (!config) {
-        this.log.warn('[backfill:%s] not configured. Skipping...')
+        this.log.warn('[backfill:%s] not configured. Skipping...', chainId)
         continue
       }
       this.log.info(
@@ -154,6 +155,9 @@ export class EvmBackfill extends Backfill<EvmApi, Block> {
                     ),
                   ),
                 )
+              }),
+              finalize(() => {
+                this.log.info('[backfill:%s] Completed backfill for all ranges', chainId)
               }),
             ),
           ),
