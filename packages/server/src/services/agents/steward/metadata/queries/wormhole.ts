@@ -24,7 +24,7 @@ export const WormholeIds = {
   WORMCHAIN_ID: 3104,
   COSMOSHUB_ID: 4000,
   NEAR_ID: 15,
-  HYPEREVM_ID: 47
+  HYPEREVM_ID: 47,
 }
 
 export const WormholeSupportedNetworks = Object.values(WormholeIds)

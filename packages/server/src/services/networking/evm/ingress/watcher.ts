@@ -46,6 +46,10 @@ const MAX_BLOCK_RANGE_SIZE = 50
 const DEFAULT_LOG_POLLING_INTERVAL = 3_000
 // Move to chain configs
 const DEFAULT_CONFIRMATION_BLOCKS = 20
+const CONFIRMATION_BLOCKS = new Map<NetworkURN, number>([
+  ['urn:ocn:ethereum:4663', 200],
+  ['urn:ocn:ethereum:222222', 20],
+])
 
 const FAST_CHAINS: NetworkURN[] = ['urn:ocn:ethereum:42161', 'urn:ocn:ethereum:56', 'urn:ocn:ethereum:4663']
 
@@ -471,7 +475,8 @@ export class EvmWatcher extends Watcher<Block> {
                 api.getBlockNumber(),
               ])
 
-              const target = Math.max(0, Number(latestBlockNumber) - DEFAULT_CONFIRMATION_BLOCKS)
+              const confirmations = CONFIRMATION_BLOCKS.get(chainId) ?? DEFAULT_CONFIRMATION_BLOCKS
+              const target = Math.max(0, Number(latestBlockNumber) - confirmations)
               const lastFetched = tip ? Number(tip.blockNumber) : target - 1
 
               return { lastFetched, target }
