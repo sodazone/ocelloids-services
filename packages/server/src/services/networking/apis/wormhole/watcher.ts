@@ -11,6 +11,7 @@ const FINAL_STATUS: JourneyStatus[] = ['received', 'timeout', 'failed', 'unknown
 const MAX_SEEN = 1_000
 const CONCURRENCY = 5
 const PENDING_THROTTLE_MS = 500
+const OPERATION_CACHE_MAX = 2_000
 
 const limit = pLimit(CONCURRENCY)
 
@@ -20,6 +21,7 @@ export type Cursor = {
   lastSeen: string
   seenIds?: string[]
   address?: string
+  lastSequence?: number
 }
 
 export type WatcherState = {
@@ -29,6 +31,7 @@ export type WatcherState = {
 export type WormholeWatcherConfig = {
   chain: string | number
   address?: string
+  mode?: 'operations' | 'vaas'
 }
 
 export type PendingEntry = {
@@ -47,6 +50,30 @@ function isSeen(cursor: Cursor, id: string): boolean {
 }
 
 export function makeWatcher(client: WormholescanClient, storage?: PersistentWatcherStorage) {
+  const operationCache = new Map<string, WormholeOperation>()
+
+  async function getOrFetchOperation(id: string): Promise<WormholeOperation | undefined> {
+    if (operationCache.has(id)) {
+      return operationCache.get(id)
+    }
+    try {
+      const op = await client.fetchOperationById(id)
+      if (op) {
+        if (operationCache.size >= OPERATION_CACHE_MAX) {
+          const firstKey = operationCache.keys().next().value
+          if (firstKey !== undefined) {
+            operationCache.delete(firstKey)
+          }
+        }
+        operationCache.set(id, op)
+      }
+      return op
+    } catch (err) {
+      console.error('Failed to fetch operation by ID for VAA', id, err)
+      return undefined
+    }
+  }
+
   async function fetchSinceCursor(
     cursor: Cursor,
     signal?: AbortSignal | null,
@@ -67,6 +94,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
       )) {
         if (!isSeen(cursor, op.id)) {
           freshOps.push(op)
+          operationCache.set(op.id, op)
         }
 
         const ts = op.sourceChain?.timestamp
@@ -92,8 +120,81 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return [nextCursor, freshOps]
   }
 
+  async function fetchVaasSinceCursor(
+    cursor: Cursor,
+    signal?: AbortSignal | null,
+  ): Promise<[Cursor, WormholeOperation[]]> {
+    const freshOps: WormholeOperation[] = []
+    let maxSeq = cursor.lastSequence ?? -1
+    let maxTs = cursor.lastSeen
+
+    if (!cursor.address) {
+      return [cursor, []]
+    }
+
+    try {
+      for await (const vaa of client.streamAllVaas(
+        {
+          chain: cursor.chain,
+          emitter: cursor.address,
+        },
+        signal,
+      )) {
+        // Early stop: since VAA results are returned newest-first, hitting an already-seen sequence means we've caught up.
+        if (cursor.lastSequence !== undefined && vaa.sequence <= cursor.lastSequence) {
+          break
+        }
+
+        if (!isSeen(cursor, vaa.id)) {
+          const ts = vaa.timestamp
+          const cursorTime = new Date(cursor.lastSeen).getTime()
+          const vaaTime = ts ? new Date(ts).getTime() : 0
+
+          if (cursor.lastSequence !== undefined || !cursor.lastSeen || !ts || vaaTime >= cursorTime) {
+            const op = await getOrFetchOperation(vaa.id)
+            if (op) {
+              freshOps.push(op)
+            }
+          }
+        }
+
+        if (vaa.sequence > maxSeq) {
+          maxSeq = vaa.sequence
+        }
+
+        const ts = vaa.timestamp
+        if (ts) {
+          const currentMaxTime = new Date(maxTs).getTime()
+          const tsTime = new Date(ts).getTime()
+
+          if (tsTime > currentMaxTime) {
+            maxTs = ts
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error streaming vaas for', cursor.chain, cursor.address, err)
+      throw err
+    }
+
+    if (!freshOps.length && maxSeq <= (cursor.lastSequence ?? -1)) {
+      return [cursor, []]
+    }
+
+    const nextCursor = rememberSeen(
+      {
+        ...cursor,
+        lastSeen: new Date(new Date(maxTs).getTime()).toISOString(),
+        lastSequence: maxSeq > (cursor.lastSequence ?? -1) ? maxSeq : cursor.lastSequence,
+      },
+      freshOps.map((o) => o.id),
+    )
+
+    return [nextCursor, freshOps]
+  }
+
   async function fetchOperationById(id: string): Promise<WormholeOperation | undefined> {
-    return await client.fetchOperationById(id)
+    return await getOrFetchOperation(id)
   }
 
   async function fetchOperations(
@@ -115,7 +216,10 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     const tasks = cursorEntries.map(([key, cursor]) =>
       limit(async () => {
         try {
-          const [nextCursor, ops] = await fetchSinceCursor(cursor, signal)
+          const isVaas = key.startsWith('vaas.')
+          const [nextCursor, ops] = isVaas
+            ? await fetchVaasSinceCursor(cursor, signal)
+            : await fetchSinceCursor(cursor, signal)
 
           return { key, nextCursor, ops }
         } catch (err) {
@@ -149,21 +253,43 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     for (const item of chains) {
       const chainStr = String(item.chain)
       const address = item.address
+      const fetchMode = item.mode ?? 'operations'
 
-      for (const dir of ['source', 'destination'] as const) {
-        const key = address ? `${chainStr}.${dir}.${address}` : `${chainStr}.${dir}`
+      if (fetchMode === 'vaas') {
+        if (!address) {
+          console.error('VAA fetch mode requires an emitter address for chain', chainStr)
+          continue
+        }
+        const key = `vaas.${chainStr}.${address}`
         let cursor = storage ? await storage.loadCursor(key) : undefined
         if (!cursor) {
           const cutMs = new Date(cutDate).getTime() - 1
           cursor = {
             chain: chainStr,
-            direction: dir,
+            direction: 'source',
             lastSeen: new Date(cutMs).toISOString(),
             seenIds: [],
             address,
           }
         }
         cursors[key] = cursor
+      } else {
+        // operations mode (default)
+        for (const dir of ['source', 'destination'] as const) {
+          const key = address ? `${chainStr}.${dir}.${address}` : `${chainStr}.${dir}`
+          let cursor = storage ? await storage.loadCursor(key) : undefined
+          if (!cursor) {
+            const cutMs = new Date(cutDate).getTime() - 1
+            cursor = {
+              chain: chainStr,
+              direction: dir,
+              lastSeen: new Date(cutMs).toISOString(),
+              seenIds: [],
+              address,
+            }
+          }
+          cursors[key] = cursor
+        }
       }
     }
     return { cursors }

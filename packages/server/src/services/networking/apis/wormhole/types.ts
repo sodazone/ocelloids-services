@@ -152,6 +152,24 @@ export interface WormholeOperation<P = Payload> {
   transactionLimit: number
 }
 
+export interface WormholeVaaResponse {
+  sequence: number
+  id: string
+  version: number
+  emitterChain: number
+  emitterAddr: string
+  emitterNativeAddr: string
+  guardianSetIndex: number
+  vaa: string
+  timestamp: string
+  updatedAt: string
+  indexedAt: string
+  txHash: string
+  digest: string
+  isDuplicated: boolean
+  isSolanaShim: boolean
+}
+
 export const WormholeProtocols = ['wh', 'wh_portal', 'wh_relayer', 'wh_ntt'] as const
 export type WormholeProtocol = (typeof WormholeProtocols)[number]
 export type WormholeAction = 'transfer' | 'transact' | '??'

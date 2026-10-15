@@ -1,7 +1,7 @@
 import { immediate, microtask } from '@/common/event.loop.js'
 import { createFetcher } from '@/common/http/fetch.js'
 import { isWormholeId, normalizeWormholeId, WormholeId } from './ids.js'
-import { WormholeOperation } from './types.js'
+import { WormholeOperation, WormholeVaaResponse } from './types.js'
 
 const DEFAULT_PAGE_SIZE = 25
 
@@ -12,6 +12,12 @@ export type WormholeOperationParams = {
   sourceChain?: string | number // number or comma separated
   targetChain?: string | number
   address?: string // emitter address
+}
+
+export type WormholeVaaParams = {
+  pageSize?: number
+  chain: string
+  emitter: string // emitter address
 }
 
 function withRetry<T>(
@@ -143,6 +149,76 @@ export class WormholescanClient {
       }
 
       if (data.operations.length < pageSize) {
+        break
+      }
+
+      page++
+
+      await immediate()
+    }
+  }
+
+  /**
+   * Fetch VAAs/operations for a given chain and emitter address with pagination.
+   */
+  async fetchVaas(
+    params: WormholeVaaParams,
+    signal?: AbortSignal | null,
+  ): Promise<{ operations: WormholeVaaResponse[]; pagination: { next: string } }> {
+    const { pageSize = DEFAULT_PAGE_SIZE, chain, emitter } = params
+    const page = 0
+
+    return await withRetry(
+      async () =>
+        await this.#api
+          .get(`api/v1/vaas/${chain}/${emitter}`, {
+            searchParams: {
+              page,
+              pageSize,
+            },
+            signal,
+          })
+          .json<{ operations: WormholeVaaResponse[]; pagination: { next: string } }>(),
+    )
+  }
+
+  /**
+   * Stream all VAAs/operations for a given chain and emitter address, handling pagination.
+   */
+  async *streamAllVaas(
+    params: WormholeVaaParams,
+    signal?: AbortSignal | null,
+  ): AsyncGenerator<WormholeVaaResponse, void, unknown> {
+    const { pageSize = DEFAULT_PAGE_SIZE, chain, emitter } = params
+    let page = 0
+
+    while (true) {
+      const response = await withRetry(
+        async () => {
+          if (signal?.aborted) {
+            throw new DOMException('Aborted', 'AbortError')
+          }
+
+          return await this.#api
+            .get(`api/v1/vaas/${chain}/${emitter}`, {
+              searchParams: { page, pageSize },
+              signal,
+            })
+            .json<{ data: WormholeVaaResponse[]; pagination: { next: string } }>()
+        },
+        {
+          retries: 5,
+          delay: 2000,
+          exponential: true,
+        },
+      )
+
+      for (const op of response.data) {
+        yield op
+        await microtask()
+      }
+
+      if (response.data.length < pageSize) {
         break
       }
 

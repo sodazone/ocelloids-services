@@ -48,12 +48,12 @@ const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 const FINAL_STATUS: JourneyStatus[] = ['received', 'failed']
 const NTT_RECEIVER_CHAINS = [networks.hydration_evm, networks.robinhood]
 const WH_WATCHED_CHAINS: WormholeWatcherConfig[] = [
-  {
-    chain: WormholeIds.HYDRATION_ID,
-  },
+  { chain: WormholeIds.HYDRATION_ID, mode: 'operations' },
+  { chain: WormholeIds.NEAR_ID, address: 'omni-relayer.bridge.near', mode: 'operations' },
   {
     chain: WormholeIds.NEAR_ID,
-    address: 'omni-relayer.bridge.near', // filters out transfers unrelated to Near > Hydration NTT
+    address: 'd473056b88c2062503ea1425bdea8e87609e3d499b3b4d1809e440df2d7cb9e3',
+    mode: 'vaas',
   },
 ]
 
