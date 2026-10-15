@@ -2,7 +2,7 @@ import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/inde
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { WormholeTokenRegistry } from '../metadata/tokens.js'
 import { defaultAssetMapping, defaultJourneyMapping, toWormholeStops } from './default.js'
-import { NTTMapper } from './ntt.js'
+import { NTTMapper, UndecodedNTTMapper } from './ntt.js'
 import { PortalMapper } from './portal.js'
 import { RelayerMapper } from './relayer.js'
 
@@ -24,7 +24,7 @@ interface ProtocolMapping {
   ) => NewAssetOperation[] | Promise<NewAssetOperation[]>
 }
 
-const protocolMappings: ProtocolMapping[] = [NTTMapper, PortalMapper, RelayerMapper]
+const protocolMappings: ProtocolMapping[] = [NTTMapper, PortalMapper, RelayerMapper, UndecodedNTTMapper]
 
 export type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]

@@ -19,10 +19,16 @@ export type Cursor = {
   direction: 'source' | 'destination'
   lastSeen: string
   seenIds?: string[]
+  address?: string
 }
 
 export type WatcherState = {
   cursors: Record<string, Cursor>
+}
+
+export type WormholeWatcherConfig = {
+  chain: string | number
+  address?: string
 }
 
 export type PendingEntry = {
@@ -52,7 +58,10 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
       for await (const op of client.streamAllOperations(
         {
           from: cursor.lastSeen,
-          ...(cursor.direction === 'source' ? { sourceChain: cursor.chain } : { targetChain: cursor.chain }),
+          ...(cursor.direction === 'source'
+            ? { sourceChain: String(cursor.chain) }
+            : { targetChain: String(cursor.chain) }),
+          ...(cursor.address ? { address: cursor.address } : {}),
         },
         signal,
       )) {
@@ -67,7 +76,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
         }
       }
     } catch (err) {
-      console.error('Error streaming ops for', cursor.chain, cursor.direction, err)
+      console.error('Error streaming ops for', cursor.chain, cursor.direction, cursor.address, err)
       throw err
     }
 
@@ -135,15 +144,24 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
     return [{ cursors: newCursors }, results]
   }
 
-  async function loadInitialState(chains: string[] | number[], cutDate: string): Promise<WatcherState> {
+  async function loadInitialState(chains: WormholeWatcherConfig[], cutDate: string): Promise<WatcherState> {
     const cursors: Record<string, Cursor> = {}
-    for (const c of chains) {
+    for (const item of chains) {
+      const chainStr = String(item.chain)
+      const address = item.address
+
       for (const dir of ['source', 'destination'] as const) {
-        const key = `${c}.${dir}`
+        const key = address ? `${chainStr}.${dir}.${address}` : `${chainStr}.${dir}`
         let cursor = storage ? await storage.loadCursor(key) : undefined
         if (!cursor) {
           const cutMs = new Date(cutDate).getTime() - 1
-          cursor = { chain: String(c), direction: dir, lastSeen: new Date(cutMs).toISOString(), seenIds: [] }
+          cursor = {
+            chain: chainStr,
+            direction: dir,
+            lastSeen: new Date(cutMs).toISOString(),
+            seenIds: [],
+            address,
+          }
         }
         cursors[key] = cursor
       }

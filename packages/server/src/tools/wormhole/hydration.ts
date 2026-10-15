@@ -1,21 +1,15 @@
 import { WormholeIds } from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { makeWatcher, WormholescanClient } from '@/services/networking/apis/wormhole/index.js'
 
-const { HYDRATION_ID } = WormholeIds
+const { HYDRATION_ID, NEAR_ID } = WormholeIds
 
 const ago = 1 * 24 * 60 * 60 * 1000
 const cutDate = new Date(Date.now() - ago).toISOString()
 
-const chains = [HYDRATION_ID]
+const chains = [{ chain: HYDRATION_ID }, { chain: NEAR_ID, address: 'omni-relayer.bridge.near' }]
 
 const client = new WormholescanClient()
 
-console.log(
-  JSON.stringify(
-    await client.fetchOperationById('73/0000000000000000000000004e7b1e55d2354d4dc6abd876096dc201de0541d1/74'),
-  ),
-)
-process.exit(0)
 const watcher = makeWatcher(client /*, storage */)
 const initialState = await watcher.loadInitialState(chains, cutDate)
 

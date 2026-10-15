@@ -6,7 +6,7 @@ const { MOONBEAM_ID } = WormholeIds
 const ago = 1 * 24 * 60 * 60 * 1000
 const cutDate = new Date(Date.now() - ago).toISOString()
 
-const chains = [MOONBEAM_ID]
+const chains = [{ chain: MOONBEAM_ID }]
 
 const watcher = makeWatcher(new WormholescanClient() /*, storage */)
 const initialState = await watcher.loadInitialState(chains, cutDate)

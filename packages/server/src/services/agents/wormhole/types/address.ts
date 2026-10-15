@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto'
 import bs58 from 'bs58'
 
 /**
  * Convert an address to a lowercase hex string.
  *
  * - If it starts with 0x, normalize hex (lowercase, prefixed with 0x)
+ * - If it is a NEAR named account ID, use the SHA-256 hash
  * - Else treat as base58 (Solana), must be 32 bytes
  */
 export function addressToHex(addr: string): string {
@@ -13,6 +15,10 @@ export function addressToHex(addr: string): string {
 
   if (addr.startsWith('0x')) {
     return '0x' + addr.slice(2).toLowerCase()
+  }
+
+  if (addr.endsWith('.near')) {
+    return createHash('sha256').update(addr, 'utf-8').digest('hex')
   }
 
   // Assume Base58

@@ -15,6 +15,7 @@ import {
   WormholeOperation,
   WormholeProtocols,
 } from '@/services/networking/apis/wormhole/types.js'
+import { WormholeWatcherConfig } from '@/services/networking/apis/wormhole/watcher.js'
 import { RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
 import { networks } from '../common/networks.js'
@@ -46,9 +47,18 @@ const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1
 const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 const FINAL_STATUS: JourneyStatus[] = ['received', 'failed']
 const NTT_RECEIVER_CHAINS = [networks.hydration_evm, networks.robinhood]
+const WH_WATCHED_CHAINS: WormholeWatcherConfig[] = [
+  {
+    chain: WormholeIds.HYDRATION_ID,
+  },
+  {
+    chain: WormholeIds.NEAR_ID,
+    address: 'omni-relayer.bridge.near', // filters out transfers unrelated to Near > Hydration NTT
+  },
+]
 
 function isChainSupported(chainId?: number): boolean {
-  return chainId === undefined || WormholeSupportedNetworks.includes(chainId)
+  return chainId === undefined || chainId === 0 || WormholeSupportedNetworks.includes(chainId)
 }
 
 function isSupportedWormholeOp(op: WormholeOperation): boolean {
@@ -60,8 +70,6 @@ function isSupportedWormholeOp(op: WormholeOperation): boolean {
 }
 
 export const WORMHOLE_AGENT_ID = 'wormhole'
-
-const WH_WATCHED_CHAINS = [WormholeIds.MOONBEAM_ID, WormholeIds.HYDRATION_ID]
 
 export class WormholeAgent implements Agent {
   id = WORMHOLE_AGENT_ID
@@ -305,93 +313,99 @@ export class WormholeAgent implements Agent {
   }
 
   #onOperation = async (op: WormholeOperation) => {
-    if (!isSupportedWormholeOp(op)) {
-      this.#log.warn(
-        '[agent:%s] Skipping operation due to unsupported network(s): sourceChainId=%s, targetChainId=%s',
-        this.id,
-        op.sourceChain.chainId,
-        op.targetChain?.chainId,
-      )
-      return
-    }
-
-    const journey = await mapOperationToJourney(op, { generateTripId }, this.#tokenRegistry)
-
-    if (op.vaa === undefined) {
-      this.#log.warn('[agent:%s] No VAA found in op %s (status=%s)', this.id, op.id, journey.status)
-    }
-
-    const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
-    const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
-    if (!existingJourney) {
-      const { assets, ...journeyWithoutAssets } = journey
-      const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
-      if (existingTrips.length > 0) {
-        this.#log.info(
-          '[agent:%s:connecting-trip] New journey trip=%s journey=%s tripId=%s',
+    try {
+      if (!isSupportedWormholeOp(op)) {
+        this.#log.warn(
+          '[agent:%s] Skipping operation due to unsupported network(s): sourceChainId=%s, targetChainId=%s',
           this.id,
-          existingTrips.map((t) => t.id),
-          id,
-          journey.trip_id,
+          op.sourceChain.chainId,
+          op.targetChain?.chainId,
         )
-        setImmediate(() => this.#updateTrip(journey, existingTrips, id))
         return
       }
-      this.#broadcast('new_journey', id)
-      return
-    }
 
-    if (FINAL_STATUS.includes(existingJourney.status)) {
-      this.#log.info('[agent:%s] Dropping completed journey %s', this.id, existingJourney.id)
-      return
-    }
+      const journey = await mapOperationToJourney(op, { generateTripId }, this.#tokenRegistry)
 
-    const update: JourneyUpdate = {}
-    if (existingJourney.status !== journey.status) {
-      if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
-        update.status = journey.status
+      if (op.vaa === undefined) {
+        this.#log.warn('[agent:%s] No VAA found in op %s (status=%s)', this.id, op.id, journey.status)
       }
 
-      if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
-        update.recv_at = journey.recv_at
+      const existingTrips = await this.#repository.getJourneyByTripId(journey.trip_id)
+      const existingJourney = await this.#repository.getJourneyByCorrelationId(journey.correlation_id)
+      if (!existingJourney) {
+        const { assets, ...journeyWithoutAssets } = journey
+        const id = await this.#repository.insertJourneyWithAssets(journeyWithoutAssets, assets)
+        if (existingTrips.length > 0) {
+          this.#log.info(
+            '[agent:%s:connecting-trip] New journey trip=%s journey=%s tripId=%s',
+            this.id,
+            existingTrips.map((t) => t.id),
+            id,
+            journey.trip_id,
+          )
+          setImmediate(() => this.#updateTrip(journey, existingTrips, id))
+          return
+        }
+        this.#broadcast('new_journey', id)
+        return
       }
 
-      if (journey.to !== existingJourney.to) {
-        update.to = journey.to
-        update.to_formatted = journey.to_formatted
+      if (FINAL_STATUS.includes(existingJourney.status)) {
+        this.#log.info('[agent:%s] Dropping completed journey %s', this.id, existingJourney.id)
+        return
       }
-      if (journey.from !== existingJourney.from) {
-        update.from = journey.from
-        update.from_formatted = journey.from_formatted
+
+      const update: JourneyUpdate = {}
+      if (existingJourney.status !== journey.status) {
+        if (isWormholeProtocol(journey.destination_protocol) || journey.status !== 'received') {
+          update.status = journey.status
+        }
+
+        if (isWormholeProtocol(journey.destination_protocol) && journey.recv_at && !existingJourney.recv_at) {
+          update.recv_at = journey.recv_at
+        }
+
+        if (journey.to !== existingJourney.to) {
+          update.to = journey.to
+          update.to_formatted = journey.to_formatted
+        }
+        if (journey.from !== existingJourney.from) {
+          update.from = journey.from
+          update.from_formatted = journey.from_formatted
+        }
+        if (journey.destination !== existingJourney.destination) {
+          update.destination = journey.destination
+        }
       }
-      if (journey.destination !== existingJourney.destination) {
-        update.destination = journey.destination
+
+      if (journey.trip_id && !existingJourney.trip_id) {
+        update.trip_id = journey.trip_id
       }
-    }
 
-    if (journey.trip_id && !existingJourney.trip_id) {
-      update.trip_id = journey.trip_id
-    }
+      update.stops =
+        op.vaa !== undefined
+          ? journey.stops
+          : asJSON(mergeUpdatedStops(op, JSON.parse(existingJourney.stops)))
 
-    update.stops =
-      op.vaa !== undefined ? journey.stops : asJSON(mergeUpdatedStops(op, JSON.parse(existingJourney.stops)))
+      if (Object.keys(update).length > 0) {
+        await this.#repository.updateJourney(existingJourney.id, update)
+      }
 
-    if (Object.keys(update).length > 0) {
-      await this.#repository.updateJourney(existingJourney.id, update)
+      if (existingTrips.length > 0) {
+        this.#log.info(
+          '[agent:%s:connecting-trip] Update journey trip=%s journey=%s tripId=%s',
+          this.id,
+          existingTrips.map((t) => t.id),
+          existingJourney.id,
+          journey.trip_id,
+        )
+        setImmediate(() => this.#updateTrip(journey, existingTrips, existingJourney.id))
+        return
+      }
+      this.#broadcast('update_journey', existingJourney.id)
+    } catch (error) {
+      this.#log.error(error, '[%s] Error on Wormhole operation %s', this.id, op.id)
     }
-
-    if (existingTrips.length > 0) {
-      this.#log.info(
-        '[agent:%s:connecting-trip] Update journey trip=%s journey=%s tripId=%s',
-        this.id,
-        existingTrips.map((t) => t.id),
-        existingJourney.id,
-        journey.trip_id,
-      )
-      setImmediate(() => this.#updateTrip(journey, existingTrips, existingJourney.id))
-      return
-    }
-    this.#broadcast('update_journey', existingJourney.id)
   }
 
   // TODO: extract to extensible config + generic watcher to support more events, protocols and networks

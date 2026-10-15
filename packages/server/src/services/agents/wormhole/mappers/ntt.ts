@@ -1,6 +1,8 @@
+import { deserialize } from '@wormhole-foundation/sdk-definitions'
 import { WormholeIds } from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { PayloadNativeTokenTransfer, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { NewAssetOperation, NewJourney } from '../../crosschain/index.js'
+import { toNttOp } from '../ntt/decode.js'
 import { nttManagerDigestFromOp } from '../ntt/digest.js'
 import { addressToHex } from '../types/address.js'
 import { wormholeAmountToReal } from '../types/decimals.js'
@@ -8,7 +10,7 @@ import { defaultJourneyMapping } from './default.js'
 import { MapAssetContext, MapJourneyContext } from './index.js'
 
 const SYNTH = '0x73796e74680000000000000000000073796e7468'
-const DESTINATIONS = [WormholeIds.HYDRATION_ID, WormholeIds.ROBINHOOD_ID]
+const DESTINATIONS = [WormholeIds.HYDRATION_ID, WormholeIds.ROBINHOOD_ID, WormholeIds.NEAR_ID]
 
 type NativeTokenTransferOperation = Omit<WormholeOperation, 'content'> & {
   content: Omit<WormholeOperation['content'], 'payload'> & {
@@ -108,8 +110,64 @@ async function mapNTTOpToAssets(op: WormholeOperation<PayloadNativeTokenTransfer
   }
 }
 
+function isUndecodedNtt(op: WormholeOperation): boolean {
+  const rawVaa = op.vaa?.raw
+  if (!rawVaa) {
+    return false
+  }
+
+  try {
+    const vaaBytes = new Uint8Array(Buffer.from(rawVaa, 'base64'))
+    const { payload } = deserialize('Uint8Array', vaaBytes)
+
+    // check transceiver prefix (0x9945ff10)
+    if (payload.length < 4) {
+      return false
+    }
+    const transceiverPrefix = Buffer.from(payload.subarray(0, 4)).toString('hex')
+    if (transceiverPrefix !== '9945ff10') {
+      return false
+    }
+
+    // check NTT prefix
+    // layout offset:
+    // 4 bytes (transceiver prefix) + 32 bytes (source manager) + 32 bytes (recipient manager) + 2 bytes (payload length)
+    const nttManagerPayloadOffset = 4 + 32 + 32 + 2
+
+    // inside nttManagerPayload: 32 bytes (messageId) + 32 bytes (sender) + 2 bytes (inner length)
+    const innerPayloadOffset = nttManagerPayloadOffset + 32 + 32 + 2
+
+    if (payload.length < innerPayloadOffset + 4) {
+      return false
+    }
+
+    const nttPrefix = Buffer.from(payload.subarray(innerPayloadOffset, innerPayloadOffset + 4)).toString(
+      'hex',
+    )
+    return nttPrefix === '994e5454'
+  } catch (_error) {
+    return false
+  }
+}
+
+function mapUndecodedNTTOpToJourney(op: WormholeOperation, ctx: MapJourneyContext): NewJourney {
+  const nttOp = toNttOp(op)
+  return mapNTTOpToJourney(nttOp, ctx)
+}
+
+function mapUndecodedNTTOpToAssets(op: WormholeOperation, ctx: MapAssetContext) {
+  const nttOp = toNttOp(op)
+  return mapNTTOpToAssets(nttOp, ctx)
+}
+
 export const NTTMapper = {
   guard: isNativeTokenTransfer,
   mapJourney: mapNTTOpToJourney,
   mapAssets: mapNTTOpToAssets,
+}
+
+export const UndecodedNTTMapper = {
+  guard: isUndecodedNtt,
+  mapJourney: mapUndecodedNTTOpToJourney,
+  mapAssets: mapUndecodedNTTOpToAssets,
 }

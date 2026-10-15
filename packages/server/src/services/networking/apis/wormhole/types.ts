@@ -63,11 +63,9 @@ export interface NativeTokenTransferDetails {
   nttManagerMessage: NttManagerMessage
   nttMessage: NttMessage
   transceiverMessage: TransceiverMessage
-  payloadType: number
-  amount: string
 }
 
-export type PayloadNativeTokenTransfer = (TransferPayload | TransferWithPayload) & NativeTokenTransferDetails
+export type PayloadNativeTokenTransfer = NativeTokenTransferDetails
 
 // Fallback Types
 export type PayloadUnknown = {
@@ -75,7 +73,7 @@ export type PayloadUnknown = {
   raw: Record<string, unknown>
 }
 
-export type Payload = PayloadPortalTokenBridge | PayloadUnknown
+export type Payload = PayloadPortalTokenBridge | PayloadNativeTokenTransfer | PayloadUnknown
 
 export type WormholeOpStatus = 'in_progress' | 'completed' | 'confirmed'
 

@@ -111,6 +111,44 @@ const cases: TestCase[] = [
       ],
     },
   },
+  {
+    name: 'decode NTT Hydration -> Near ZEC NTT transfer',
+    file: 'ntt-hydration-near_zec.json',
+    expected: {
+      status: 'waiting',
+      type: 'transfer',
+      tripId: '0xb6dfacb132675c06b29b907b5d56ae4e1ae06ac9efad3dc461e8171bd3a8fddd',
+      from: '0x82fb02afe02fe5d6c793145a75e6860c4e206682',
+      to: '0xd047547225d9fa4c9c97db311a2e1cebbaaa5c2f4fc40317656e6bf0746242a9',
+      assets: [
+        {
+          asset: 'urn:ocn:polkadot:2034|1001357',
+          symbol: '???',
+          amount: '259434',
+          decimals: 8,
+        },
+      ],
+    },
+  },
+  {
+    name: 'decode NTT Hydration -> Near NEAR NTT transfer',
+    file: 'ntt-hydration-near_near.json',
+    expected: {
+      status: 'waiting',
+      type: 'transfer',
+      tripId: '0xb0db5580ff892f352133ed7a7f92bf5a03ee50833bbf66ca1adfb4263b73f285',
+      from: '0x82fb02afe02fe5d6c793145a75e6860c4e206682',
+      to: '0xd4da958648d2c87ebfd1d8869dc38dc004260bedbd99fa06ac549f5d4534b2a5',
+      assets: [
+        {
+          asset: 'urn:ocn:polkadot:2034|1001358',
+          symbol: '???',
+          amount: '15000000',
+          decimals: 8,
+        },
+      ],
+    },
+  },
 ]
 
 runWormholeMapperTests(cases, 'wormhole NTT mapper')
