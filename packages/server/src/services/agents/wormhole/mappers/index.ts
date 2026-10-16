@@ -1,5 +1,6 @@
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
 import { WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
+import { HydrationOracleMapping } from '../hydration/oracle.js'
 import { WormholeTokenRegistry } from '../metadata/tokens.js'
 import { defaultAssetMapping, defaultJourneyMapping, toWormholeStops } from './default.js'
 import { NTTMapper, UndecodedNTTMapper } from './ntt.js'
@@ -24,7 +25,13 @@ interface ProtocolMapping {
   ) => NewAssetOperation[] | Promise<NewAssetOperation[]>
 }
 
-const protocolMappings: ProtocolMapping[] = [NTTMapper, PortalMapper, RelayerMapper, UndecodedNTTMapper]
+const protocolMappings: ProtocolMapping[] = [
+  NTTMapper,
+  PortalMapper,
+  RelayerMapper,
+  UndecodedNTTMapper,
+  HydrationOracleMapping,
+]
 
 export type NewJourneyWithAssets = NewJourney & {
   assets: NewAssetOperation[]
