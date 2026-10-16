@@ -11,7 +11,6 @@ const FINAL_STATUS: JourneyStatus[] = ['received', 'timeout', 'failed', 'unknown
 const MAX_SEEN = 1_000
 const CONCURRENCY = 5
 const PENDING_THROTTLE_MS = 500
-const OPERATION_CACHE_MAX = 2_000
 
 const limit = pLimit(CONCURRENCY)
 
@@ -50,30 +49,6 @@ function isSeen(cursor: Cursor, id: string): boolean {
 }
 
 export function makeWatcher(client: WormholescanClient, storage?: PersistentWatcherStorage) {
-  const operationCache = new Map<string, WormholeOperation>()
-
-  async function getOrFetchOperation(id: string): Promise<WormholeOperation | undefined> {
-    if (operationCache.has(id)) {
-      return operationCache.get(id)
-    }
-    try {
-      const op = await client.fetchOperationById(id)
-      if (op) {
-        if (operationCache.size >= OPERATION_CACHE_MAX) {
-          const firstKey = operationCache.keys().next().value
-          if (firstKey !== undefined) {
-            operationCache.delete(firstKey)
-          }
-        }
-        operationCache.set(id, op)
-      }
-      return op
-    } catch (err) {
-      console.error('Failed to fetch operation by ID for VAA', id, err)
-      return undefined
-    }
-  }
-
   async function fetchSinceCursor(
     cursor: Cursor,
     signal?: AbortSignal | null,
@@ -94,7 +69,6 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
       )) {
         if (!isSeen(cursor, op.id)) {
           freshOps.push(op)
-          operationCache.set(op.id, op)
         }
 
         const ts = op.sourceChain?.timestamp
@@ -151,7 +125,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
           const vaaTime = ts ? new Date(ts).getTime() : 0
 
           if (cursor.lastSequence !== undefined || !cursor.lastSeen || !ts || vaaTime >= cursorTime) {
-            const op = await getOrFetchOperation(vaa.id)
+            const op = await fetchOperationById(vaa.id)
             if (op) {
               freshOps.push(op)
             }
@@ -194,7 +168,7 @@ export function makeWatcher(client: WormholescanClient, storage?: PersistentWatc
   }
 
   async function fetchOperationById(id: string): Promise<WormholeOperation | undefined> {
-    return await getOrFetchOperation(id)
+    return await client.fetchOperationById(id)
   }
 
   async function fetchOperations(
