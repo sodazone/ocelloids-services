@@ -43,6 +43,17 @@ export const mockConfigWS = new ServiceConfiguration({
       },
     ],
   },
+  near: {
+    networks: [
+      {
+        id: 'urn:ocn:near:397',
+        provider: {
+          type: 'rpc',
+          url: 'wss://near.io',
+        },
+      }
+    ]
+  }
 })
 
 export const mockConfigRelayLast = new ServiceConfiguration({

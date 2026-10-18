@@ -2,6 +2,7 @@ import { ClientId, clientIds, NetworkConfiguration, ServiceConfiguration } from 
 import { Logger, NetworkURN } from '../types.js'
 import { BitcoinApi } from './bitcoin/client.js'
 import { EvmApi } from './evm/client.js'
+import { NearApi } from './near/client.js'
 import { SubstrateApi, SubstrateClient } from './substrate/index.js'
 
 const INC_CONNECTION_MILLIS = 100
@@ -10,6 +11,7 @@ interface ClientMap {
   bitcoin: BitcoinApi
   substrate: SubstrateApi
   evm: EvmApi
+  near: NearApi
 }
 
 /**
@@ -58,6 +60,9 @@ export default class Connector {
         break
       case 'evm':
         chainRecord[id] = new EvmApi(this.#log, id, rotatedProviders)
+        break
+      case 'near':
+        chainRecord[id] = new NearApi(this.#log, id, rotatedProviders)
         break
     }
   }

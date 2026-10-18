@@ -85,12 +85,17 @@ export const $ServiceConfiguration = z.object({
       networks: z.array($NetworkConfiguration).min(1),
     })
     .optional(),
+  near: z
+    .object({
+      networks: z.array($NetworkConfiguration).min(1),
+    })
+    .optional(),
 })
 
 type SubstrateNetworkConfiguration = z.infer<typeof $SubstrateNetworkConfiguration>
 export type NetworkId = z.infer<typeof $NetworkId>
 export type NetworkConfiguration = z.infer<typeof $NetworkConfiguration>
-export const clientIds = ['substrate', 'bitcoin', 'evm'] as const
+export const clientIds = ['substrate', 'bitcoin', 'evm', 'near'] as const
 export type ClientId = (typeof clientIds)[number]
 
 export class ServiceConfiguration {
@@ -101,12 +106,14 @@ export class ServiceConfiguration {
     const substrate = config.substrate?.networks ?? []
     const bitcoin = config.bitcoin?.networks ?? []
     const evm = config.evm?.networks ?? []
+    const near = config.near?.networks ?? []
     this.networks = {
       substrate,
       bitcoin,
       evm,
+      near,
     }
-    this.all = substrate.concat(bitcoin).concat(evm)
+    this.all = substrate.concat(bitcoin).concat(evm).concat(near)
   }
 
   get substrate() {
@@ -119,6 +126,10 @@ export class ServiceConfiguration {
 
   get evm() {
     return this.networks.evm as NetworkConfiguration[]
+  }
+
+  get near() {
+    return this.networks.near as NetworkConfiguration[]
   }
 
   getNetwork(chainId: NetworkURN) {

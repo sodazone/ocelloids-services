@@ -65,6 +65,23 @@ export function initRuntime() {
       ],
     },
     bitcoin: { networks: [] },
+    near: {
+      networks: [
+        {
+          id: 'urn:ocn:near:397',
+          provider: {
+            type: 'rpc',
+            url: [
+              'https://free.rpc.fastnear.com',
+              'https://rpc.shitzuapes.xyz',
+              'https://rpc.intea.rs',
+              'https://near.drpc.org',
+            ],
+          },
+          maxBlockDist: 20,
+        },
+      ],
+    },
   })
   const connector = new Connector(log, config)
 

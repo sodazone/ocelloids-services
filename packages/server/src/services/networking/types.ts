@@ -9,6 +9,7 @@ export type NeutralHeader = {
   hash: string
   parenthash: string
   height: number
+  parentHeight?: number | null | undefined
   status?: BlockStatus
   ingestionMode?: BlockIngestionMode
 }
