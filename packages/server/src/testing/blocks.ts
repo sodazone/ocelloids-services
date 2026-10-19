@@ -6,6 +6,7 @@ import { Abi } from 'viem'
 
 import { decodeEvmBlock } from '@/services/networking/evm/codec.js'
 import { BlockWithLogs, Block as EvmBlock } from '@/services/networking/evm/types.js'
+import { NearBlock } from '@/services/networking/near/types.js'
 import { decodeBlock } from '@/services/networking/substrate/codec.js'
 import { Block, createContextFromMetadata } from '@/services/networking/substrate/index.js'
 
@@ -15,6 +16,12 @@ const blocksDir = resolve(__dirname, '__data__/blocks')
 export function testApiContextFromMetadata(metadataFile: string) {
   const m = readFileSync(resolve(__dirname, '__data__/metadata', metadataFile))
   return createContextFromMetadata(m)
+}
+
+export function testNearBlocksFrom(file: string): NearBlock[] {
+  const blockJson = readFileSync(resolve(blocksDir, file), 'utf-8')
+  const block = JSON.parse(blockJson) as NearBlock
+  return [block]
 }
 
 export function testEvmBlocksFrom(file: string, withLogs: true): BlockWithLogs[]

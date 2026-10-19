@@ -470,6 +470,7 @@ export class WormholeAgent implements Agent {
         update.to_formatted = msg.recipient
       }
 
+      console.log('updating ----', update)
       await this.#repository.updateJourney(trip.id, update)
 
       this.#broadcast('update_journey', trip.id)

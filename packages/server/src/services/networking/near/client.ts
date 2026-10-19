@@ -210,6 +210,7 @@ export class NearApi implements ApiClient {
             stat.errors++
           } else {
             this.#log.warn(
+              err,
               '[client:%s] RPC provider %s failed: %s. Trying next provider.',
               this.chainId,
               url,

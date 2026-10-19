@@ -162,8 +162,6 @@ export class NearWatcher extends Watcher<NearBlock> {
           retryWithTruncatedExpBackoff(RETRY_INFINITE),
           this.#catchUpBlocks(chainId, api),
           tap((block) => {
-            this.log.info('[%s] FINALIZED block #%s %s', chainId, block.number, block.hash)
-
             this.emit('telemetryBlockFinalized', {
               chainId,
               blockNumber: Number(block.number),
@@ -231,24 +229,16 @@ export class NearWatcher extends Watcher<NearBlock> {
                 return EMPTY
               }
 
-              if (target - effectiveLastFetched > 1) {
-                this.log.info(
-                  '[%s] CATCHUP starting from #%s down to > #%s',
-                  chainId,
-                  target,
-                  effectiveLastFetched + 1,
-                )
-              }
-
               const self = this
 
               return from(
                 (async function* () {
                   let currentId: string | number = (newHead as NeutralHeader).hash
                   let count = 0
+                  const fetchedNumbers: number[] = []
 
                   while (true) {
-                    // Throttle subsequent calls to api.getBlockBalanced by 500ms
+                    // Throttle subsequent calls to api.getBlockBalanced by 350ms
                     if (count > 0) {
                       await new Promise((res) => setTimeout(res, 350))
                     }
@@ -266,6 +256,7 @@ export class NearWatcher extends Watcher<NearBlock> {
                     }
 
                     count++
+                    fetchedNumbers.push(block.number)
                     yield { ...block, ingestionMode: 'live' as const }
 
                     if (block.number <= effectiveLastFetched + 1) {
@@ -296,11 +287,13 @@ export class NearWatcher extends Watcher<NearBlock> {
                     parentHash: newHead.parenthash,
                     receivedAt: new Date(),
                   })
+
                   self.log.info(
-                    '[%s] CATCHUP finished, chaintip updated to highest #%s %s',
+                    '[%s] FINALIZED %s blocks (last=%s) [%s]',
                     chainId,
-                    newHead.height,
-                    newHead.hash,
+                    fetchedNumbers.length,
+                    fetchedNumbers[0],
+                    fetchedNumbers.reverse().join(', '),
                   )
                 })(),
               ).pipe(

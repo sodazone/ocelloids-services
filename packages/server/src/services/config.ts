@@ -34,6 +34,7 @@ const globalConsensus = [
   'bygenesis',
   'bitcoincore',
   'bitcoincash',
+  'near',
 ] as const
 
 export type GlobalConsensus = (typeof globalConsensus)[number]

@@ -4,9 +4,9 @@ import { Logger, NetworkURN } from '@/services/index.js'
 import { BitcoinApi } from '@/services/networking/bitcoin/client.js'
 import Connector from '@/services/networking/connector.js'
 import { EvmApi } from '@/services/networking/evm/client.js'
+import { NearApi } from '@/services/networking/near/client.js'
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { ApiClient, ApiOps, NeutralHeader } from '@/services/networking/types.js'
-import { NearApi } from '@/services/networking/near/client.js'
 
 interface ClientMap {
   bitcoin: BitcoinApi

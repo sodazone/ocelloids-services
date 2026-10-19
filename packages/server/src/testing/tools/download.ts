@@ -4,12 +4,13 @@ import * as url from 'node:url'
 
 import { Command, Option } from 'commander'
 import { pino } from 'pino'
-
+import { asJSON } from '@/common/util.js'
 import { EvmApi } from '@/services/networking/evm/client.js'
 import { encodeEvmBlock } from '@/services/networking/evm/codec.js'
+import { NearApi } from '@/services/networking/near/client.js'
 import { createSubstrateClient } from '@/services/networking/substrate/client.js'
 import { encodeBlock } from '@/services/networking/substrate/codec.js'
-import { evmNetworks, substrateNetworks } from './common.js'
+import { evmNetworks, nearNetworks, substrateNetworks } from './common.js'
 
 const __dirname = url.fileURLToPath(new URL('..', import.meta.url))
 
@@ -20,6 +21,10 @@ function getNetworkInfo(name: string) {
   if (evmNetworks[name]) {
     const config = evmNetworks[name]
     return { type: 'evm', endpoint: config.url, networkId: config.networkId }
+  }
+  if (nearNetworks[name]) {
+    const config = nearNetworks[name]
+    return { type: 'near', endpoint: config.url, networkId: config.networkId }
   }
   throw new Error(`Unknown network: ${name}`)
 }
@@ -48,6 +53,20 @@ async function download([name, endpoint, height, type]: [string, string, number,
     fs.writeFileSync(dest, encodeEvmBlock(block))
 
     await client.disconnect()
+  } else if (type === 'near') {
+    const client = new NearApi(logger, name, endpoint)
+    await client.connect()
+
+    const block = await client.getBlockBalanced(height)
+    const chain = Object.entries(nearNetworks).find(([_name, { networkId }]) => networkId === client.chainId)
+    const dest = path.resolve(
+      __dirname,
+      `__data__/blocks/${chain ? chain[0] : client.chainId}`,
+      `${block.number}.json`,
+    )
+    logger.info('Write %s', dest)
+    fs.mkdirSync(path.dirname(dest), { recursive: true })
+    fs.writeFileSync(dest, asJSON(block))
   } else {
     const client = await createSubstrateClient(logger, name, endpoint)
 
@@ -72,7 +91,11 @@ new Command()
   .addOption(
     new Option('-n, --network <name>', 'network name')
       .default('polkadot')
-      .choices([...Object.keys(substrateNetworks), ...Object.keys(evmNetworks)]),
+      .choices([
+        ...Object.keys(substrateNetworks),
+        ...Object.keys(evmNetworks),
+        ...Object.keys(nearNetworks),
+      ]),
   )
   .action(async (height, { network }) => {
     if (!/^[0-9]+$/.test(height)) {

@@ -8,6 +8,7 @@ import { ArchiveRepository } from '@/services/archive/repository.js'
 import { IngressConsumers } from '@/services/ingress/consumer/types.js'
 import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
 import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
+import { NearLocalConsumer } from '@/services/networking/near/ingress/local.js'
 import { SubstrateLocalConsumer } from '@/services/networking/substrate/ingress/index.js'
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { LocalAgentCatalog } from '../services/agents/catalog/local.js'
@@ -21,7 +22,6 @@ import { Scheduler } from '../services/scheduling/scheduler.js'
 import { LevelDB, Services } from '../services/types.js'
 import { AgentServiceMode } from '../types.js'
 import { _configToml } from './data.js'
-import { NearLocalConsumer } from '@/services/networking/near/ingress/local.js'
 
 export const _log = pino({
   enabled: false,
@@ -99,7 +99,7 @@ export function createServices(): Services {
     } as unknown as BitcoinIngressConsumer,
     // TODO: impl mock
     evm: new EvmLocalConsumer(__services),
-    near: new NearLocalConsumer(__services)
+    near: new NearLocalConsumer(__services),
   }
   const _egress = new Egress(__services)
   const _subsDB = new SubsStore(_log, _rootDB)

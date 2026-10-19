@@ -25,3 +25,7 @@ export const evmNetworks: Record<string, { url: string; networkId: string }> = {
   hydration_evm: { url: 'https://rpc.hydradx.cloud', networkId: 'urn:ocn:ethereum:222222' },
   arbitrum: { url: 'https://arbitrum-one-public.nodies.app', networkId: 'urn:ocn:ethereum:42161' },
 }
+
+export const nearNetworks: Record<string, { url: string; networkId: string }> = {
+  near: { url: 'https://near.drpc.org', networkId: 'urn:ocn:near:397' },
+}

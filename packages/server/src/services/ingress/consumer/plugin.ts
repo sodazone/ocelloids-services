@@ -3,6 +3,7 @@ import fp from 'fastify-plugin'
 
 import { BitcoinLocalConsumer } from '@/services/networking/bitcoin/ingress/local.js'
 import { EvmLocalConsumer } from '@/services/networking/evm/ingress/local.js'
+import { NearLocalConsumer } from '@/services/networking/near/ingress/local.js'
 import {
   SubstrateDistributedConsumer,
   SubstrateLocalConsumer,
@@ -10,7 +11,6 @@ import {
 import { IngressOptions } from '@/types.js'
 import { ConsumerApi } from './routes.js'
 import { IngressConsumers } from './types.js'
-import { NearLocalConsumer } from '@/services/networking/near/ingress/local.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -38,7 +38,7 @@ const ingressConsumerPlugin: FastifyPluginAsync<IngressOptions> = async (fastify
     substrate: substrateConsumer,
     evm: evmConsumer,
     bitcoin: bitcoinConsumer,
-    near: nearConsumer
+    near: nearConsumer,
   }
 
   fastify.addHook('onClose', (server, done) => {
