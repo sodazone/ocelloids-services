@@ -4,6 +4,7 @@ import { deserializeTransferPayload } from '../mappers/payload.js'
 import {
   encodeNativeTokenTransfer,
   extractEncodedNttManagerMessage,
+  nttManagerDigestFromOp,
   nttManagerMessageDigest,
   nttManagerMessageDigestFromHex,
 } from './digest.js'
@@ -44,11 +45,18 @@ const transferData = {
 
 describe('Native Token Transfer (NTT) Digest Verification', () => {
   it('should compute valid digest directly from extracted transceiver nttManagerPayload', () => {
-    const rawTransceiverBytes = deserializeTransferPayload(transferData.vaa.raw) as Hex
-    const encodedNttMsg = extractEncodedNttManagerMessage(rawTransceiverBytes)
+    const deserialized = deserializeTransferPayload(transferData.vaa.raw)
+    const encodedNttMsg = deserialized?.payload ? extractEncodedNttManagerMessage(deserialized.payload) : null
 
-    const digest = nttManagerMessageDigestFromHex(transferData.emitterChain, encodedNttMsg)
+    const digest = encodedNttMsg
+      ? nttManagerMessageDigestFromHex(transferData.emitterChain, encodedNttMsg)
+      : null
 
+    expect(digest).toBe('0x4ae440693834eae4f4bb48e37637250fbf16b934f147cdcd228c578db5889b24')
+  })
+
+  it('should compute valid digest from Wormhole op', () => {
+    const digest = nttManagerDigestFromOp(transferData.vaa.raw)
     expect(digest).toBe('0x4ae440693834eae4f4bb48e37637250fbf16b934f147cdcd228c578db5889b24')
   })
 

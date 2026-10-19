@@ -1,7 +1,7 @@
 import { Observable } from 'rxjs'
 import { IngressConsumer } from '@/services/ingress/index.js'
 import { NetworkURN } from '@/services/types.js'
-import { NearBlock, NearNetworkInfo, NearTxStatus } from '../client.js'
+import { NearBlock, NearNetworkInfo, NearTxStatus } from '../types.js'
 
 export interface NearIngressConsumer extends IngressConsumer {
   newBlocks(chainId: NetworkURN): Observable<NearBlock>

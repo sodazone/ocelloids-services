@@ -1,6 +1,7 @@
 import { NetworkURN } from '@/lib.js'
 import { BitcoinIngressConsumer } from '@/services/networking/bitcoin/ingress/types.js'
 import { EvmIngressConsumer } from '@/services/networking/evm/ingress/types.js'
+import { NearIngressConsumer } from '@/services/networking/near/ingress/types.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
 import { TelemetryCollect, TelemetryEventEmitter } from '@/services/telemetry/types.js'
 
@@ -16,4 +17,5 @@ export type IngressConsumers = {
   substrate: SubstrateIngressConsumer
   bitcoin: BitcoinIngressConsumer
   evm: EvmIngressConsumer
+  near: NearIngressConsumer
 }

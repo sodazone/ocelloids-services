@@ -7,9 +7,9 @@ import {
   finalize,
   from,
   lastValueFrom,
-  map,
   merge,
   mergeMap,
+  mergeWith,
   Observable,
   of,
   Subject,
@@ -18,14 +18,15 @@ import {
   takeUntil,
   tap,
   timeout,
-  timer,
 } from 'rxjs'
 import { retryWithTruncatedExpBackoff, shutdown$ } from '@/common/index.js'
 import { AnyJson, NetworkURN, Services } from '@/services/types.js'
 import Connector from '../../connector.js'
 import { NeutralHeader } from '../../types.js'
 import { RETRY_INFINITE, Watcher } from '../../watcher.js'
-import { NearApi, NearBlock, NearTxStatus } from '../client.js'
+import { NearApi } from '../client.js'
+import { NearBlock, NearTxStatus } from '../types.js'
+import { NearBackfill } from './backfill.js'
 
 const API_TIMEOUT_MS = 4 * 60_000
 
@@ -36,6 +37,7 @@ export class NearWatcher extends Watcher<NearBlock> {
   readonly #finalized$: Record<NetworkURN, Observable<NearBlock>> = {}
   readonly #new$: Record<NetworkURN, Observable<NearBlock>> = {}
   readonly #apiCancel: Record<NetworkURN, Subject<void>> = {}
+  readonly #backfill: NearBackfill
 
   readonly chainIds: NetworkURN[]
   readonly #connector: Connector
@@ -43,15 +45,17 @@ export class NearWatcher extends Watcher<NearBlock> {
   constructor(services: Services) {
     super(services)
 
-    const { connector } = services
+    const { log, connector } = services
 
     this.#connector = connector
     this.#apis = connector.connectAll('near')
     this.chainIds = (Object.keys(this.#apis) as NetworkURN[]) ?? []
+    this.#backfill = new NearBackfill(log, this.getApi$.bind(this))
   }
 
   start() {
     super.start()
+    this.#backfill.start(this.chainIds)
   }
 
   async stop() {
@@ -69,6 +73,8 @@ export class NearWatcher extends Watcher<NearBlock> {
         ),
       )
     }
+
+    this.#backfill.stop()
 
     const finalizeds = Object.values(this.#finalized$).map((s) => safeLastValueFrom(s))
     await Promise.allSettled(finalizeds)
@@ -147,6 +153,7 @@ export class NearWatcher extends Watcher<NearBlock> {
 
     let lastReset = Date.now()
 
+    const backfill$ = this.#backfill.getBackfill$(chainId)
     const finalized$ = this.#api$[chainId].pipe(
       switchMap((api) => {
         const live$ = api.followHeads$('finalized').pipe(
@@ -170,7 +177,8 @@ export class NearWatcher extends Watcher<NearBlock> {
           }),
         )
 
-        return live$.pipe(
+        return backfill$.pipe(
+          mergeWith(live$),
           takeUntil(merge(shutdown$, cancel$)),
           finalize(() => this.log.info('[%s] Inner finalized block stream completed', chainId)),
         )

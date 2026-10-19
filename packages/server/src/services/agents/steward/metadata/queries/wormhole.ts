@@ -3,6 +3,74 @@ import { QueryResult } from '../../../types.js'
 import { AssetMetadata, WormholeNetwork } from '../../types.js'
 import { assetMetadataKey } from '../../util.js'
 
+export const WormholeChainNameToId = {
+  Solana: 1,
+  Ethereum: 2,
+  Bsc: 4,
+  Polygon: 5,
+  Avalanche: 6,
+  Algorand: 8,
+  Klaytn: 13,
+  Celo: 14,
+  Near: 15,
+  Moonbeam: 16,
+  Injective: 19,
+  Osmosis: 20,
+  Sui: 21,
+  Aptos: 22,
+  Arbitrum: 23,
+  Optimism: 24,
+  Pythnet: 26,
+  Btc: 29,
+  Base: 30,
+  Sei: 32,
+  Linea: 38,
+  Berachain: 39,
+  Seievm: 40,
+  Unichain: 44,
+  Worldchain: 45,
+  Ink: 46,
+  HyperEVM: 47,
+  Monad: 48,
+  Mezo: 50,
+  Fogo: 51,
+  Sonic: 52,
+  Converge: 53,
+  Plume: 55,
+  XRPLEVM: 57,
+  Plasma: 58,
+  CreditCoin: 59,
+  Stacks: 60,
+  Moca: 63,
+  MegaETH: 64,
+  Xrpl: 66,
+  ZeroGravity: 67,
+  Tempo: 68,
+  Nexus: 69,
+  Arc: 71,
+  Robinhood: 72,
+  Hydration: 73,
+  Wormchain: 3104,
+  Cosmoshub: 4000,
+  Evmos: 4001,
+  Kujira: 4002,
+  Neutron: 4003,
+  Celestia: 4004,
+  Stargaze: 4005,
+  Seda: 4006,
+  Dymension: 4007,
+  Provenance: 4008,
+  Noble: 4009,
+  Sepolia: 10002,
+  ArbitrumSepolia: 10003,
+  BaseSepolia: 10004,
+  OptimismSepolia: 10005,
+  Holesky: 10006,
+  PolygonSepolia: 10007,
+  MonadTestnet: 10009,
+  HyperCore: 65000,
+} as const
+
 export const WormholeIds = {
   MOONBEAM_ID: 16,
   SOLANA_ID: 1,
@@ -59,6 +127,10 @@ export function chainIdToUrn(chainId: number): NetworkURN {
 
 export function urnToChainId(chainUrn: NetworkURN): number | undefined {
   return WormholeChainIds[chainUrn]
+}
+
+export function chainNameToChainId(chainName: keyof typeof WormholeChainNameToId): number | undefined {
+  return WormholeChainNameToId[chainName]
 }
 
 export class WormholeQueryHandler {

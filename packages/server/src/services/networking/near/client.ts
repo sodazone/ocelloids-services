@@ -2,31 +2,7 @@ import { JsonRpcProvider } from 'near-api-js'
 import { defer, Observable, retry, switchMap, timer } from 'rxjs'
 import { Logger } from '@/services/types.js'
 import { ApiClient, Finality, NeutralHeader } from '../types.js'
-
-type ProviderInstance = InstanceType<typeof JsonRpcProvider>
-export type NearBlockHeader = Awaited<ReturnType<ProviderInstance['viewBlock']>>
-export type ChunkHeaderView = NearBlockHeader['chunks'][number]
-export type NearChunk = ChunkHeaderView & Awaited<ReturnType<ProviderInstance['viewChunk']>>
-export type NearTxStatus = Awaited<ReturnType<ProviderInstance['viewTransactionStatus']>>
-export type NearTransaction = NearChunk['transactions'][number]
-export type NearBlock = NearBlockHeader & {
-  transactions: NearTransaction[]
-  timestamp: number
-  number: number
-  hash: string
-  parentHash: string
-  ingestionMode?: string
-}
-
-export type NearNetworkInfo = {
-  chainId: string
-  rpcUrl: string
-  networkId?: string
-  latestBlockHeight?: number
-  syncing?: boolean
-  protocolVersion?: string
-  nodeSoftwareVersion?: string
-}
+import { NearBlock, NearChunk, NearNetworkInfo, NearTxStatus } from './types.js'
 
 type ProviderStat = {
   url: string
@@ -34,7 +10,7 @@ type ProviderStat = {
   rateLimitedUntil: number
   totalRequests: number
   errors: number
-  inflight: number // Track active concurrent requests
+  inflight: number
 }
 
 const POLL_INTERVAL_MS = 3000
@@ -42,6 +18,25 @@ const MAX_SEEN_BLOCKS = 128
 const EMPTY_TX_ROOT = '11111111111111111111111111111111'
 const FASTNEAR_BASE_URL = 'https://mainnet.neardata.xyz'
 const FASTNEAR_API_LIMIT = 30
+const RPC_TIMEOUT_MS = 10_000 // 10 seconds timeout per provider attempt
+
+function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(errorMessage))
+    }, ms)
+
+    promise
+      .then((res) => {
+        clearTimeout(timer)
+        resolve(res)
+      })
+      .catch((err) => {
+        clearTimeout(timer)
+        reject(err)
+      })
+  })
+}
 
 function reliableNearTimestamp(block: any): number {
   const ns = Number(block.header?.timestamp ?? block.header?.timestamp_nanosec ?? 0)
@@ -75,7 +70,9 @@ export class NearApi implements ApiClient {
   }
 
   async #withLock<T>(action: () => T | Promise<T>): Promise<T> {
-    let release: () => void = () => {}
+    let release: () => void = () => {
+      // noop
+    }
     const nextLock = new Promise<void>((resolve) => {
       release = resolve
     })
@@ -104,7 +101,9 @@ export class NearApi implements ApiClient {
 
   #getRate(key: string): number {
     const stat = this.#stats.get(key)
-    if (!stat) return 0
+    if (!stat) {
+      return 0
+    }
     const now = Date.now()
     stat.requests = stat.requests.filter((t) => now - t < 60000)
     return stat.requests.length
@@ -144,7 +143,9 @@ export class NearApi implements ApiClient {
             lowestInflight = stat.inflight
             bestProviderIndex = providerIndex
             // If we found one with 0 in-flight requests, we can stop searching early
-            if (lowestInflight === 0) break
+            if (lowestInflight === 0) {
+              break
+            }
           }
           currentAttempts++
         }
@@ -174,7 +175,11 @@ export class NearApi implements ApiClient {
       }
 
       try {
-        const result = await fn(provider, url)
+        const result = await withTimeout(
+          fn(provider, url),
+          RPC_TIMEOUT_MS,
+          `[${this.chainId}] RPC call to ${url} timed out after ${RPC_TIMEOUT_MS}ms`,
+        )
         return result
       } catch (err: any) {
         // 2. Handle errors and update rate-limit state under lock
@@ -189,9 +194,9 @@ export class NearApi implements ApiClient {
             err?.statusCode === 429
 
           if (isRateLimit) {
-            // const match = errMsg.match(/retry after (\d+) seconds/i)
-            // const suggestedSeconds = match ? parseInt(match[1], 10) : 30
-            const cooldownMs = 61_000 // (suggestedSeconds + 5) * 1000
+            const match = errMsg.match(/retry after (\d+) seconds/i)
+            const suggestedSeconds = match ? parseInt(match[1], 10) : 30
+            const cooldownMs = (suggestedSeconds + 10) * 1000
 
             this.#log.warn(
               '[client:%s] RPC provider %s hit rate limit: %s. Backing off for %ds and rotating.',
@@ -351,43 +356,45 @@ export class NearApi implements ApiClient {
   }
 
   async #getBlockViaRpc(blockId: string | number | { finality: 'final' | 'optimistic' }): Promise<NearBlock> {
-    return await this.#executeRpc(async (provider) => {
-      let block: NearBlockHeader
+    // 1. Fetch block header using the load balancer
+    const block = await this.#executeRpc(async (provider) => {
       if (typeof blockId === 'string' || typeof blockId === 'number') {
-        block = await provider.viewBlock({ blockId: blockId as any })
+        return await provider.viewBlock({ blockId: blockId as any })
       } else {
-        block = await provider.viewBlock(blockId as any)
-      }
-
-      if (!block || !block.header) {
-        throw new Error(`[${this.chainId}] Block not found for identifier: ${JSON.stringify(blockId)}`)
-      }
-
-      const chunksWithTransactions: (NearChunk | null)[] = []
-      for (const chunkHeader of block.chunks || []) {
-        try {
-          if (chunkHeader.tx_root && chunkHeader.tx_root !== EMPTY_TX_ROOT && chunkHeader.chunk_hash) {
-            const chunkDetails = await provider.viewChunk(chunkHeader.chunk_hash)
-            chunksWithTransactions.push({ ...chunkHeader, ...chunkDetails } as NearChunk)
-          } else {
-            chunksWithTransactions.push(null)
-          }
-        } catch (_e) {
-          //
-        }
-      }
-
-      const transactions = chunksWithTransactions.filter((c) => c !== null).flatMap((c) => c.transactions)
-
-      return {
-        ...block,
-        transactions,
-        timestamp: reliableNearTimestamp(block),
-        number: block.header.height,
-        hash: block.header.hash,
-        parentHash: block.header.prev_hash,
+        return await provider.viewBlock(blockId as any)
       }
     })
+
+    if (!block || !block.header) {
+      throw new Error(`[${this.chainId}] Block not found for identifier: ${JSON.stringify(blockId)}`)
+    }
+
+    // 2. Fetch chunk details concurrently, spreading each request across available RPC providers
+    const chunkPromises = (block.chunks || []).map(async (chunkHeader) => {
+      if (chunkHeader.tx_root && chunkHeader.tx_root !== EMPTY_TX_ROOT && chunkHeader.chunk_hash) {
+        try {
+          const chunkDetails = await this.#executeRpc((provider) =>
+            provider.viewChunk(chunkHeader.chunk_hash),
+          )
+          return { ...chunkHeader, ...chunkDetails } as NearChunk
+        } catch (_e) {
+          return null
+        }
+      }
+      return null
+    })
+
+    const chunksWithTransactions = await Promise.all(chunkPromises)
+    const transactions = chunksWithTransactions.filter((c) => c !== null).flatMap((c) => c.transactions)
+
+    return {
+      ...block,
+      transactions,
+      timestamp: reliableNearTimestamp(block),
+      number: block.header.height,
+      hash: block.header.hash,
+      parentHash: block.header.prev_hash,
+    }
   }
 
   async getBlockBalanced(

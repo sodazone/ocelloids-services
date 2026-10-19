@@ -51,9 +51,9 @@ export const mockConfigWS = new ServiceConfiguration({
           type: 'rpc',
           url: 'wss://near.io',
         },
-      }
-    ]
-  }
+      },
+    ],
+  },
 })
 
 export const mockConfigRelayLast = new ServiceConfiguration({

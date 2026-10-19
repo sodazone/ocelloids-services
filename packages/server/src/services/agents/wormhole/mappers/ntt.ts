@@ -29,7 +29,7 @@ function mapNTTOpToJourney(
   const j = defaultJourneyMapping(op, 'transfer', 'wh_ntt', ctx)
   if (op.vaa && DESTINATIONS.includes(op.content.standarizedProperties.toChain)) {
     try {
-      j.trip_id = nttManagerDigestFromOp(op.emitterChain, op.vaa.raw)
+      j.trip_id = nttManagerDigestFromOp(op.vaa.raw, op.emitterChain)
     } catch (error) {
       console.error('[NTTMapper] while generating manager digest', error)
     }

@@ -1,23 +1,43 @@
 import { MemoryLevel } from 'memory-level'
 import { from, Observable } from 'rxjs'
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import Connector from '@/services/networking/connector.js'
 import { ChainHead } from '@/services/subscriptions/types.js'
 import { jsonEncoded, LevelDB, prefixes, Services } from '@/services/types.js'
-import { createServices } from '@/testing/services.js'
-
-import { NearBlock, NearApi } from '../client.js'
-import { NeutralHeader } from '../../types.js'
-import { NearWatcher } from './watcher.js'
 import { mockConfigWS } from '@/testing/configs.js'
+import { createServices } from '@/testing/services.js'
+import { NeutralHeader } from '../../types.js'
+import { NearApi } from '../client.js'
+import { NearBlock } from '../types.js'
+import { NearWatcher } from './watcher.js'
 
 // Mock fixture blocks representing NEAR chain with skipped height (#101 skipped)
 const mockNearBlocks: NearBlock[] = [
-  { number: 100, hash: 'hash_100', parentHash: 'hash_99', header: { prev_height: 99, prev_hash: 'hash_99' } } as any,
-  { number: 102, hash: 'hash_102', parentHash: 'hash_100', header: { prev_height: 100, prev_hash: 'hash_100' } } as any, // 101 skipped!
-  { number: 103, hash: 'hash_103', parentHash: 'hash_102', header: { prev_height: 102, prev_hash: 'hash_102' } } as any,
-  { number: 104, hash: 'hash_104', parentHash: 'hash_103', header: { prev_height: 103, prev_hash: 'hash_103' } } as any,
+  {
+    number: 100,
+    hash: 'hash_100',
+    parentHash: 'hash_99',
+    header: { prev_height: 99, prev_hash: 'hash_99' },
+  } as any,
+  {
+    number: 102,
+    hash: 'hash_102',
+    parentHash: 'hash_100',
+    header: { prev_height: 100, prev_hash: 'hash_100' },
+  } as any, // 101 skipped!
+  {
+    number: 103,
+    hash: 'hash_103',
+    parentHash: 'hash_102',
+    header: { prev_height: 102, prev_hash: 'hash_102' },
+  } as any,
+  {
+    number: 104,
+    hash: 'hash_104',
+    parentHash: 'hash_103',
+    header: { prev_height: 103, prev_hash: 'hash_103' },
+  } as any,
 ]
 
 function waitForEmissions<T>(obs: Observable<T>, expectedCount: number, stopFn?: () => void): Promise<T[]> {
@@ -36,12 +56,16 @@ function waitForEmissions<T>(obs: Observable<T>, expectedCount: number, stopFn?:
         }
       },
       error: (err) => {
-        if (stopFn) stopFn()
+        if (stopFn) {
+          stopFn()
+        }
         reject(err)
       },
       complete: () => {
         if (emitted.length !== expectedCount) {
-          if (stopFn) stopFn()
+          if (stopFn) {
+            stopFn()
+          }
           reject(new Error(`Stream completed early: got ${emitted.length}, expected ${expectedCount}`))
         }
       },
@@ -114,10 +138,8 @@ describe('NearWatcher catchup', () => {
       watcher.start()
 
       // 3. Expect 4 blocks to be caught up: #104, #103, #102, #100 (smoothly skipping missing block #101)
-      const blocks = await waitForEmissions(
-        watcher.finalizedBlocks('urn:ocn:near:397' as any),
-        4,
-        () => watcher.stop(),
+      const blocks = await waitForEmissions(watcher.finalizedBlocks('urn:ocn:near:397' as any), 4, () =>
+        watcher.stop(),
       )
 
       expect(blocks.map((b) => b.number)).toEqual([104, 103, 102, 100])

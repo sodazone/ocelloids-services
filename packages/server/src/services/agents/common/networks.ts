@@ -41,4 +41,5 @@ export const networks: Record<string, NetworkURN> = setNetworks({
   polygon: 'urn:ocn:ethereum:137',
   unichain: 'urn:ocn:ethereum:130',
   robinhood: 'urn:ocn:ethereum:4663',
+  near: 'urn:ocn:near:397',
 })

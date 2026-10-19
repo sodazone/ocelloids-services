@@ -1,6 +1,6 @@
 import { LocalIngressConsumer } from '@/services/ingress/consumer/base.js'
 import { Services } from '@/services/types.js'
-import { NearBlock, NearNetworkInfo, NearTxStatus } from '../client.js'
+import { NearBlock, NearNetworkInfo, NearTxStatus } from '../types.js'
 import { NearIngressConsumer } from './types.js'
 import { NearWatcher } from './watcher.js'
 

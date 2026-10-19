@@ -1,6 +1,7 @@
 import { deserialize, deserializePayload } from '@wormhole-foundation/sdk-definitions'
 import { toHex } from 'viem'
 import { NewAssetOperation, NewJourney } from '@/services/agents/crosschain/index.js'
+import { chainNameToChainId } from '../../steward/metadata/queries/wormhole.js'
 import { moonbeamEnhancers } from '../moonbeam/enhancers.js'
 
 export type PayloadEnhancer = (
@@ -17,8 +18,11 @@ const Discriminator: Record<number, string> = {
 export function deserializeTransferPayload(vaa: string) {
   try {
     const vaaBytes = new Uint8Array(Buffer.from(vaa, 'base64'))
-    const { payload } = deserialize('Uint8Array', vaaBytes)
-    return toHex(payload)
+    const { payload, emitterChain } = deserialize('Uint8Array', vaaBytes)
+    return {
+      payload: toHex(payload),
+      emitterChain: chainNameToChainId(emitterChain),
+    }
   } catch (e) {
     console.error('Failed to deserialize VAA payload', e)
     return null

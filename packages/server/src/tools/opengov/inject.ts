@@ -6,11 +6,13 @@ import Connector from '@/services/networking/connector.js'
 import { EvmApi } from '@/services/networking/evm/client.js'
 import { SubstrateApi } from '@/services/networking/substrate/types.js'
 import { ApiClient, ApiOps, NeutralHeader } from '@/services/networking/types.js'
+import { NearApi } from '@/services/networking/near/client.js'
 
 interface ClientMap {
   bitcoin: BitcoinApi
   substrate: SubstrateApi
   evm: EvmApi
+  near: NearApi
 }
 
 /**

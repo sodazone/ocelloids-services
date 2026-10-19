@@ -75,9 +75,16 @@ export function nttManagerMessageDigest(sourceChainId: number, m: NttManagerMess
   return keccak256(concat([sourceChainIdHex, encodedMsg]))
 }
 
-export function nttManagerDigestFromOp(emitterChain: number, vaa: string) {
-  const rawTransceiverBytes = deserializeTransferPayload(vaa) as Hex
-  const encodedNttMsg = extractEncodedNttManagerMessage(rawTransceiverBytes)
+export function nttManagerDigestFromOp(vaa: string, emitterChain?: number) {
+  const deserialized = deserializeTransferPayload(vaa)
+  if (!deserialized) {
+    return undefined
+  }
+  const emitter = deserialized.emitterChain ?? emitterChain
+  if (!emitter) {
+    return undefined
+  }
+  const encodedNttMsg = extractEncodedNttManagerMessage(deserialized.payload)
 
-  return nttManagerMessageDigestFromHex(emitterChain, encodedNttMsg)
+  return nttManagerMessageDigestFromHex(emitter, encodedNttMsg)
 }

@@ -8,7 +8,6 @@ import {
   WormholeSupportedNetworks,
 } from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { toUTCMillis } from '@/services/archive/time.js'
-import { IngressConsumers } from '@/services/ingress/index.js'
 import { isWormholeId } from '@/services/networking/apis/wormhole/ids.js'
 import {
   isWormholeProtocol,
@@ -33,10 +32,11 @@ import { DataSteward } from '../steward/agent.js'
 import { Agent, AgentMetadata, AgentRuntimeContext, getAgentCapabilities } from '../types.js'
 import { mapOperationToJourney, mergeUpdatedStops, NewJourneyWithAssets } from './mappers/index.js'
 import { createTokenRegistry, WormholeTokenRegistry } from './metadata/tokens.js'
-import { extractNttTransferRedeemed, TransferRedeemedPayload } from './ntt/ops.js'
+import { TransferRedeemedPayload } from './ntt/ops.js'
 import { WormholePendingCache } from './pending.js'
 import { TelemetryWormholeEventEmitter } from './telemetry/events.js'
 import { collectWormholeStats, wormholeAgentMetrics } from './telemetry/metrics.js'
+import { NttWatcher, toNttWatcher } from './watcher.js'
 import { WormholeWorkerPool } from './worker.pool.js'
 
 const OPERATION_LOOKUP_WINDOW_MS = 5 * 60_000
@@ -46,7 +46,7 @@ const PENDING_RECHECK_WINDOW_MAX = 604_800_000 // 7 days
 const RECHECK_CONCURRENCY = Number(process.env.WORMHOLE_RECHECK_CONCURRENCY ?? 1)
 const RECHECK_ENABLED = process.env.WORMHOLE_RECHECK_PENDING !== 'false'
 const FINAL_STATUS: JourneyStatus[] = ['received', 'failed']
-const NTT_RECEIVER_CHAINS = [networks.hydration_evm, networks.robinhood]
+const NTT_RECEIVER_CHAINS = [networks.hydration_evm, networks.robinhood, networks.near]
 const WH_WATCHED_CHAINS: WormholeWatcherConfig[] = [
   { chain: WormholeIds.HYDRATION_ID, mode: 'operations' },
   { chain: WormholeIds.NEAR_ID, address: 'omni-relayer.bridge.near', mode: 'operations' },
@@ -83,33 +83,32 @@ export class WormholeAgent implements Agent {
   readonly #log: Logger
   readonly #config: Record<string, any>
   readonly #crosschain: CrosschainExplorer
-  readonly #ingress: IngressConsumers
   readonly #repository: CrosschainRepository
   readonly #telemetry: TelemetryWormholeEventEmitter
   readonly #wormholeQueue: PQueue
   readonly #wormholePendingCache: WormholePendingCache
   readonly #worker: WormholeWorkerPool
   readonly #tokenRegistry: WormholeTokenRegistry
+  readonly #watcher: NttWatcher
 
   readonly #subs: RxSubscriptionWithId[] = []
 
   constructor(
-    ctx: AgentRuntimeContext,
+    { config, log, ingress }: AgentRuntimeContext,
     deps: {
       steward: DataSteward
       crosschain: CrosschainExplorer
     },
   ) {
-    this.#log = ctx.log
-    this.#config = ctx.config ?? {}
+    this.#log = log
+    this.#config = config ?? {}
     this.#crosschain = deps.crosschain
     this.#repository = deps.crosschain?.repository
-    this.#ingress = ctx.ingress
 
     this.#telemetry = createTypedEventEmitter<TelemetryWormholeEventEmitter>()
     this.#tokenRegistry = createTokenRegistry(deps.steward)
     this.#wormholeQueue = new PQueue({ concurrency: RECHECK_CONCURRENCY, interval: 1200, intervalCap: 1 })
-    this.#wormholePendingCache = new WormholePendingCache(ctx.log)
+    this.#wormholePendingCache = new WormholePendingCache(log)
     this.#worker = new WormholeWorkerPool(
       new URL('../../../../dist/services/agents/wormhole/worker.js', import.meta.url),
       { dataPath: process.env.OC_DATA_DIR ?? './.db/' },
@@ -121,6 +120,7 @@ export class WormholeAgent implements Agent {
         this.#log.error('[agent:%s] watcher stream error: %s', this.id, msg.error)
       }
     })
+    this.#watcher = toNttWatcher(log, ingress)
 
     this.#log.info('[agent:%s] created with config: %j', this.id, this.#config)
   }
@@ -408,34 +408,22 @@ export class WormholeAgent implements Agent {
     }
   }
 
-  // TODO: extract to extensible config + generic watcher to support more events, protocols and networks
   #subscribeWatchers() {
     for (const networkId of NTT_RECEIVER_CHAINS) {
-      if (!this.#ingress.evm.isNetworkDefined(networkId)) {
-        this.#log.warn(
-          '[%s] %s not configured, skipping subscription to NTT redeem events.',
-          this.id,
-          networkId,
-        )
+      const stream$ = this.#watcher.getStream(networkId)
+      if (!stream$) {
         continue
       }
 
       this.#subs.push({
         id: `${networkId}.ntt.in`,
-        sub: this.#ingress.evm
-          .streamLogs(networkId)
-          .pipe(
-            extractNttTransferRedeemed(networkId, (blockNumber: bigint | string) =>
-              this.#ingress.evm.getBlockTimestampMs(networkId, blockNumber),
-            ),
-          )
-          .subscribe({
-            error: (error: any) => {
-              this.#log.error(error, '[%s] %s error on origin stream', this.id, networkId)
-            },
-            next: this.#matchRedeemed.bind(this),
-            complete: () => this.#log.info('[%s] %s complete on origin stream', this.id, networkId),
-          }),
+        sub: stream$.subscribe({
+          error: (error: any) => {
+            this.#log.error(error, '[%s] %s error on origin stream', this.id, networkId)
+          },
+          next: this.#matchRedeemed.bind(this),
+          complete: () => this.#log.info('[%s] %s complete on origin stream', this.id, networkId),
+        }),
       })
     }
   }
@@ -476,6 +464,10 @@ export class WormholeAgent implements Agent {
         status: 'received',
         recv_at: msg.timestamp,
         stops: asJSON(updatedStops),
+      }
+
+      if (msg.recipient) {
+        update.to_formatted = msg.recipient
       }
 
       await this.#repository.updateJourney(trip.id, update)
