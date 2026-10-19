@@ -40,7 +40,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, errorMessage: string): 
 
 function reliableNearTimestamp(block: any): number {
   const ns = Number(block.header?.timestamp ?? block.header?.timestamp_nanosec ?? 0)
-  return ns > 0 ? ns / 1_000_000_000 : Date.now() / 1_000
+  return ns > 0 ? Math.floor(ns / 1_000_000) : Date.now()
 }
 
 export class NearApi implements ApiClient {
