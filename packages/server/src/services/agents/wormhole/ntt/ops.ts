@@ -2,7 +2,11 @@ import { catchError, concatMap, EMPTY, filter, from, map, Observable } from 'rxj
 import { Abi } from 'viem'
 import { enrichLogWithTimestamp, filterAndDecodeLogs } from '@/services/networking/evm/rx/extract.js'
 import { EvmLog } from '@/services/networking/evm/types.js'
-import { isNearTransactionSuccess } from '@/services/networking/near/extract.js'
+import {
+  getTransactionFunctionCallArgs,
+  isNearTransactionSuccess,
+  rlpToNearCallArgs,
+} from '@/services/networking/near/extract.js'
 import { NearTransaction, NearTxStatus } from '@/services/networking/near/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
@@ -28,7 +32,6 @@ const NTT_MANAGER_ADDRESSES: HexString[] = [
 ]
 
 const NEAR_NTT_MANAGER_ADDRESSES: string[] = ['ntt-zec.hydration-whm.near', 'ntt-near.hydration-whm.near']
-const NEAR_NTT_WRAP_ADDRESS: string[] = ['0x23812ff0cddd7157c4760e3bb2d39f5f323a7d3c']
 
 export function extractNttTransferRedeemed(
   chainId: NetworkURN,
@@ -109,17 +112,35 @@ function mapNearNttTransferRedeemed({
   }
 }
 
+function isHydrationNttMessage(tx: NearTransaction): boolean {
+  try {
+    const rlp = getTransactionFunctionCallArgs(tx).find((c) => c.methodName === 'rlp_execute')
+    if (!rlp) {
+      return false
+    }
+    const callB64 = rlp.args['tx_bytes_b64']
+    if (!callB64) {
+      return false
+    }
+    const decoded = rlpToNearCallArgs(callB64)
+
+    if (decoded === null) {
+      return false
+    }
+
+    return decoded.method === 'ntt' && decoded.target === 'hydration-whm.near'
+  } catch (_e) {
+    return false
+  }
+}
+
 export function extractNearNttTransferRedeemed(
   chainId: NetworkURN,
   getTransactionStatus: (txHash: string, senderAccountId: string) => Promise<NearTxStatus>,
 ) {
   return (source: Observable<NearTransaction>): Observable<TransferRedeemedPayload> => {
     return source.pipe(
-      filter(
-        (tx) =>
-          NEAR_NTT_MANAGER_ADDRESSES.includes(tx.receiver_id) ||
-          NEAR_NTT_WRAP_ADDRESS.includes(tx.receiver_id),
-      ),
+      filter((tx) => NEAR_NTT_MANAGER_ADDRESSES.includes(tx.receiver_id) || isHydrationNttMessage(tx)),
       concatMap((tx) =>
         from(getTransactionStatus(tx.hash, tx.signer_id)).pipe(
           map((txResult) => {

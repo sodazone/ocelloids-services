@@ -117,7 +117,10 @@ export class NearApi implements ApiClient {
     this.#log.info('[client:%s] Request rates (last 60s req/min): %o', this.chainId, rates)
   }
 
-  async #executeRpc<T>(fn: (provider: JsonRpcProvider, url: string) => Promise<T>): Promise<T> {
+  async #executeRpc<T>(
+    fn: (provider: JsonRpcProvider, url: string) => Promise<T>,
+    fnArgs?: { method: string; args: any },
+  ): Promise<T> {
     const numProviders = this.#providers.length
     let attempts = 0
 
@@ -185,11 +188,13 @@ export class NearApi implements ApiClient {
         // 2. Handle errors and update rate-limit state under lock
         await this.#withLock(() => {
           const errMsg = err?.message || String(err)
+          const errMsgStr = errMsg.toLowerCase()
           const isRateLimit =
             errMsg.includes('429') ||
-            errMsg.toLowerCase().includes('too many requests') ||
-            errMsg.toLowerCase().includes('rate limit exceeded') ||
-            errMsg.toLowerCase().includes('retry after') ||
+            errMsgStr.includes('too many requests') ||
+            errMsgStr.includes('rate limit exceeded') ||
+            errMsgStr.includes('retry after') ||
+            errMsgStr.includes('endpoint rate limit') ||
             err?.status === 429 ||
             err?.statusCode === 429
 
@@ -211,10 +216,11 @@ export class NearApi implements ApiClient {
           } else {
             this.#log.warn(
               err,
-              '[client:%s] RPC provider %s failed: %s. Trying next provider.',
+              '[client:%s] RPC provider %s failed: %s (%j). Trying next provider.',
               this.chainId,
               url,
               errMsg,
+              fnArgs ?? {},
             )
             stat.errors++
           }
@@ -243,7 +249,11 @@ export class NearApi implements ApiClient {
   }
 
   async getBlockHash(height: number): Promise<string> {
-    const block = await this.#executeRpc((provider) => provider.viewBlock({ blockId: height }))
+    const args = { blockId: height }
+    const block = await this.#executeRpc((provider) => provider.viewBlock(args), {
+      method: 'getBlockHash',
+      args,
+    })
     if (!block || !block.header) {
       throw new Error(`[${this.chainId}] Block at height #${height} not found`)
     }
@@ -357,25 +367,33 @@ export class NearApi implements ApiClient {
   }
 
   async #getBlockViaRpc(blockId: string | number | { finality: 'final' | 'optimistic' }): Promise<NearBlock> {
-    // 1. Fetch block header using the load balancer
-    const block = await this.#executeRpc(async (provider) => {
-      if (typeof blockId === 'string' || typeof blockId === 'number') {
-        return await provider.viewBlock({ blockId: blockId as any })
-      } else {
-        return await provider.viewBlock(blockId as any)
-      }
-    })
+    const block = await this.#executeRpc(
+      async (provider) => {
+        if (typeof blockId === 'string' || typeof blockId === 'number') {
+          return await provider.viewBlock({ blockId: blockId as any })
+        } else {
+          return await provider.viewBlock(blockId as any)
+        }
+      },
+      {
+        method: '#getBlockViaRpc.block',
+        args: blockId,
+      },
+    )
 
     if (!block || !block.header) {
       throw new Error(`[${this.chainId}] Block not found for identifier: ${JSON.stringify(blockId)}`)
     }
 
-    // 2. Fetch chunk details concurrently, spreading each request across available RPC providers
     const chunkPromises = (block.chunks || []).map(async (chunkHeader) => {
       if (chunkHeader.tx_root && chunkHeader.tx_root !== EMPTY_TX_ROOT && chunkHeader.chunk_hash) {
         try {
-          const chunkDetails = await this.#executeRpc((provider) =>
-            provider.viewChunk(chunkHeader.chunk_hash),
+          const chunkDetails = await this.#executeRpc(
+            (provider) => provider.viewChunk(chunkHeader.chunk_hash),
+            {
+              method: '#getBlockViaRpc.chunk',
+              args: { blockId, chunkId: chunkHeader.chunk_hash },
+            },
           )
           return { ...chunkHeader, ...chunkDetails } as NearChunk
         } catch (_e) {
@@ -482,7 +500,7 @@ export class NearApi implements ApiClient {
         }
         this.#stats.set(fastNearKey, stat)
       }
-      stat.rateLimitedUntil = Date.now() + 60_000
+      stat.rateLimitedUntil = Date.now() + 55_000
       stat.errors++
       const errText = await res.text().catch(() => 'rate-limit exceeded')
       this.#logRates()
@@ -543,12 +561,14 @@ export class NearApi implements ApiClient {
   }
 
   async getTransactionStatus(txHash: string, senderAccountId: string): Promise<NearTxStatus> {
-    const status = await this.#executeRpc((provider) =>
-      provider.viewTransactionStatus({
-        txHash,
-        accountId: senderAccountId,
-      }),
-    )
+    const args = {
+      txHash,
+      accountId: senderAccountId,
+    }
+    const status = await this.#executeRpc((provider) => provider.viewTransactionStatus(args), {
+      method: 'getTransactionStatus',
+      args,
+    })
     return status as NearTxStatus
   }
 
