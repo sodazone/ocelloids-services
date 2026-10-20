@@ -8,6 +8,7 @@ import { fromHex, toHex } from 'polkadot-api/utils'
 import { TextEncoder } from 'util'
 
 import { HexString } from '@/lib.js'
+import { addressToHex } from '@/services/agents/wormhole/types/address.js'
 import { Event } from '@/services/networking/substrate/types.js'
 import { publicKeyToSS58, ss58ToPublicKey } from './address.js'
 
@@ -105,6 +106,11 @@ export function asPublicKey(accountId: string): HexString {
       return normalizePublicKey(accountId as HexString)
     }
     throw new Error(`invalid 0x address length ${len}`)
+  }
+
+  // NEAR named and implicit account (64-character hex string)
+  if (accountId.endsWith('.near') || /^[0-9a-f]{64}$/i.test(accountId)) {
+    return addressToHex(accountId) as HexString
   }
 
   // Polkadot/Substrate

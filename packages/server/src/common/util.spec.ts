@@ -45,6 +45,18 @@ describe('utility functions', () => {
       expect(asPublicKey(address)).toBe(expectedHex)
     })
 
+    it('should accept Near named addresses', () => {
+      const address = 'omni-relayer.bridge.near'
+      const expectedHex = '0x4fa446f236a9de33950b38cfe466d65ef041f3840d5df9efff2370e4ded7dca1'
+      expect(asPublicKey(address)).toBe(expectedHex)
+    })
+
+    it('should accept Near implicit addresses', () => {
+      const address = '1420e04917a1e0d18a625cc4fec1155ab784178d5022154a01b1c1c7b4972acb'
+      const expectedHex = '0x6d0f1ebaca1acceda1f4181330f1c346b4df7b14a370d0d0420c4125698574f7'
+      expect(asPublicKey(address)).toBe(expectedHex)
+    })
+
     it('should throw on invalid 0x strings', () => {
       expect(() => asPublicKey('0x1234')).toThrow(/invalid 0x address length/)
     })

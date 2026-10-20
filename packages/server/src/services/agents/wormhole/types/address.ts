@@ -17,7 +17,7 @@ export function addressToHex(addr: string): string {
     return '0x' + addr.slice(2).toLowerCase()
   }
 
-  if (addr.endsWith('.near')) {
+  if (addr.endsWith('.near') || /^[0-9a-f]{64}$/i.test(addr)) {
     return '0x' + createHash('sha256').update(addr, 'utf-8').digest('hex')
   }
 
