@@ -2,15 +2,11 @@ import { catchError, concatMap, EMPTY, filter, from, map, Observable } from 'rxj
 import { Abi } from 'viem'
 import { enrichLogWithTimestamp, filterAndDecodeLogs } from '@/services/networking/evm/rx/extract.js'
 import { EvmLog } from '@/services/networking/evm/types.js'
-import {
-  getTransactionFunctionCallArgs,
-  isNearTransactionSuccess,
-} from '@/services/networking/near/extract.js'
+import { isNearTransactionSuccess } from '@/services/networking/near/extract.js'
 import { NearTransaction, NearTxStatus } from '@/services/networking/near/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { NetworkURN } from '@/services/types.js'
 import nttManagerAbi from '../abis/ntt-manager.json' with { type: 'json' }
-import { nttManagerDigestFromOp } from './digest.js'
 
 type TransferRedeemedLog = {
   digest: HexString
@@ -32,6 +28,7 @@ const NTT_MANAGER_ADDRESSES: HexString[] = [
 ]
 
 const NEAR_NTT_MANAGER_ADDRESSES: string[] = ['ntt-zec.hydration-whm.near', 'ntt-near.hydration-whm.near']
+const NEAR_NTT_WRAP_ADDRESS: string[] = ['0x23812ff0cddd7157c4760e3bb2d39f5f323a7d3c']
 
 export function extractNttTransferRedeemed(
   chainId: NetworkURN,
@@ -63,39 +60,71 @@ export function extractNttTransferRedeemed(
   }
 }
 
+function mapNearNttTransferRedeemed({
+  chainId,
+  tx,
+  txResult,
+}: {
+  chainId: NetworkURN
+  tx: NearTransaction
+  txResult: NearTxStatus
+}): TransferRedeemedPayload | null {
+  if (!txResult?.receipts_outcome) {
+    return null
+  }
+
+  const transferEvent = txResult.receipts_outcome
+    .filter((r) => NEAR_NTT_MANAGER_ADDRESSES.includes(r.outcome.executor_id))
+    .flatMap((r) => r.outcome.logs)
+    .map((log) => {
+      if (!log.startsWith('EVENT_JSON:')) {
+        return null
+      }
+      try {
+        return JSON.parse(log.slice('EVENT_JSON:'.length))
+      } catch {
+        return null
+      }
+    })
+    .find((event) => event?.event === 'transfer_received' && event?.data?.[0]?.digest)
+
+  if (!transferEvent) {
+    return null
+  }
+
+  const data = transferEvent.data[0]
+
+  if (!data.digest) {
+    return null
+  }
+
+  return {
+    digest: `0x${data.digest}`,
+    chainId,
+    blockNumber: tx.blockNumber.toString(),
+    blockHash: tx.blockHash,
+    timestamp: tx.timestamp,
+    txHash: tx.hash,
+    recipient: data.account,
+  }
+}
+
 export function extractNearNttTransferRedeemed(
   chainId: NetworkURN,
   getTransactionStatus: (txHash: string, senderAccountId: string) => Promise<NearTxStatus>,
 ) {
   return (source: Observable<NearTransaction>): Observable<TransferRedeemedPayload> => {
     return source.pipe(
-      filter((tx) => NEAR_NTT_MANAGER_ADDRESSES.includes(tx.receiver_id)),
+      filter(
+        (tx) =>
+          NEAR_NTT_MANAGER_ADDRESSES.includes(tx.receiver_id) ||
+          NEAR_NTT_WRAP_ADDRESS.includes(tx.receiver_id),
+      ),
       concatMap((tx) =>
         from(getTransactionStatus(tx.hash, tx.signer_id)).pipe(
           map((txResult) => {
             if (isNearTransactionSuccess(txResult)) {
-              const call = getTransactionFunctionCallArgs(tx).find((t) => t.methodName === 'complete')
-              if (!call) {
-                return null
-              }
-
-              const args = call.args as { vaa: string; account_id: string }
-              const digest = nttManagerDigestFromOp(args.vaa)
-
-              if (!digest) {
-                return null
-              }
-
-              const redeemed: TransferRedeemedPayload = {
-                digest,
-                chainId,
-                blockNumber: tx.blockNumber.toString(),
-                blockHash: tx.blockHash,
-                timestamp: tx.timestamp,
-                txHash: tx.hash,
-                recipient: args.account_id,
-              }
-              return redeemed
+              return mapNearNttTransferRedeemed({ chainId, tx, txResult })
             }
             return null
           }),
