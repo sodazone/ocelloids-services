@@ -18,7 +18,7 @@ export function addressToHex(addr: string): string {
   }
 
   if (addr.endsWith('.near')) {
-    return createHash('sha256').update(addr, 'utf-8').digest('hex')
+    return '0x' + createHash('sha256').update(addr, 'utf-8').digest('hex')
   }
 
   // Assume Base58
