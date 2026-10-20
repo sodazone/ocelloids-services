@@ -428,12 +428,12 @@ export class NearApi implements ApiClient {
       try {
         return await this.getBlockFast(blockId)
       } catch (err: any) {
-        this.#logRates()
         this.#log.warn(
           '[client:%s] FastNEAR failed: %s. Falling back to RPC load balancer.',
           this.chainId,
           err?.message,
         )
+        this.#logRates()
       }
     } else {
       this.#log.debug(
@@ -503,12 +503,10 @@ export class NearApi implements ApiClient {
       stat.rateLimitedUntil = Date.now() + 55_000
       stat.errors++
       const errText = await res.text().catch(() => 'rate-limit exceeded')
-      this.#logRates()
       throw new Error(`[${this.chainId}] FastNEAR API error (429): ${errText}`)
     }
     if (!res.ok) {
       const errText = await res.text()
-      this.#logRates()
       throw new Error(`[${this.chainId}] FastNEAR API error (${res.status}): ${errText}`)
     }
 
