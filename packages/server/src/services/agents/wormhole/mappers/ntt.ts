@@ -1,4 +1,5 @@
 import { deserialize } from '@wormhole-foundation/sdk-definitions'
+import { isHex } from 'viem'
 import { WormholeIds } from '@/services/agents/steward/metadata/queries/wormhole.js'
 import { PayloadNativeTokenTransfer, WormholeOperation } from '@/services/networking/apis/wormhole/types.js'
 import { NewAssetOperation, NewJourney } from '../../crosschain/index.js'
@@ -41,6 +42,15 @@ function mapNTTOpToJourney(
       j.from = addressToHex(fromAddress)
       j.from_formatted = fromAddress
     }
+  }
+  if (
+    op.content.standarizedProperties.fromChain === WormholeIds.NEAR_ID &&
+    isHex(j.from) &&
+    j.from.length === 66
+  ) {
+    const implicit = j.from.slice(2)
+    j.from = addressToHex(implicit)
+    j.from_formatted = implicit
   }
   return j
 }
