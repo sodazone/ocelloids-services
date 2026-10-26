@@ -50,7 +50,6 @@ function mapNTTOpToJourney(
   ) {
     const implicit = j.from.slice(2)
     j.from = addressToHex(implicit)
-    j.from_formatted = implicit
   }
   return j
 }
