@@ -5,7 +5,13 @@ import { asSerializable } from '@/common/util.js'
 import { AnyJson, HexString, NetworkURN } from '@/lib.js'
 import { createNetworkId, getConsensus } from '@/services/config.js'
 import { filterLogs, filterTransactions } from '@/services/networking/evm/rx/extract.js'
-import { Block, BlockWithLogs, DecodedTxWithReceipt, LogTopics } from '@/services/networking/evm/types.js'
+import {
+  Block,
+  BlockWithLogs,
+  DecodedLogWithTimestamp,
+  DecodedTxWithReceipt,
+  LogTopics,
+} from '@/services/networking/evm/types.js'
 import { findLogInTx } from '@/services/networking/evm/utils.js'
 import { defaultPolkadotContext } from '@/services/networking/substrate/.static/index.js'
 import { BlockEvent } from '@/services/networking/substrate/types.js'
@@ -55,6 +61,13 @@ type V2InboundMessageDispatchedArgs = {
   nonce: string
   success: boolean
   rewardAddress: HexString
+}
+
+type V1OutboundMessageAcceptedArgs = {
+  channelID: HexString
+  messageID: HexString
+  nonce: string
+  payload: any
 }
 
 type SnowbridgeEvmInboundLog = {
@@ -128,6 +141,10 @@ function isV1InboundMessageDispatched(obj: any): obj is V1InboundMessageDispatch
 
 function isV2InboundMessageDispatched(obj: any): obj is V2InboundMessageDispatchedArgs {
   return 'rewardAddress' in obj && 'topic' in obj
+}
+
+function isV1OutboundMessageAccepted(obj: any): obj is V1OutboundMessageAcceptedArgs {
+  return 'channelID' in obj && 'messageID' in obj
 }
 
 export function extractSnowbridgeEvmInbound(chainId: NetworkURN, contractAddress: HexString) {
@@ -261,7 +278,7 @@ export function _extractSnowbridgeEvmInbound(
   }
 }
 
-function handleV1SendToken(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
+function _handleV1SendToken(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
   const tokenSentLog = findLogInTx(tx, gatewayAbi as Abi, 'TokenSent')
   const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
   if (!acceptedLog || !tokenSentLog || tx.blockHash === null || tx.blockNumber === null) {
@@ -368,9 +385,8 @@ function mapV2Assets(
   return assetsSent
 }
 
-function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
-  const acceptedLog = findLogInTx(tx, gatewayAbi as Abi, 'OutboundMessageAccepted')
-  if (!acceptedLog || tx.blockHash === null || tx.blockNumber === null) {
+function handleV2SendMessage(chainId: NetworkURN, acceptedLog: DecodedLogWithTimestamp) {
+  if (acceptedLog.blockHash === null || acceptedLog.blockNumber === null) {
     return null
   }
   const { eventName: acceptedEventName, args: acceptedEventArgs } = decodeEventLog({
@@ -390,8 +406,8 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
       return new GenericSnowbridgeOutboundAccepted({
         version: 2,
         chainId,
-        blockHash: tx.blockHash,
-        blockNumber: tx.blockNumber.toString(),
+        blockHash: acceptedLog.blockHash,
+        blockNumber: acceptedLog.blockNumber.toString(),
         messageId: getMessageId(program)!,
         nonce: nonce.toString(),
         messageData: xcm.data,
@@ -406,9 +422,9 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
         claimer,
         recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
         event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
-        timestamp: tx.timestamp,
-        txHash: tx.hash,
-        txPosition: tx.transactionIndex ?? undefined,
+        timestamp: acceptedLog.timestamp,
+        txHash: acceptedLog.transactionHash ?? undefined,
+        txPosition: acceptedLog.transactionIndex ?? undefined,
         partialHumanized: {
           assets: mapV2Assets(chainId, assets, value),
         },
@@ -422,8 +438,8 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
       return new GenericSnowbridgeOutboundAccepted({
         version: 2,
         chainId,
-        blockHash: tx.blockHash,
-        blockNumber: tx.blockNumber.toString(),
+        blockHash: acceptedLog.blockHash,
+        blockNumber: acceptedLog.blockNumber.toString(),
         nonce: nonce.toString(),
         messageData: xcm.data,
         messageHash: messageHash(xcm.data),
@@ -437,9 +453,9 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
         claimer,
         recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
         event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
-        timestamp: tx.timestamp,
-        txHash: tx.hash,
-        txPosition: tx.transactionIndex ?? undefined,
+        timestamp: acceptedLog.timestamp,
+        txHash: acceptedLog.transactionHash ?? undefined,
+        txPosition: acceptedLog.transactionIndex ?? undefined,
         partialHumanized: {
           assets: mapV2Assets(chainId, assets, value),
         },
@@ -449,8 +465,8 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
     return new GenericSnowbridgeOutboundAccepted({
       version: 2,
       chainId,
-      blockHash: tx.blockHash,
-      blockNumber: tx.blockNumber.toString(),
+      blockHash: acceptedLog.blockHash,
+      blockNumber: acceptedLog.blockNumber.toString(),
       nonce: nonce.toString(),
       messageData: xcm.data,
       messageHash: messageHash(xcm.data),
@@ -464,54 +480,40 @@ function handleV2SendMessage(chainId: NetworkURN, tx: DecodedTxWithReceipt) {
       claimer,
       recipient: createNetworkId('polkadot', ASSET_HUB_PARAID),
       event: { name: acceptedEventName, args: asSerializable(acceptedEventArgs) } as AnyJson,
-      timestamp: tx.timestamp,
-      txHash: tx.hash,
-      txPosition: tx.transactionIndex ?? undefined,
+      timestamp: acceptedLog.timestamp,
+      txHash: acceptedLog.transactionHash ?? undefined,
+      txPosition: acceptedLog.transactionIndex ?? undefined,
       partialHumanized: {
         assets: mapV2Assets(chainId, assets, value),
       },
     })
   }
-  console.warn(`Snowbridge V2 xcm kind ${xcm.kind} not supported (tx=${tx.hash})`)
+  console.warn(
+    `Snowbridge V2 xcm kind ${xcm.kind} not supported (tx=${acceptedLog.transactionHash}, block=${acceptedLog.blockNumber})`,
+  )
   return null
 }
 
-export function extractSnowbridgeEvmOutbound(
-  chainId: NetworkURN,
-  contractAddress: HexString,
-  getTransactionReceipt: (txHash: HexString) => Promise<TransactionReceipt>,
-) {
-  return (source: Observable<Block>): Observable<SnowbridgeOutboundAccepted> => {
+export function extractSnowbridgeEvmOutbound(chainId: NetworkURN, contractAddress: HexString) {
+  return (source: Observable<BlockWithLogs>): Observable<SnowbridgeOutboundAccepted> => {
     return source.pipe(
-      filterTransactions({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, [
-        'sendToken',
-        'v2_sendMessage',
-      ]),
-      mergeMap((tx) =>
-        from(getTransactionReceipt(tx.hash)).pipe(
-          retryWithTruncatedExpBackoff(retryCapped(3)),
-          catchError((err) => {
-            console.error(
-              err,
-              `[snowbridge:${chainId}] Error getting transaction receipt at #${tx.blockNumber} (tx=${tx.hash})`,
-            )
-            return EMPTY
-          }),
-          map((receipt) => ({ ...tx, receipt }) as DecodedTxWithReceipt),
-        ),
-      ),
-      map((tx) => {
-        if (!tx.decoded || tx.receipt.status === 'reverted') {
+      filterLogs({ abi: gatewayAbi as Abi, addresses: [contractAddress] }, ['OutboundMessageAccepted']),
+      map((log) => {
+        try {
+          const { args, blockHash, blockNumber } = log
+          if (!args || blockHash === null || blockNumber === null) {
+            return null
+          }
+
+          if (isV1OutboundMessageAccepted(args)) {
+            return null // V1 deprecated
+          }
+
+          return handleV2SendMessage(chainId, log)
+        } catch (e) {
+          console.error(e, 'Error mapping Snowbridge V2 message')
           return null
         }
-
-        if (tx.decoded.functionName === 'sendToken') {
-          return handleV1SendToken(chainId, tx)
-        }
-        if (tx.decoded.functionName === 'v2_sendMessage') {
-          return handleV2SendMessage(chainId, tx)
-        }
-        return null
       }),
       filter((msg) => msg !== null),
     )

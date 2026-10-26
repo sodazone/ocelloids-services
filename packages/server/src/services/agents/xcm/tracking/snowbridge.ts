@@ -1,6 +1,8 @@
-import { catchError, EMPTY, mergeMap } from 'rxjs'
+import { catchError, EMPTY, from, mergeMap, of } from 'rxjs'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { IngressConsumers } from '@/services/ingress/index.js'
 import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.js'
+import { retryCapped } from '@/services/networking/watcher.js'
 import { HexString, RxSubscriptionWithId } from '@/services/subscriptions/types.js'
 import { Logger, NetworkURN } from '@/services/types.js'
 import { AgentRuntimeContext } from '../../types.js'
@@ -154,9 +156,29 @@ export class SnowbridgeTracker {
           sub: this.#ingress.evm
             .finalizedBlocks(evmChain)
             .pipe(
-              extractSnowbridgeEvmOutbound(evmChain, contractAddress, (txHash: HexString) =>
-                this.#ingress.evm.getTransactionReceipt(evmChain, txHash),
-              ),
+              mergeMap((block) => {
+                return from(this.#ingress.evm.getLogs(evmChain, block.number)).pipe(
+                  retryWithTruncatedExpBackoff(retryCapped(3)),
+                  mergeMap((logs) =>
+                    of({
+                      ...block,
+                      logs,
+                    }),
+                  ),
+                  catchError((error) => {
+                    this.#log.error(
+                      error,
+                      '[%s] %s failed to fetch logs for block #%s. Continuing stream...',
+                      this.#id,
+                      evmChain,
+                      block.number,
+                    )
+
+                    return EMPTY
+                  }),
+                )
+              }),
+              extractSnowbridgeEvmOutbound(evmChain, contractAddress),
               mapOutboundToXcmBridge(),
             )
             .subscribe((msg) => {
