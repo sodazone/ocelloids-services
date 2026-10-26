@@ -9,7 +9,7 @@ export const MAX_BATCH_SIZE = 50
 export const DOT_DECIMALS = 10
 export const USDT_DECIMALS = 6
 export const PRICE_EMISSION_THRESHOLD = 0.0001
-export const WHITELISTED_LOCAL_ASSETS = ['1984', '1337']
+export const WHITELISTED_LOCAL_ASSETS = ['1984', '1337', '7873']
 
 export const BASE_TOKEN_LOCATION = {
   parents: 1,
