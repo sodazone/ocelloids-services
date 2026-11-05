@@ -1,4 +1,4 @@
-import { from, map, mergeMap, Observable, share } from 'rxjs'
+import { map, mergeMap, Observable, share } from 'rxjs'
 
 import { getEventValue } from '@/common/util.js'
 import { HexString } from '@/lib.js'
@@ -13,6 +13,8 @@ import {
   EventRecord,
   Extrinsic,
 } from '../types.js'
+
+const DEFAULT_BATCH_SIZE = 100
 
 export function getTimestampFromBlock(extrinsics: Extrinsic[]): number | undefined {
   const setTimestamp = extrinsics.find(({ module, method }) => module === 'Timestamp' && method === 'set')
@@ -41,7 +43,6 @@ function enhanceTxWithIdAndEvents(
     ['ExtrinsicSuccess', 'ExtrinsicFailed'],
     eventsWithId,
   )?.dispatch_info
-  // TODO: resolve innerdocs?
   const dispatchError = getEventValue('System', 'ExtrinsicFailed', eventsWithId)?.dispatch_error
 
   return {
@@ -64,18 +65,40 @@ export function extractTxWithEvents() {
         const blockNumber = number
         const blockHash = hash
         const timestamp = getTimestampFromBlock(extrinsics)
-        return extrinsics.map((xt, blockPosition) => {
-          return enhanceTxWithIdAndEvents(
-            {
-              blockNumber,
-              blockHash,
-              blockPosition,
-              specVersion,
-              timestamp,
-            },
-            xt,
-            events,
-          )
+
+        return new Observable<BlockExtrinsicWithEvents>((subscriber) => {
+          let index = 0
+          const batchSize = DEFAULT_BATCH_SIZE
+
+          function processBatch() {
+            try {
+              const end = Math.min(index + batchSize, extrinsics.length)
+              for (; index < end; index++) {
+                subscriber.next(
+                  enhanceTxWithIdAndEvents(
+                    {
+                      blockNumber,
+                      blockHash,
+                      blockPosition: index,
+                      specVersion,
+                      timestamp,
+                    },
+                    extrinsics[index],
+                    events,
+                  ),
+                )
+              }
+              if (index < extrinsics.length) {
+                setImmediate(processBatch)
+              } else {
+                subscriber.complete()
+              }
+            } catch (error) {
+              subscriber.error(error)
+            }
+          }
+
+          processBatch()
         })
       }),
       share(),
@@ -97,75 +120,87 @@ export function extractEvents() {
         }
       }),
       mergeMap(({ extrinsics, events, blockHash, blockNumber, specVersion, timestamp }) => {
-        let prevXtIndex = -1
-        let xtEventIndex = 0
-        let extrinsicWithId: BlockExtrinsic | undefined
-        // TODO: use inner Observable to stream events
-        // Loops through each event record in the block and enhance it with block context.
-        // If event is emitted from an extrinsic, enhance also with extrinsic context.
-        return from(events).pipe(
-          map(({ phase, event }, index) => {
-            const eventBlockContext: BlockContext = {
-              blockNumber,
-              blockHash,
-              blockPosition: index,
-              specVersion,
-              timestamp,
-            }
-            const extrinsicIndex = phase.type === 'ApplyExtrinsic' ? phase.value : undefined
-            if (extrinsicIndex && extrinsicIndex < extrinsics.length) {
-              if (extrinsicWithId === undefined) {
-                const xt = extrinsics[extrinsicIndex]
-                extrinsicWithId = {
-                  ...extrinsics[extrinsicIndex],
+        // Allow GC breathing room between batches
+        return new Observable<BlockEvent>((subscriber) => {
+          let prevXtIndex = -1
+          let xtEventIndex = 0
+          let extrinsicWithId: BlockExtrinsic | undefined
+          let index = 0
+          const batchSize = DEFAULT_BATCH_SIZE
+
+          function processBatch() {
+            try {
+              const end = Math.min(index + batchSize, events.length)
+              for (; index < end; index++) {
+                const { phase, event } = events[index]
+                const eventBlockContext: BlockContext = {
                   blockNumber,
                   blockHash,
-                  blockPosition: extrinsicIndex,
+                  blockPosition: index,
                   specVersion,
                   timestamp,
                 }
-                // extract to function if requires more logic
-                if (isFrontierExtrinsic(xt)) {
-                  const evmEvent = events.find(
-                    ({ phase, event }) =>
-                      phase.type === 'ApplyExtrinsic' &&
-                      phase.value === extrinsicIndex &&
-                      event.module === 'Ethereum' &&
-                      event.name === 'Executed',
-                  )
-                  if (evmEvent) {
-                    extrinsicWithId.evmTxHash = (
-                      evmEvent.event.value as { transaction_hash: HexString }
-                    ).transaction_hash
+                const extrinsicIndex = phase.type === 'ApplyExtrinsic' ? phase.value : undefined
+                if (extrinsicIndex !== undefined && extrinsicIndex < extrinsics.length) {
+                  if (extrinsicWithId === undefined || prevXtIndex !== extrinsicIndex) {
+                    const xt = extrinsics[extrinsicIndex]
+                    extrinsicWithId = {
+                      ...xt,
+                      blockNumber,
+                      blockHash,
+                      blockPosition: extrinsicIndex,
+                      specVersion,
+                      timestamp,
+                    }
+                    if (isFrontierExtrinsic(xt)) {
+                      const evmEvent = events.find(
+                        ({ phase, event }) =>
+                          phase.type === 'ApplyExtrinsic' &&
+                          phase.value === extrinsicIndex &&
+                          event.module === 'Ethereum' &&
+                          event.name === 'Executed',
+                      )
+                      if (evmEvent) {
+                        extrinsicWithId.evmTxHash = (
+                          evmEvent.event.value as { transaction_hash: HexString }
+                        ).transaction_hash
+                      }
+                    }
                   }
+
+                  const blockEvent: BlockEvent = {
+                    ...event,
+                    ...eventBlockContext,
+                    extrinsic: extrinsicWithId,
+                    extrinsicPosition: xtEventIndex,
+                  }
+
+                  if (extrinsicIndex > prevXtIndex) {
+                    xtEventIndex = 0
+                    extrinsicWithId = undefined
+                  }
+
+                  xtEventIndex++
+                  prevXtIndex = extrinsicIndex
+
+                  subscriber.next(blockEvent)
+                } else {
+                  subscriber.next({ ...event, ...eventBlockContext })
                 }
               }
 
-              const blockEvent: BlockEvent = {
-                ...event,
-                ...eventBlockContext,
-                extrinsic: extrinsicWithId,
-                extrinsicPosition: xtEventIndex,
+              if (index < events.length) {
+                setImmediate(processBatch)
+              } else {
+                subscriber.complete()
               }
-
-              // If we have moved on to the next extrinsic,
-              // reset the event index to 0
-              if (extrinsicIndex > prevXtIndex) {
-                xtEventIndex = 0
-                extrinsicWithId = undefined
-              }
-
-              // Increase event index in extrinsic for next loop
-              xtEventIndex++
-              // Assign current extrinsic index to prevXtIndex
-              prevXtIndex = extrinsicIndex
-
-              return blockEvent
+            } catch (error) {
+              subscriber.error(error)
             }
+          }
 
-            return { ...event, ...eventBlockContext }
-          }),
-        )
+          processBatch()
+        })
       }),
       share(),
     )
