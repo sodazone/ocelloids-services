@@ -1,10 +1,5 @@
 import { Abi, decodeEventLog, Log, toEventSelector } from 'viem'
-import {
-  BlockEvent,
-  BlockEvmEvent,
-  Event,
-  EventRecordWithIndex,
-} from '@/services/networking/substrate/types.js'
+import { BlockEvent, BlockEvmEvent } from '@/services/networking/substrate/types.js'
 import aavePoolAbi from '../abi/aave_pool.json' with { type: 'json' }
 import {
   aaveBorrowHandler,
@@ -68,10 +63,7 @@ function toHandlerKey(protocol: string, evmEvent: BlockEvmEvent) {
   return name ? `${protocol}.${name.toLowerCase()}` : protocol
 }
 
-export function evmLogHandler(
-  event: BlockEvent,
-  siblings: EventRecordWithIndex<Event>[],
-): HydrationDefiEvent | null {
+export function evmLogHandler(event: BlockEvent): HydrationDefiEvent | null {
   const decoded = decodeLog(event)
   if (decoded === null) {
     return null
@@ -81,5 +73,5 @@ export function evmLogHandler(
   if (!handler) {
     return null
   }
-  return handler(blockEvmEvent, siblings)
+  return handler(blockEvmEvent)
 }

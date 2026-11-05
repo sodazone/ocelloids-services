@@ -1,6 +1,11 @@
 import { asPublicKey } from '@/common/util.js'
 import { matchEvent } from '@/services/agents/xcm/ops/util.js'
-import { BlockEvent, Event, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
+import {
+  BlockEvent,
+  Event,
+  EventRecord,
+  EventRecordWithIndex,
+} from '@/services/networking/substrate/types.js'
 import { ROUTER_ADDRESS } from '../consts.js'
 import {
   BroadcastSwapped,
@@ -90,7 +95,7 @@ export function routerExecutedHandler(
 
 export function swapped3Handler(
   event: BlockEvent,
-  siblings: EventRecordWithIndex<Event>[],
+  allEvents: EventRecord<Event>[],
 ): HydrationSwapped3Event | null {
   const { blockHash, blockNumber, blockPosition, module, name, extrinsic, value, timestamp } = event
   const { inputs, outputs, filler, filler_type, swapper } = value as BroadcastSwapped
@@ -104,13 +109,13 @@ export function swapped3Handler(
   // Handle H2O internal trades
   if (filler_type.type === 'Omnipool') {
     if (outputs[0].asset === 1) {
-      const nextEvent = siblings.find(
-        (s) =>
-          s.index === blockPosition + 1 &&
-          s.event.module.toLowerCase() === 'broadcast' &&
-          s.event.name.toLowerCase() === 'swapped3',
-      )
-      if (nextEvent) {
+      const nextEvent = allEvents[blockPosition + 1]
+
+      if (
+        nextEvent &&
+        nextEvent.event.module.toLowerCase() === 'broadcast' &&
+        nextEvent.event.name.toLowerCase() === 'swapped3'
+      ) {
         const {
           inputs: nextInputs,
           outputs: nextOutputs,
@@ -123,13 +128,12 @@ export function swapped3Handler(
         }
       }
     } else if (inputs[0].asset === 1) {
-      const prevEvent = siblings.find(
-        (s) =>
-          s.index === blockPosition - 1 &&
-          s.event.module.toLowerCase() === 'broadcast' &&
-          s.event.name.toLowerCase() === 'swapped3',
-      )
-      if (prevEvent) {
+      const prevEvent = allEvents[blockPosition - 1]
+      if (
+        prevEvent &&
+        prevEvent.event.module.toLowerCase() === 'broadcast' &&
+        prevEvent.event.name.toLowerCase() === 'swapped3'
+      ) {
         const {
           outputs: prevOutputs,
           filler_type: prevFillerType,

@@ -5,7 +5,7 @@ import { toAssetId } from '@/services/agents/common/assets.js'
 import { SubstrateAccountMetadata } from '@/services/agents/steward/lib.js'
 import { AssetId, AssetMetadata, Empty, isAccountMetadata } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
-import { Block, BlockEvent, Event, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
+import { Block, BlockEvent, Event } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { DefiEventPayload, DefiOrderPayload, MoneyMarketActions } from '../../../types.js'
 import { CHAIN_ID } from '../consts.js'
@@ -16,6 +16,7 @@ import {
   EventHandler,
   HydrationDcaEvent,
   HydrationDcaExecutedEvent,
+  HydrationDefiEvent,
   HydrationLendingEvent,
   HydrationLiquidationEvent,
   HydrationSwapEvent,
@@ -29,15 +30,11 @@ const eventPayloadConsts: Pick<DefiEventPayload, 'type' | 'networkId'> = {
 }
 
 const handlers: Record<string, EventHandler> = {
-  // 'router.executed': routerExecutedHandler,
   'evm.log': evmLogHandler,
-  // 'dca.tradeexecuted': dcaExecutedHandler,
-  // 'dca.scheduled': dcaScheduledHandler,
-  // 'dca.completed': dcaCompletedHandler,
   'broadcast.swapped3': swapped3Handler,
 }
 
-function toHandlerKey(event: BlockEvent) {
+function toHandlerKey(event: Event) {
   return `${event.module.toLowerCase()}.${event.name.toLowerCase()}`
 }
 
@@ -428,46 +425,59 @@ export function watchEvents(
   fetchAccounts: (accounts: string[]) => Promise<(SubstrateAccountMetadata | Empty)[]>,
   computeUsdValue: (assetId: number, amount: number) => number | undefined,
 ) {
+  function* handleBlock({
+    events,
+    extrinsics,
+    hash,
+    number,
+    specVersion,
+  }: Block): Generator<HydrationDefiEvent | null> {
+    // Only computed if the block contains at least one handled event.
+    let timestamp: ReturnType<typeof getTimestampFromBlock> | undefined
+    let timestampResolved = false
+
+    for (let index = 0; index < events.length; index++) {
+      const { event, phase } = events[index]
+
+      const key = toHandlerKey(event)
+      const handler = handlers[key]
+      if (!handler) {
+        continue
+      }
+
+      if (!timestampResolved) {
+        timestamp = getTimestampFromBlock(extrinsics)
+        timestampResolved = true
+      }
+
+      const blockEvent = {
+        ...event,
+        extrinsic: phase.type === 'ApplyExtrinsic' ? extrinsics[phase.value] : undefined,
+        blockNumber: number,
+        blockHash: hash,
+        blockPosition: index,
+        specVersion,
+        timestamp,
+      } as BlockEvent
+
+      let result: ReturnType<EventHandler>
+      try {
+        result = handler(blockEvent, events)
+      } catch (e) {
+        logger.warn(e, `Error handling event ${key}`)
+        continue
+      }
+
+      if (result) {
+        yield result
+      }
+    }
+  }
+
   return (source$: Observable<Block>): Observable<DefiEventPayload | DefiOrderPayload> =>
     source$.pipe(
-      mergeMap(({ events, extrinsics, hash, number, specVersion }) => {
-        const timestamp = getTimestampFromBlock(extrinsics)
-        const eventsWithIndex: EventRecordWithIndex<Event>[] = events.map((e, i) => ({ ...e, index: i }))
-        return eventsWithIndex.map(({ event, phase, index }) => {
-          const isApplyExtrinsic = phase.type === 'ApplyExtrinsic'
-          const extrinsic = isApplyExtrinsic ? extrinsics[phase.value] : undefined
-          const siblings = isApplyExtrinsic
-            ? eventsWithIndex.filter((e) => e.phase.type === phase.type && e.phase.value === phase.value)
-            : eventsWithIndex.filter((e) => e.phase.type === phase.type)
-          return [
-            {
-              ...event,
-              extrinsic,
-              blockNumber: number,
-              blockHash: hash,
-              blockPosition: index,
-              specVersion,
-              timestamp,
-            },
-            siblings,
-            isApplyExtrinsic,
-          ] as [BlockEvent, EventRecordWithIndex<Event>[], boolean]
-        })
-      }),
-      map(([event, siblings]) => {
-        const key = toHandlerKey(event)
-        const handler = handlers[key]
-        if (!handler) {
-          return null
-        }
-        try {
-          return handler(event, siblings)
-        } catch (e) {
-          logger.warn(e, `Error handling event ${key}`)
-          return null
-        }
-      }),
-      filter((defiEvent) => defiEvent !== null),
+      mergeMap((block) => handleBlock(block)),
+      filter((event) => event !== null),
       mergeMap((event) => {
         switch (event.type) {
           case 'swapped3':

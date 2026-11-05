@@ -1,7 +1,5 @@
-import { decodeEventLog, erc20Abi, Log, zeroAddress } from 'viem'
 import { hexToAssetId } from '@/services/agents/common/hydration.js'
-import { isEVMLog } from '@/services/networking/substrate/evm/decoder.js'
-import { BlockEvmEvent, EventRecordWithIndex } from '@/services/networking/substrate/types.js'
+import { BlockEvmEvent } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { MoneyMarketActions } from '../../../types.js'
 import { ASSET_ID_MAP } from '../consts.js'
@@ -92,10 +90,7 @@ function toLendingEvent(
   }
 }
 
-export function aaveBorrowHandler(
-  event: BlockEvmEvent,
-  _siblings: EventRecordWithIndex[],
-): HydrationLendingEvent | null {
+export function aaveBorrowHandler(event: BlockEvmEvent): HydrationLendingEvent | null {
   const { decoded } = event
   if (!decoded) {
     return null
@@ -109,10 +104,7 @@ export function aaveBorrowHandler(
   })
 }
 
-export function aaveSupplyHandler(
-  event: BlockEvmEvent,
-  _siblings: EventRecordWithIndex[],
-): HydrationLendingEvent | null {
+export function aaveSupplyHandler(event: BlockEvmEvent): HydrationLendingEvent | null {
   const { decoded } = event
   if (!decoded) {
     return null
@@ -127,10 +119,7 @@ export function aaveSupplyHandler(
   })
 }
 
-export function aaveWithdrawHandler(
-  event: BlockEvmEvent,
-  _siblings: EventRecordWithIndex[],
-): HydrationLendingEvent | null {
+export function aaveWithdrawHandler(event: BlockEvmEvent): HydrationLendingEvent | null {
   const { decoded } = event
   if (!decoded) {
     return null
@@ -145,40 +134,12 @@ export function aaveWithdrawHandler(
   })
 }
 
-export function aaveRepayHandler(
-  event: BlockEvmEvent,
-  siblings: EventRecordWithIndex[],
-): HydrationLendingEvent | null {
+export function aaveRepayHandler(event: BlockEvmEvent): HydrationLendingEvent | null {
   const { decoded } = event
   if (!decoded) {
     return null
   }
-  const { amount, reserve, repayer, useATokens } = decoded.args as AaveRepayEventArgs
-
-  if (useATokens) {
-    const siblingLogs = siblings.filter((e) => isEVMLog(e.event)).map((e) => e.event.value.log as Log)
-    const tokenBurns = siblingLogs
-      .map((log) => {
-        try {
-          const decoded = decodeEventLog({
-            abi: erc20Abi,
-            topics: log.topics,
-            data: log.data,
-            eventName: 'Transfer',
-          })
-          return {
-            ...decoded.args,
-            token: log.address,
-          }
-        } catch (_e) {
-          return null
-        }
-      })
-      .filter((tf) => tf !== null)
-      .filter((tf) => tf.to === zeroAddress)
-
-    console.log('repay using atokens token burn events', tokenBurns)
-  }
+  const { amount, reserve, repayer } = decoded.args as AaveRepayEventArgs
 
   return toLendingEvent(event, {
     action: 'repay',
@@ -188,10 +149,7 @@ export function aaveRepayHandler(
   })
 }
 
-export function aaveLiquidationHandler(
-  event: BlockEvmEvent,
-  _siblings: EventRecordWithIndex[],
-): HydrationLiquidationEvent | null {
+export function aaveLiquidationHandler(event: BlockEvmEvent): HydrationLiquidationEvent | null {
   const { decoded } = event
   if (!decoded) {
     return null

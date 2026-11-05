@@ -1,20 +1,9 @@
 import { Enum, FixedSizeArray, FixedSizeBinary } from 'polkadot-api'
-import {
-  BlockEvent,
-  BlockEvmEvent,
-  Event,
-  EventRecordWithIndex,
-} from '@/services/networking/substrate/types.js'
+import { BlockEvent, BlockEvmEvent, Event, EventRecord } from '@/services/networking/substrate/types.js'
 import { MoneyMarketActions } from '../../../types.js'
 
-export type EventHandler = (
-  event: BlockEvent,
-  siblings: EventRecordWithIndex<Event>[],
-) => HydrationDefiEvent | null
-export type EvmEventHandler = (
-  event: BlockEvmEvent,
-  siblings: EventRecordWithIndex<Event>[],
-) => HydrationDefiEvent | null
+export type EventHandler = (event: BlockEvent, siblings: EventRecord<Event>[]) => HydrationDefiEvent | null
+export type EvmEventHandler = (event: BlockEvmEvent) => HydrationDefiEvent | null
 
 export type BroadcastSwapped = {
   swapper: string

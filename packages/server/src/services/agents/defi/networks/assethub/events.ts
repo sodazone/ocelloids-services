@@ -1,4 +1,4 @@
-import { filter, mergeMap, Observable } from 'rxjs'
+import { mergeMap, Observable } from 'rxjs'
 import { ulid } from 'ulidx'
 import { formatUnits } from 'viem'
 import { asPublicKey } from '@/common/util.js'
@@ -6,13 +6,7 @@ import { toAssetId } from '@/services/agents/common/assets.js'
 import { normalizeAssetId } from '@/services/agents/common/melbourne.js'
 import { AssetMetadata } from '@/services/agents/steward/types.js'
 import { getTimestampFromBlock } from '@/services/networking/substrate/index.js'
-import {
-  Block,
-  BlockEvent,
-  Event,
-  EventRecordWithIndex,
-  XcmLocation,
-} from '@/services/networking/substrate/types.js'
+import { Block, BlockEvent, Event, EventRecord, XcmLocation } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { DefiEventPayload } from '../../types.js'
 import { CHAIN_ID, isBaseToken, PROTOCOL } from './common.js'
@@ -86,7 +80,7 @@ export function createEventWatcher({
       const pool = getPool(quoteTokenLoc)
 
       if (!pool) {
-        logger.warn('No pool found for quote token %o', quoteTokenLoc)
+        logger.warn('[defi:assethub] No pool found for quote token %o', quoteTokenLoc)
         continue
       }
 
@@ -94,7 +88,10 @@ export function createEventWatcher({
       const assetOutMeta = getMetadata(outLocation)
 
       if (!assetInMeta || !assetOutMeta) {
-        logger.warn('No metadata found for token %o', assetInMeta === undefined ? inLocation : outLocation)
+        logger.warn(
+          '[defi:assethub] No metadata found for token %o',
+          assetInMeta === undefined ? inLocation : outLocation,
+        )
         continue
       }
 
@@ -139,39 +136,60 @@ export function createEventWatcher({
     return allSwapEvents
   }
 
-  function handleSwapCreditEvent(
-    event: BlockEvent,
-    siblings: EventRecordWithIndex<Event>[],
-  ): DefiEventPayload[] {
+  function findSwapCreditDepositor(events: EventRecord<Event>[], index: number): string | undefined {
+    const prev = events[index - 1]
+    if (!prev) {
+      return
+    }
+
+    const current = events[index]
+
+    if (
+      prev.phase.type !== current.phase.type ||
+      ('value' in prev.phase && 'value' in current.phase && prev.phase.value !== current.phase.value)
+    ) {
+      return
+    }
+
+    if (
+      prev.event.name.toLowerCase() !== 'deposited' ||
+      !['assets', 'foreignassets'].includes(prev.event.module.toLowerCase())
+    ) {
+      return
+    }
+
+    return (prev.event.value as AssetDeposited | ForeignAssetDeposited).who
+  }
+
+  function handleSwapCreditEvent(events: EventRecord<Event>[], blockEvent: BlockEvent): DefiEventPayload[] {
     try {
-      const assetDepositEvent = siblings.find(
-        (s) =>
-          s.index === event.blockPosition - 1 &&
-          s.event.name.toLowerCase() === 'deposited' &&
-          ['assets', 'foreignassets'].includes(s.event.module.toLowerCase()),
-      )
-      if (!assetDepositEvent) {
-        logger.warn('No asset deposit event found in event %s-%s', event.blockNumber, event.blockPosition)
+      const who = findSwapCreditDepositor(events, blockEvent.blockPosition)
+
+      if (!who) {
+        logger.warn(
+          '[defi:assethub] No asset deposit event found in event %s-%s',
+          blockEvent.blockNumber,
+          blockEvent.blockPosition,
+        )
         return []
       }
 
-      const { who } = assetDepositEvent.event.value as AssetDeposited | ForeignAssetDeposited
-      const { path } = event.value as SwapCreditExecuted
+      const { path } = blockEvent.value as SwapCreditExecuted
       const segments = getSwapSegments(path)
 
-      return mapSwapSegements(segments, event, who)
+      return mapSwapSegements(segments, blockEvent, who)
     } catch (e) {
       logger.error(
         e,
         '[defi:assethub] Error mapping swap credit event at block %s #%s',
-        event.blockHash,
-        event.blockNumber,
+        blockEvent.blockHash,
+        blockEvent.blockNumber,
       )
       return []
     }
   }
 
-  function handleSwapEvent(event: BlockEvent, siblings: EventRecordWithIndex<Event>[]): DefiEventPayload[] {
+  function handleSwapEvent(event: BlockEvent): DefiEventPayload[] {
     try {
       const { path, who } = event.value as SwapExecuted
       const segments = getSwapSegments(path)
@@ -187,49 +205,50 @@ export function createEventWatcher({
     }
   }
 
+  function* extractSwaps(block: Block): Generator<DefiEventPayload> {
+    const { events, extrinsics, hash, number, specVersion } = block
+
+    // Only computed if the block actually contains a relevant event.
+    let timestamp: ReturnType<typeof getTimestampFromBlock> | undefined
+    let timestampResolved = false
+
+    for (let index = 0; index < events.length; index++) {
+      const { event, phase } = events[index]
+
+      if (event.module.toLowerCase() !== ASSET_CONVERSION_MODULE) {
+        continue
+      }
+
+      const name = event.name.toLowerCase()
+      if (name !== SWAP_CREDIT_EVENT && name !== SWAP_EVENT) {
+        logger.info('[defi:assethub] unhandled event %s.%s (#%s)', event.module, event.name, number)
+        continue
+      }
+
+      if (!timestampResolved) {
+        timestamp = getTimestampFromBlock(extrinsics)
+        timestampResolved = true
+      }
+
+      const blockEvent: BlockEvent = {
+        ...event,
+        extrinsic: phase.type === 'ApplyExtrinsic' ? extrinsics[phase.value] : undefined,
+        blockNumber: number,
+        blockHash: hash,
+        blockPosition: index,
+        specVersion,
+        timestamp,
+      } as BlockEvent
+
+      yield* name === SWAP_CREDIT_EVENT
+        ? handleSwapCreditEvent(events, blockEvent)
+        : handleSwapEvent(blockEvent)
+    }
+  }
+
   function watchEvents() {
     return (source$: Observable<Block>): Observable<DefiEventPayload> =>
-      source$.pipe(
-        mergeMap(({ events, extrinsics, hash, number, specVersion }) => {
-          const timestamp = getTimestampFromBlock(extrinsics)
-          const eventsWithIndex: EventRecordWithIndex<Event>[] = events.map((e, i) => ({ ...e, index: i }))
-          return eventsWithIndex.map(({ event, phase, index }) => {
-            const isApplyExtrinsic = phase.type === 'ApplyExtrinsic'
-            const extrinsic = isApplyExtrinsic ? extrinsics[phase.value] : undefined
-            const siblings = isApplyExtrinsic
-              ? eventsWithIndex.filter((e) => e.phase.type === phase.type && e.phase.value === phase.value)
-              : eventsWithIndex.filter((e) => e.phase.type === phase.type)
-            return [
-              {
-                ...event,
-                extrinsic,
-                blockNumber: number,
-                blockHash: hash,
-                blockPosition: index,
-                specVersion,
-                timestamp,
-              },
-              siblings,
-            ] as [BlockEvent, EventRecordWithIndex<Event>[]]
-          })
-        }),
-        filter(([e]) => e.module.toLowerCase() === ASSET_CONVERSION_MODULE),
-        mergeMap(([event, siblings]) => {
-          if (event.name.toLowerCase() === SWAP_CREDIT_EVENT) {
-            return handleSwapCreditEvent(event, siblings)
-          }
-          if (event.name.toLowerCase() === SWAP_EVENT) {
-            return handleSwapEvent(event, siblings)
-          }
-          logger.info(
-            '[defi:assethub] unhandled event %s.%s (#%s)',
-            event.module,
-            event.name,
-            event.blockNumber,
-          )
-          return []
-        }),
-      )
+      source$.pipe(mergeMap((block) => extractSwaps(block)))
   }
 
   return { watchEvents }
