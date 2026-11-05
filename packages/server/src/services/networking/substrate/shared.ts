@@ -1,4 +1,4 @@
-import { Observable, share } from 'rxjs'
+import { bufferTime, filter, from, mergeMap, Observable, share } from 'rxjs'
 
 import { ValidationError } from '@/errors.js'
 import { NetworkURN } from '@/services/types.js'
@@ -7,6 +7,9 @@ import { Finality } from '../types.js'
 import { SubstrateIngressConsumer } from './ingress/types.js'
 import { extractEvents, extractTxWithEvents } from './rx/index.js'
 import { Block, BlockEvent, BlockExtrinsicWithEvents } from './types.js'
+
+const STREAM_BUFFER_MS = 1000
+const STREAM_BUFFER_MAXCAP = 200
 
 export class SubstrateSharedStreams {
   static #instance: SubstrateSharedStreams
@@ -58,6 +61,10 @@ export class SubstrateSharedStreams {
     if (!this.#blockEvents[finality][chainId]) {
       this.#blockEvents[finality][chainId] = this.blocks(chainId, finality).pipe(
         extractEvents(),
+        bufferTime(STREAM_BUFFER_MS, null, STREAM_BUFFER_MAXCAP),
+        filter((batch) => batch.length > 0),
+        // TODO: implement downstream batch processing
+        mergeMap((batch) => from(batch)),
         share({ resetOnRefCountZero: false }),
       )
     }
@@ -71,7 +78,12 @@ export class SubstrateSharedStreams {
     if (!this.#blockExtrinsics[finality][chainId]) {
       this.#blockExtrinsics[finality][chainId] = this.blocks(chainId, finality).pipe(
         extractTxWithEvents(),
-        /*flattenCalls(),*/ share({ resetOnRefCountZero: false }),
+        /*flattenCalls(),*/
+        bufferTime(STREAM_BUFFER_MS, null, STREAM_BUFFER_MAXCAP),
+        filter((batch) => batch.length > 0),
+        // TODO: implement downstream batch processing
+        mergeMap((batch) => from(batch)),
+        share({ resetOnRefCountZero: false }),
       )
     }
     return this.#blockExtrinsics[finality][chainId]
