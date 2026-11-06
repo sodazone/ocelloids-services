@@ -1,8 +1,9 @@
-import { firstValueFrom, from, map, mergeMap, Observable } from 'rxjs'
+import { catchError, EMPTY, forkJoin, map, Observable, switchMap, take, timeout } from 'rxjs'
+import { retryWithTruncatedExpBackoff } from '@/common/index.js'
 import { toMelbourne } from '@/services/agents/common/melbourne.js'
 import { getBalanceExtractor } from '@/services/networking/substrate/balances.js'
 import { SubstrateIngressConsumer } from '@/services/networking/substrate/ingress/types.js'
-import { Block, SubstrateApiContext } from '@/services/networking/substrate/types.js'
+import { Block, StorageChangeSets, SubstrateApiContext } from '@/services/networking/substrate/types.js'
 import { HexString } from '@/services/subscriptions/types.js'
 import { Logger } from '@/services/types.js'
 import { chunk } from '../../common.js'
@@ -71,85 +72,77 @@ export function createReservesWatcher(logger: Logger, ingress: SubstrateIngressC
   }
 
   function mapReserves(apiCtx: SubstrateApiContext, poolMap: Map<string, AssetConversionPool>) {
-    return (source$: Observable<Block>): Observable<Map<string, AssetConversionPoolReserves>> =>
-      source$.pipe(
-        mergeMap((block) => {
-          const queries = buildStorageQueries(apiCtx, poolMap)
-          const entries = [...queries.entries()]
-          const chunks = chunk(entries, MAX_BATCH_SIZE)
+    const entries = [...buildStorageQueries(apiCtx, poolMap).entries()]
+    const byStorageKey = new Map(entries.map(([cacheKey, query]) => [query.storageKey, { cacheKey, query }]))
+    const chunks = chunk(entries, MAX_BATCH_SIZE)
 
-          const requests = Promise.all(
-            chunks.flatMap((chunkEntries) => {
-              const keys = chunkEntries.map(([, q]) => q.storageKey)
-
-              return firstValueFrom(ingress.queryStorageAt(CHAIN_ID, keys, block.hash as HexString))
-            }),
-          )
-          return from(requests).pipe(
-            // retries and catch error
-            map((changeSets) => {
-              const balanceMap = new Map<string, bigint>(
-                changeSets.flatMap((cs) =>
-                  cs[0].changes
-                    .map(([key, value]) => {
-                      const entry = entries.find(([_, entry]) => entry.storageKey === key)
-
-                      if (!value || !entry) {
-                        return null
-                      }
-
-                      const [cacheKey, query] = entry
-
-                      const codec = apiCtx.storageCodec(query.pallet, query.name)
-                      const raw = codec.value.dec(value)
-                      const balanceExtractor = getBalanceExtractor(query.pallet, query.name)
-
-                      if (!balanceExtractor) {
-                        return [cacheKey, 0n] as [string, bigint]
-                      }
-
-                      const freeBal = balanceExtractor(raw)
-
-                      return [cacheKey, freeBal] as [string, bigint]
-                    })
-                    .filter((i) => i !== null),
-                ),
-              )
-
-              const poolReservesMap = new Map<string, AssetConversionPoolReserves>()
-
-              for (const [poolKey, pool] of poolMap) {
-                const { baseToken, quoteToken } = pool
-                const baseTokenBalance = balanceMap.get(makeBalanceKey('System', 'native', pool.owner))
-
-                const quoteTokenBalance =
-                  pool.quoteToken.type === 'local'
-                    ? balanceMap.get(makeBalanceKey('Assets', String(pool.quoteToken.id), pool.owner))
-                    : balanceMap.get(
-                        makeBalanceKey('ForeignAssets', toMelbourne(pool.quoteToken.id), pool.owner),
-                      )
-                if (baseTokenBalance === undefined || quoteTokenBalance === undefined) {
-                  continue
-                }
-
-                poolReservesMap.set(poolKey, {
-                  ...pool,
-                  baseToken: {
-                    ...baseToken,
-                    reserves: baseTokenBalance,
-                  },
-                  quoteToken: {
-                    ...quoteToken,
-                    reserves: quoteTokenBalance,
-                  },
-                })
-              }
-
-              return poolReservesMap
-            }),
-          )
+    const query$ = (block: Block) =>
+      forkJoin(
+        chunks.map((c) =>
+          ingress
+            .queryStorageAt(
+              CHAIN_ID,
+              c.map(([, q]) => q.storageKey),
+              block.hash as HexString,
+            )
+            .pipe(
+              take(1),
+              timeout(5_000),
+              retryWithTruncatedExpBackoff({ baseDelay: 100, maxDelay: 1_000, maxCount: 1 }),
+            ),
+        ),
+      ).pipe(
+        map((changeSets) => buildReserves(changeSets, byStorageKey, apiCtx, poolMap)),
+        catchError((err) => {
+          logger.error(err, '[defi:assethub] reserves query failed at %s', block.hash)
+          return EMPTY
         }),
       )
+
+    return (source$: Observable<Block>) => source$.pipe(switchMap(query$))
+  }
+
+  function buildReserves(
+    changeSets: StorageChangeSets[],
+    byStorageKey: Map<string, { cacheKey: string; query: { pallet: string; name: string } }>,
+    apiCtx: SubstrateApiContext,
+    poolMap: Map<string, AssetConversionPool>,
+  ) {
+    const balanceMap = new Map<string, bigint>()
+
+    for (const cs of changeSets) {
+      for (const [key, value] of cs[0].changes) {
+        const hit = byStorageKey.get(key)
+        if (!value || !hit) {
+          continue
+        }
+
+        const { cacheKey, query } = hit
+        const raw = apiCtx.storageCodec(query.pallet, query.name).value.dec(value)
+        const extract = getBalanceExtractor(query.pallet, query.name)
+        balanceMap.set(cacheKey, extract ? extract(raw) : 0n)
+      }
+    }
+
+    const poolReservesMap = new Map<string, AssetConversionPoolReserves>()
+    for (const [poolKey, pool] of poolMap) {
+      const base = balanceMap.get(makeBalanceKey('System', 'native', pool.owner))
+      const quote =
+        pool.quoteToken.type === 'local'
+          ? balanceMap.get(makeBalanceKey('Assets', String(pool.quoteToken.id), pool.owner))
+          : balanceMap.get(makeBalanceKey('ForeignAssets', toMelbourne(pool.quoteToken.id), pool.owner))
+
+      if (base === undefined || quote === undefined) {
+        continue
+      }
+
+      poolReservesMap.set(poolKey, {
+        ...pool,
+        baseToken: { ...pool.baseToken, reserves: base },
+        quoteToken: { ...pool.quoteToken, reserves: quote },
+      })
+    }
+    return poolReservesMap
   }
 
   return {

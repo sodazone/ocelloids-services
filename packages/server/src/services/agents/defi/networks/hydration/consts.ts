@@ -9,8 +9,12 @@ export const ROUTER_ADDRESS = toSystemAccountKey('modlrouterex')
 
 export const HOLLAR_ID = 222
 export const HOLLAR_EVM_ADDRESS = '0x531a654d1696ED52e7275A8cede955E82620f99a'
+export const JUICER_HOLLAR_ADDRESS = '0xB94025F14fdc01f8E3b0C34311BcBAe0fEBd1a4a'
 
-export const ASSET_ID_MAP = new Map<string, number>([[HOLLAR_EVM_ADDRESS, HOLLAR_ID]])
+export const ASSET_ID_MAP = new Map<string, number>([
+  [HOLLAR_EVM_ADDRESS, HOLLAR_ID],
+  [JUICER_HOLLAR_ADDRESS, 5550],
+])
 
 export const AaveV3HydrationMainnet = {
   POOL_ADDRESSES_PROVIDER: '0xf3Ba4D1b50f78301BDD7EAEa9B67822A15FCA691',
