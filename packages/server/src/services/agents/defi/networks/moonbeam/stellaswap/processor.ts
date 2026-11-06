@@ -262,7 +262,7 @@ export function createStellaswapProcessor({
     subs.push(
       blockWithLogs$
         .pipe(
-          smartTrigger<BlockWithLogs>({
+          smartTrigger<BlockWithLogs, DefiEventPayload>({
             events$,
             maxStaleBlocks: 1_000,
           }),

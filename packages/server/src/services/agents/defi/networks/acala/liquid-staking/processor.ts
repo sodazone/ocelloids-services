@@ -276,7 +276,7 @@ export function createHomaProcessor({
     subs.push(
       block$
         .pipe(
-          smartTrigger<Block>({
+          smartTrigger<Block, DefiEventPayload>({
             events$,
             maxStaleBlocks: 300,
           }),

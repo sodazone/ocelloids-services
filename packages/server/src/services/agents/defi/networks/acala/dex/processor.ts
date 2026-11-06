@@ -405,7 +405,7 @@ export function createAcalaDexProcessor({
     subs.push(
       block$
         .pipe(
-          smartTrigger<Block>({
+          smartTrigger<Block, DefiEventPayload>({
             events$,
             maxStaleBlocks: 100,
           }),

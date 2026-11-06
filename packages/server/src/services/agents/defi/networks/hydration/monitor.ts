@@ -6,7 +6,13 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Block } from '@/services/networking/substrate/types.js'
 import { Logger } from '@/services/types.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
-import { DefiLiquidityAsset, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
+import {
+  DefiEventPayload,
+  DefiLiquidityAsset,
+  DefiMonitorDependencies,
+  DefiOrderPayload,
+  DefiSubscriptionPayload,
+} from '../../types.js'
 import { CHAIN_ID } from './consts.js'
 import { watchEvents } from './events/watcher.js'
 import { createPoolManager } from './pools/manager.js'
@@ -298,7 +304,7 @@ export function hydrationDexMonitor(
     subs.push(
       blocks$
         .pipe(
-          smartTrigger<Block>({
+          smartTrigger<Block, DefiEventPayload | DefiOrderPayload>({
             events$,
             maxStaleBlocks: 50,
           }),

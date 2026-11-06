@@ -1,57 +1,83 @@
-import { filter, map, merge, Observable, OperatorFunction, scan } from 'rxjs'
+import { Observable, OperatorFunction, Subscription } from 'rxjs'
 
 type BlockLike = {
   number: number | string
 }
 
+type EventLike = {
+  blockNumber: string | null
+}
+
 /**
- * Triggers based on:
- * 1. The first block (Initial)
- * 2. An event emission (Activity)
- * 3. Max stale blocks (Safety)
+ * Emits a block when:
+ * 1. it's the first block seen (initial)
+ * 2. the block had activity, at most once per block (activity)
+ * 3. maxStaleBlocks have passed since the last emission (safety)
  */
-export function smartTrigger<TBlock extends BlockLike>({
+export function smartTrigger<TBlock extends BlockLike, TEvent extends EventLike>({
   events$,
   maxStaleBlocks,
 }: {
-  events$: Observable<any>
+  events$: Observable<TEvent>
   maxStaleBlocks: number
 }): OperatorFunction<TBlock, TBlock> {
-  return (block$: Observable<TBlock>) => {
-    const activitySignal$ = events$.pipe(map(() => ({ type: 'ACTIVITY' as const })))
-    const blockSignal$ = block$.pipe(map((block) => ({ type: 'BLOCK' as const, block })))
+  return (block$) =>
+    new Observable<TBlock>((subscriber) => {
+      let latest: TBlock | null = null // newest block seen (only reference retained)
+      let latestNumber = -1n
+      let lastEmitted = -1n // block number of the last emission
+      let pendingActivity = -1n // highest block number with activity not yet flushed
 
-    return merge(activitySignal$, blockSignal$).pipe(
-      scan(
-        (acc, signal) => {
-          const isInitial = acc.lastUpdateBlock === 0n
-          let shouldUpdate = false
-          let currentBlock = acc.block
+      const emit = (block: TBlock, n: bigint) => {
+        lastEmitted = n
+        subscriber.next(block)
+      }
 
-          if (signal.type === 'BLOCK') {
-            currentBlock = signal.block
-            const blocksSinceUpdate = BigInt(currentBlock.number) - acc.lastUpdateBlock
+      const sub = new Subscription()
 
-            if (isInitial || blocksSinceUpdate >= BigInt(maxStaleBlocks)) {
-              shouldUpdate = true
+      sub.add(
+        events$.subscribe({
+          next: (event) => {
+            const n = BigInt(event.blockNumber ?? -1n)
+
+            // Already covered by an emission for this block (or a later one)
+            if (n <= lastEmitted) {
+              return
             }
-          } else if (signal.type === 'ACTIVITY') {
-            shouldUpdate = true
-          }
 
-          return {
-            block: currentBlock,
-            shouldUpdate,
-            lastUpdateBlock: shouldUpdate && currentBlock ? BigInt(currentBlock.number) : acc.lastUpdateBlock,
-          }
-        },
-        { block: null as TBlock | null, shouldUpdate: false, lastUpdateBlock: 0n },
-      ),
-      filter(
-        (state): state is { block: TBlock; shouldUpdate: true; lastUpdateBlock: bigint } =>
-          state.shouldUpdate && state.block !== null,
-      ),
-      map((state) => state.block),
-    )
-  }
+            if (latest !== null && latestNumber >= n) {
+              // The block signal came first: flush now, once.
+              emit(latest, latestNumber)
+            } else if (n > pendingActivity) {
+              // Activity came first: flush when its block arrives.
+              pendingActivity = n
+            }
+          },
+          error: (err) => subscriber.error(err),
+        }),
+      )
+
+      sub.add(
+        block$.subscribe({
+          next: (block) => {
+            const n = BigInt(block.number)
+            latest = block
+            latestNumber = n
+
+            const hasActivity = pendingActivity >= 0n && pendingActivity <= n
+
+            if (lastEmitted < 0n || hasActivity || n - lastEmitted >= maxStaleBlocks) {
+              if (hasActivity) {
+                pendingActivity = -1n
+              }
+              emit(block, n)
+            }
+          },
+          error: (err) => subscriber.error(err),
+          complete: () => subscriber.complete(),
+        }),
+      )
+
+      return sub
+    })
 }

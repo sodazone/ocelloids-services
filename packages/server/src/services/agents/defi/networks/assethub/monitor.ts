@@ -9,7 +9,12 @@ import { SubstrateSharedStreams } from '@/services/networking/substrate/shared.j
 import { Logger } from '@/services/types.js'
 import { chunk } from '../../common.js'
 import { smartTrigger } from '../../rxjs/trigger.js'
-import { DefiLiquidityPayload, DefiMonitorDependencies, DefiSubscriptionPayload } from '../../types.js'
+import {
+  DefiEventPayload,
+  DefiLiquidityPayload,
+  DefiMonitorDependencies,
+  DefiSubscriptionPayload,
+} from '../../types.js'
 import {
   BASE_TOKEN_LOCATION,
   CHAIN_ID,
@@ -299,7 +304,7 @@ export function assethubDexMonitor(
     const liquidity$ = apiCtx$.pipe(
       switchMap((apiCtx) =>
         block$.pipe(
-          smartTrigger<Block>({
+          smartTrigger<Block, DefiEventPayload>({
             events$,
             maxStaleBlocks: 150,
           }),
